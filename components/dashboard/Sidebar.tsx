@@ -1,8 +1,20 @@
+import Link from "next/link";
+
 type SidebarProps = {
   navItems: string[];
+  pathname: string;
 };
 
-export function Sidebar({ navItems }: SidebarProps) {
+const hrefLookup: Record<string, string> = {
+  Overview: "/",
+  Projects: "/projects",
+  Tasks: "/tasks",
+  Messages: "/messages",
+  Calendar: "/calendar",
+  Reports: "/reports",
+};
+
+export function Sidebar({ navItems, pathname }: SidebarProps) {
   return (
     <aside className="hidden w-72 shrink-0 rounded-3xl border border-white/10 bg-slate-900/80 p-5 shadow-2xl shadow-slate-950/30 lg:flex lg:flex-col">
       <div className="mb-8 flex items-center gap-3">
@@ -16,21 +28,26 @@ export function Sidebar({ navItems }: SidebarProps) {
       </div>
 
       <nav className="space-y-2">
-        {navItems.map((item, index) => (
-          <button
-            key={item}
-            type="button"
-            className={[
-              "flex w-full items-center justify-between rounded-2xl px-3 py-2.5 text-left text-sm transition",
-              index === 0
-                ? "bg-violet-500/15 text-violet-100 ring-1 ring-inset ring-violet-400/40"
-                : "text-slate-300 hover:bg-white/5 hover:text-white",
-            ].join(" ")}
-          >
-            <span>{item}</span>
-            {index === 0 ? <span className="text-xs text-violet-200">Live</span> : null}
-          </button>
-        ))}
+        {navItems.map((item) => {
+          const href = hrefLookup[item];
+          const isActive = pathname === href;
+
+          return (
+            <Link
+              key={item}
+              href={href}
+              className={[
+                "flex w-full items-center justify-between rounded-2xl px-3 py-2.5 text-left text-sm transition",
+                isActive
+                  ? "bg-violet-500/15 text-violet-100 ring-1 ring-inset ring-violet-400/40"
+                  : "text-slate-300 hover:bg-white/5 hover:text-white",
+              ].join(" ")}
+            >
+              <span>{item}</span>
+              {isActive ? <span className="text-xs text-violet-200">Live</span> : null}
+            </Link>
+          );
+        })}
       </nav>
 
       <div className="mt-auto rounded-2xl border border-violet-500/30 bg-gradient-to-br from-violet-500/10 to-cyan-500/10 p-4">
