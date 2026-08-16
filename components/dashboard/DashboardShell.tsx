@@ -18,7 +18,8 @@ const pageTitles: Record<string, string> = {
 
 export function DashboardShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const title = pageTitles[pathname] ?? "Product overview";
+  const normalizedPath = pathname.startsWith("/projects") ? "/projects" : pathname;
+  const title = pageTitles[normalizedPath] ?? "Product overview";
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50">
