@@ -6,66 +6,22 @@ import {
   tasks,
   team,
 } from "@/data/mock-data";
+import { ActivityItem } from "@/components/dashboard/ActivityItem";
+import { Header } from "@/components/dashboard/Header";
+import { ProjectCard } from "@/components/dashboard/ProjectCard";
+import { Sidebar } from "@/components/dashboard/Sidebar";
+import { StatCard } from "@/components/dashboard/StatCard";
+import { TaskRow } from "@/components/dashboard/TaskRow";
+import { TeamMember } from "@/components/dashboard/TeamMember";
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50">
       <div className="mx-auto flex max-w-7xl gap-6 px-4 py-6 lg:px-8">
-        <aside className="hidden w-72 shrink-0 rounded-3xl border border-white/10 bg-slate-900/80 p-5 shadow-2xl shadow-slate-950/30 lg:flex lg:flex-col">
-          <div className="mb-8 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-cyan-400 text-lg font-semibold text-white">
-              C
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Workspace</p>
-              <h1 className="text-lg font-semibold text-white">CollabSpace</h1>
-            </div>
-          </div>
-
-          <nav className="space-y-2">
-            {navItems.map((item, index) => (
-              <button
-                key={item}
-                type="button"
-                className={[
-                  "flex w-full items-center justify-between rounded-2xl px-3 py-2.5 text-left text-sm transition",
-                  index === 0
-                    ? "bg-violet-500/15 text-violet-100 ring-1 ring-inset ring-violet-400/40"
-                    : "text-slate-300 hover:bg-white/5 hover:text-white",
-                ].join(" ")}
-              >
-                <span>{item}</span>
-                {index === 0 ? <span className="text-xs text-violet-200">Live</span> : null}
-              </button>
-            ))}
-          </nav>
-
-          <div className="mt-auto rounded-2xl border border-violet-500/30 bg-gradient-to-br from-violet-500/10 to-cyan-500/10 p-4">
-            <p className="text-xs uppercase tracking-[0.22em] text-violet-200">Focus sprint</p>
-            <p className="mt-3 text-xl font-semibold text-white">Launch readiness</p>
-            <p className="mt-2 text-sm text-slate-300">12 milestones left before the next release.</p>
-          </div>
-        </aside>
+        <Sidebar navItems={navItems} />
 
         <main className="flex-1">
-          <header className="mb-6 flex flex-col gap-4 rounded-3xl border border-white/10 bg-slate-900/80 p-4 shadow-xl shadow-slate-950/20 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm text-slate-400">Good morning</p>
-              <h2 className="text-2xl font-semibold text-white">Product overview</h2>
-            </div>
-
-            <div className="flex items-center gap-3 self-start sm:self-auto">
-              <div className="hidden rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2 text-sm text-slate-300 sm:block">
-                Search project...
-              </div>
-              <button
-                type="button"
-                className="rounded-2xl bg-violet-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-violet-400"
-              >
-                New report
-              </button>
-            </div>
-          </header>
+          <Header title="Product overview" />
 
           <section className="mb-6 overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-900 to-violet-950/70 p-6 shadow-2xl shadow-slate-950/20">
             <div className="grid gap-6 lg:grid-cols-[1.5fr_0.9fr] lg:items-end">
@@ -81,11 +37,12 @@ export default function Home() {
 
               <div className="grid gap-3 sm:grid-cols-2">
                 {stats.slice(0, 2).map((stat) => (
-                  <div key={stat.label} className="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
-                    <p className="text-sm text-slate-400">{stat.label}</p>
-                    <p className="mt-3 text-3xl font-semibold text-white">{stat.value}</p>
-                    <p className="mt-2 text-xs text-emerald-300">{stat.change}</p>
-                  </div>
+                  <StatCard
+                    key={stat.label}
+                    label={stat.label}
+                    value={stat.value}
+                    change={stat.change}
+                  />
                 ))}
               </div>
             </div>
@@ -102,28 +59,7 @@ export default function Home() {
 
               <div className="space-y-4">
                 {projects.map((project) => (
-                  <div key={project.name} className="rounded-2xl border border-white/10 bg-slate-950/50 p-4">
-                    <div className="mb-3 flex items-start justify-between gap-4">
-                      <div>
-                        <p className="text-base font-medium text-white">{project.name}</p>
-                        <p className="mt-1 text-sm text-slate-400">Owner: {project.owner}</p>
-                      </div>
-                      <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-xs text-emerald-300">
-                        {project.due}
-                      </span>
-                    </div>
-
-                    <div className="mb-2 flex items-center justify-between text-sm text-slate-300">
-                      <span>Progress</span>
-                      <span>{project.progress}%</span>
-                    </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-slate-800">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-violet-500 to-cyan-400"
-                        style={{ width: `${project.progress}%` }}
-                      />
-                    </div>
-                  </div>
+                  <ProjectCard key={project.name} project={project} />
                 ))}
               </div>
             </div>
@@ -136,19 +72,7 @@ export default function Home() {
 
               <div className="space-y-3">
                 {team.map((member) => (
-                  <div key={member.name} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/50 p-3">
-                    <div className={`flex h-10 w-10 items-center justify-center rounded-full ${member.color} text-xs font-semibold text-white`}>
-                      {member.name
-                        .split(" ")
-                        .map((part) => part[0])
-                        .slice(0, 2)
-                        .join("")}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-white">{member.name}</p>
-                      <p className="text-xs text-slate-400">{member.role}</p>
-                    </div>
-                  </div>
+                  <TeamMember key={member.name} member={member} />
                 ))}
               </div>
             </div>
@@ -165,18 +89,7 @@ export default function Home() {
 
               <div className="space-y-3">
                 {tasks.map((task) => (
-                  <div key={task.title} className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-slate-950/50 p-3">
-                    <div className="flex items-center gap-3">
-                      <span className="flex h-3 w-3 rounded-full bg-cyan-400" aria-hidden="true" />
-                      <div>
-                        <p className="text-sm font-medium text-white">{task.title}</p>
-                        <p className="text-xs text-slate-400">{task.assignee} · {task.time}</p>
-                      </div>
-                    </div>
-                    <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-amber-200">
-                      {task.priority}
-                    </span>
-                  </div>
+                  <TaskRow key={task.title} task={task} />
                 ))}
               </div>
             </div>
@@ -189,10 +102,7 @@ export default function Home() {
 
               <div className="space-y-3">
                 {activity.map((item) => (
-                  <div key={item} className="flex gap-3 rounded-2xl border border-white/10 bg-slate-950/50 p-3">
-                    <span className="mt-1 h-2.5 w-2.5 rounded-full bg-violet-500" aria-hidden="true" />
-                    <p className="text-sm text-slate-200">{item}</p>
-                  </div>
+                  <ActivityItem key={item} item={item} />
                 ))}
               </div>
             </div>
