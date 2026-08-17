@@ -185,12 +185,90 @@ export const projectDirectory: Project[] = [
   },
 ];
 
-export const taskBoard = [
-  { title: "Create onboarding email", priority: "High", assignee: "Nina", due: "Today", status: "In review" },
-  { title: "Polish launch checklist", priority: "Medium", assignee: "Mia", due: "Tomorrow", status: "Queued" },
-  { title: "Review support findings", priority: "High", assignee: "Eli", due: "Thu", status: "Blocked" },
-  { title: "Prepare roadmap update", priority: "Low", assignee: "Ava", due: "Fri", status: "Draft" },
-  { title: "Audit handoff notes", priority: "Medium", assignee: "Sara", due: "Mon", status: "Pending" },
+export type TaskPriority = "High" | "Medium" | "Low";
+
+export type DashboardTask = {
+  id: string;
+  title: string;
+  description: string;
+  assignee: string;
+  priority: TaskPriority;
+  status: string;
+  due: string;
+  project?: string;
+};
+
+export const taskBoard: DashboardTask[] = [
+  {
+    id: "task-1",
+    title: "Finalize onboarding checklist",
+    description: "Tighten the customer handoff checklist and align launch copy for the new team cycle.",
+    priority: "High",
+    assignee: "Nina",
+    due: "2026-08-17",
+    status: "In progress",
+    project: "Brand refresh",
+  },
+  {
+    id: "task-2",
+    title: "Review customer feedback",
+    description: "Cluster customer sentiment trends and summarize blockers across support and onboarding.",
+    priority: "Medium",
+    assignee: "Eli",
+    due: "2026-08-18",
+    status: "Pending",
+    project: "Customer portal",
+  },
+  {
+    id: "task-3",
+    title: "Prepare team retro notes",
+    description: "Capture the sprint wins, friction points, and follow-up actions for the next team review.",
+    priority: "Low",
+    assignee: "Sara",
+    due: "2026-08-15",
+    status: "Completed",
+    project: "Ops automation",
+  },
+  {
+    id: "task-4",
+    title: "Audit sprint dependencies",
+    description: "Validate cross-team dependencies and flag any unresolved handoff items for the release board.",
+    priority: "High",
+    assignee: "Omar",
+    due: "2026-08-18",
+    status: "Blocked",
+    project: "Research sprint",
+  },
+  {
+    id: "task-5",
+    title: "Launch readiness checklist",
+    description: "Confirm quality gates, stakeholder sign-off, and launch day responsibilities before release.",
+    priority: "High",
+    assignee: "Ava",
+    due: "2026-08-16",
+    status: "Review",
+    project: "Brand refresh",
+  },
+  {
+    id: "task-6",
+    title: "QA dashboard interactions",
+    description: "Validate the most important dashboard workflows and capture edge-case notes for QA handoff.",
+    priority: "Medium",
+    assignee: "Leo",
+    due: "2026-08-19",
+    status: "In progress",
+    project: "Customer portal",
+  },
+  {
+    id: "task-7",
+    title: "Refresh stakeholder brief",
+    description: "Summarize delivery milestones and blockers into a concise stakeholder-facing brief.",
+    priority: "Low",
+    assignee: "Mia",
+    due: "2026-08-14",
+    status: "Completed",
+    project: "Ops automation",
+  },
 ];
 
 export const messageThreads = [
