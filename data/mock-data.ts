@@ -271,11 +271,94 @@ export const taskBoard: DashboardTask[] = [
   },
 ];
 
-export const messageThreads = [
-  { name: "Design team", preview: "Updated Figma prototypes are ready for review.", time: "2m ago", unread: 3 },
-  { name: "Product crew", preview: "Launch milestones are aligned for Friday delivery.", time: "14m ago", unread: 1 },
-  { name: "Engineering", preview: "We landed the API contract updates for shipping.", time: "1h ago", unread: 5 },
-  { name: "Customer ops", preview: "Feedback clusters are summarized for the weekly brief.", time: "2h ago", unread: 0 },
+export type Message = {
+  id: string;
+  sender: string; // 'Me' or participant name
+  content: string;
+  timestamp: string; // ISO or human-friendly string
+};
+
+export type Conversation = {
+  id: string;
+  name: string;
+  initials: string;
+  color: string; // tailwind bg color class
+  role: string;
+  online: boolean;
+  lastMessage: string;
+  lastTimestamp: string;
+  unread: number;
+  messages: Message[];
+};
+
+export const conversations: Conversation[] = [
+  {
+    id: "conv-design",
+    name: "Design team",
+    initials: "DT",
+    color: "bg-cyan-500",
+    role: "Design",
+    online: true,
+    lastMessage: "Updated Figma prototypes are ready for review.",
+    lastTimestamp: "2026-08-18T12:30:00.000Z",
+    unread: 3,
+    messages: [
+      { id: "m1", sender: "Ava Thompson", content: "Hey team — updated the hero exploration in Figma.", timestamp: "2026-08-18T11:40:00.000Z" },
+      { id: "m2", sender: "Leo Martin", content: "Nice — I left comments on the spacing and CTA.", timestamp: "2026-08-18T12:05:00.000Z" },
+      { id: "m3", sender: "Me", content: "I'll review and push fixes by EOD.", timestamp: "2026-08-18T12:18:00.000Z" },
+      { id: "m4", sender: "Ava Thompson", content: "Updated Figma prototypes are ready for review.", timestamp: "2026-08-18T12:30:00.000Z" },
+    ],
+  },
+  {
+    id: "conv-product",
+    name: "Product crew",
+    initials: "PC",
+    color: "bg-violet-500",
+    role: "Product",
+    online: false,
+    lastMessage: "Launch milestones are aligned for Friday delivery.",
+    lastTimestamp: "2026-08-18T12:10:00.000Z",
+    unread: 1,
+    messages: [
+      { id: "p1", sender: "Mia Chen", content: "Is the launch checklist final?", timestamp: "2026-08-18T09:40:00.000Z" },
+      { id: "p2", sender: "Ava Thompson", content: "Almost — just waiting on analytics sign-off.", timestamp: "2026-08-18T10:05:00.000Z" },
+      { id: "p3", sender: "Me", content: "I'll sync with Eli and confirm before noon.", timestamp: "2026-08-18T11:01:00.000Z" },
+      { id: "p4", sender: "Mia Chen", content: "Launch milestones are aligned for Friday delivery.", timestamp: "2026-08-18T12:10:00.000Z" },
+    ],
+  },
+  {
+    id: "conv-eng",
+    name: "Engineering",
+    initials: "EN",
+    color: "bg-amber-500",
+    role: "Engineering",
+    online: true,
+    lastMessage: "We landed the API contract updates for shipping.",
+    lastTimestamp: "2026-08-18T11:05:00.000Z",
+    unread: 5,
+    messages: [
+      { id: "e1", sender: "Omar Singh", content: "PR queued for review.", timestamp: "2026-08-18T09:05:00.000Z" },
+      { id: "e2", sender: "Nina Patel", content: "I ran the integration tests locally — all green.", timestamp: "2026-08-18T09:42:00.000Z" },
+      { id: "e3", sender: "Me", content: "Great — I'll merge after the last sign-off.", timestamp: "2026-08-18T10:12:00.000Z" },
+      { id: "e4", sender: "Omar Singh", content: "We landed the API contract updates for shipping.", timestamp: "2026-08-18T11:05:00.000Z" },
+    ],
+  },
+  {
+    id: "conv-ops",
+    name: "Customer ops",
+    initials: "CO",
+    color: "bg-emerald-500",
+    role: "Customer success",
+    online: false,
+    lastMessage: "Feedback clusters are summarized for the weekly brief.",
+    lastTimestamp: "2026-08-17T16:20:00.000Z",
+    unread: 0,
+    messages: [
+      { id: "o1", sender: "Sara Kim", content: "Can we add a section for sentiment trends?", timestamp: "2026-08-17T14:05:00.000Z" },
+      { id: "o2", sender: "Me", content: "Yes — I'll draft a template this afternoon.", timestamp: "2026-08-17T15:12:00.000Z" },
+      { id: "o3", sender: "Sara Kim", content: "Feedback clusters are summarized for the weekly brief.", timestamp: "2026-08-17T16:20:00.000Z" },
+    ],
+  },
 ];
 
 export const calendarEvents = [
