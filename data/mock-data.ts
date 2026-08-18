@@ -441,3 +441,165 @@ export const reportCards = [
   { title: "Open blockers", value: "7", trend: "-2", summary: "Dependency conflicts are down from last week." },
   { title: "Team capacity", value: "84%", trend: "+5%", summary: "Focus time remains balanced across squads." },
 ];
+
+// --- Reports and analytics mock data ---
+
+export type StatusCount = { status: string; count: number; color?: string };
+
+export type ProjectPerformance = {
+  id: string;
+  name: string;
+  owner: string;
+  status: string;
+  progress: number; // 0-100
+  tasksCompleted: number;
+  totalTasks: number;
+  due: string; // human-friendly string
+};
+
+export type TeamPerformance = {
+  name: string;
+  role: string;
+  initials?: string;
+  color?: string;
+  assigned: number;
+  completed: number;
+  completedPct: number; // 0-100
+};
+
+export type ActivityPoint = { label: string; value: number };
+
+export type PeriodReportData = {
+  summaryCards: { title: string; value: string; trend: string }[];
+  projectPerformance: ProjectPerformance[];
+  taskStatusBreakdown: StatusCount[];
+  teamPerformance: TeamPerformance[];
+  activityTrends: ActivityPoint[];
+};
+
+export type ReportPeriod = "week" | "month" | "quarter";
+
+// Deterministic base project performance derived from projectDirectory
+const baseProjectPerformance: ProjectPerformance[] = projectDirectory.map((p) => ({
+  id: p.id,
+  name: p.name,
+  owner: p.owner,
+  status: p.status,
+  progress: p.progress,
+  tasksCompleted: p.tasks.filter((t) => ["Completed", "Ready", "Review", "In review"].includes(t.status)).length,
+  totalTasks: p.tasks.length,
+  due: p.due,
+}));
+
+// Build period-specific datasets deterministically (scaled values)
+export const reportDataByPeriod: Record<ReportPeriod, PeriodReportData> = {
+  week: {
+    summaryCards: [
+      { title: "Delivery efficiency", value: "90%", trend: "+2%" },
+      { title: "Customer feedback", value: "4.7/5", trend: "+0.1" },
+      { title: "Open blockers", value: "5", trend: "-1" },
+      { title: "Team capacity", value: "78%", trend: "+1%" },
+    ],
+    projectPerformance: baseProjectPerformance.map((p) => ({
+      ...p,
+      progress: Math.max(10, Math.round(p.progress * 0.6)),
+      tasksCompleted: Math.max(0, Math.round(p.tasksCompleted * 0.5)),
+    })),
+    taskStatusBreakdown: [
+      { status: "Completed", count: 12, color: "bg-emerald-500" },
+      { status: "In progress", count: 7, color: "bg-amber-500" },
+      { status: "Pending", count: 4, color: "bg-slate-700" },
+      { status: "Blocked", count: 1, color: "bg-rose-500" },
+      { status: "Overdue", count: 1, color: "bg-rose-700" },
+    ],
+    teamPerformance: team.map((m, idx) => ({
+      name: m.name,
+      role: m.role,
+      initials: (m.name.split(" ")[0][0] ?? "") + (m.name.split(" ")[1]?.[0] ?? ""),
+      color: m.color,
+      assigned: 3 + idx,
+      completed: Math.max(0, Math.round((3 + idx) * 0.6)),
+      completedPct: Math.round((Math.max(0, Math.round((3 + idx) * 0.6)) / (3 + idx)) * 100),
+    })),
+    activityTrends: [
+      { label: "Day 1", value: 2 },
+      { label: "Day 2", value: 3 },
+      { label: "Day 3", value: 4 },
+      { label: "Day 4", value: 3 },
+      { label: "Day 5", value: 5 },
+      { label: "Day 6", value: 4 },
+      { label: "Day 7", value: 6 },
+    ],
+  },
+
+  month: {
+    summaryCards: [
+      { title: "Delivery efficiency", value: "91%", trend: "+4%" },
+      { title: "Customer feedback", value: "4.75/5", trend: "+0.2" },
+      { title: "Open blockers", value: "8", trend: "0" },
+      { title: "Team capacity", value: "82%", trend: "+3%" },
+    ],
+    projectPerformance: baseProjectPerformance.map((p) => ({
+      ...p,
+      progress: Math.min(98, Math.round(p.progress * 0.85)),
+      tasksCompleted: Math.max(1, Math.round(p.tasksCompleted * 1.2)),
+    })),
+    taskStatusBreakdown: [
+      { status: "Completed", count: 48, color: "bg-emerald-500" },
+      { status: "In progress", count: 19, color: "bg-amber-500" },
+      { status: "Pending", count: 11, color: "bg-slate-700" },
+      { status: "Blocked", count: 3, color: "bg-rose-500" },
+      { status: "Overdue", count: 6, color: "bg-rose-700" },
+    ],
+    teamPerformance: team.map((m, idx) => ({
+      name: m.name,
+      role: m.role,
+      initials: (m.name.split(" ")[0][0] ?? "") + (m.name.split(" ")[1]?.[0] ?? ""),
+      color: m.color,
+      assigned: 8 + idx,
+      completed: Math.max(1, Math.round((8 + idx) * 0.75)),
+      completedPct: Math.round((Math.max(1, Math.round((8 + idx) * 0.75)) / (8 + idx)) * 100),
+    })),
+    activityTrends: [
+      { label: "Wk 1", value: 12 },
+      { label: "Wk 2", value: 16 },
+      { label: "Wk 3", value: 14 },
+      { label: "Wk 4", value: 15 },
+    ],
+  },
+
+  quarter: {
+    summaryCards: [
+      { title: "Delivery efficiency", value: "92%", trend: "+6%" },
+      { title: "Customer feedback", value: "4.8/5", trend: "+0.3" },
+      { title: "Open blockers", value: "15", trend: "-2" },
+      { title: "Team capacity", value: "86%", trend: "+5%" },
+    ],
+    projectPerformance: baseProjectPerformance.map((p) => ({
+      ...p,
+      progress: Math.min(100, Math.round(p.progress * 1.05)),
+      tasksCompleted: Math.max(2, Math.round(p.tasksCompleted * 2.5)),
+    })),
+    taskStatusBreakdown: [
+      { status: "Completed", count: 143, color: "bg-emerald-500" },
+      { status: "In progress", count: 42, color: "bg-amber-500" },
+      { status: "Pending", count: 27, color: "bg-slate-700" },
+      { status: "Blocked", count: 8, color: "bg-rose-500" },
+      { status: "Overdue", count: 12, color: "bg-rose-700" },
+    ],
+    teamPerformance: team.map((m, idx) => ({
+      name: m.name,
+      role: m.role,
+      initials: (m.name.split(" ")[0][0] ?? "") + (m.name.split(" ")[1]?.[0] ?? ""),
+      color: m.color,
+      assigned: 20 + idx,
+      completed: Math.max(4, Math.round((20 + idx) * 0.75)),
+      completedPct: Math.round((Math.max(4, Math.round((20 + idx) * 0.75)) / (20 + idx)) * 100),
+    })),
+    activityTrends: [
+      { label: "Month 1", value: 48 },
+      { label: "Month 2", value: 52 },
+      { label: "Month 3", value: 46 },
+    ],
+  },
+};
