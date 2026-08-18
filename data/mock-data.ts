@@ -361,11 +361,78 @@ export const conversations: Conversation[] = [
   },
 ];
 
-export const calendarEvents = [
-  { title: "Sprint planning", date: "May 3", time: "09:30", location: "Studio A", type: "Planning" },
-  { title: "Stakeholder review", date: "May 3", time: "13:00", location: "Boardroom", type: "Review" },
-  { title: "Design critique", date: "May 5", time: "11:00", location: "Workshop", type: "Design" },
-  { title: "Launch rehearsal", date: "May 7", time: "15:30", location: "Ops room", type: "Launch" },
+export type CalendarEvent = {
+  id: string;
+  title: string;
+  date: string; // YYYY-MM-DD
+  startTime: string; // HH:MM (24-hour)
+  endTime?: string; // HH:MM
+  category: "Meeting" | "Planning" | "Design" | "Engineering" | "Deadline" | "Client" | "Other";
+  description?: string;
+  attendees?: string[];
+};
+
+export const calendarEvents: CalendarEvent[] = [
+  {
+    id: "ev-1",
+    title: "Sprint planning",
+    date: "2026-08-17",
+    startTime: "09:30",
+    endTime: "11:00",
+    category: "Planning",
+    description: "Kickoff the next sprint: prioritize stories and assign owners.",
+    attendees: ["Ava Thompson", "Leo Martin", "Nina Patel", "Omar Singh"],
+  },
+  {
+    id: "ev-2",
+    title: "Product review",
+    date: "2026-08-18",
+    startTime: "13:00",
+    endTime: "14:00",
+    category: "Meeting",
+    description: "Review feature readiness and acceptance criteria with stakeholders.",
+    attendees: ["Mia Chen", "Ava Thompson", "Eli Park"],
+  },
+  {
+    id: "ev-3",
+    title: "Design sync",
+    date: "2026-08-19",
+    startTime: "11:00",
+    endTime: "12:00",
+    category: "Design",
+    description: "Align on visual direction and component library changes.",
+    attendees: ["Leo Martin", "Sara Kim"],
+  },
+  {
+    id: "ev-4",
+    title: "Engineering standup",
+    date: "2026-08-18",
+    startTime: "10:00",
+    endTime: "10:15",
+    category: "Engineering",
+    description: "Daily standup to surface blockers and progress.",
+    attendees: ["Nina Patel", "Omar Singh", "Me"],
+  },
+  {
+    id: "ev-5",
+    title: "Client meeting — Acme Corp",
+    date: "2026-08-20",
+    startTime: "15:00",
+    endTime: "16:00",
+    category: "Client",
+    description: "Demo the latest build and gather feedback.",
+    attendees: ["Ava Thompson", "Mia Chen", "Eli Park"],
+  },
+  {
+    id: "ev-6",
+    title: "Project deadline — Website redesign",
+    date: "2026-08-25",
+    startTime: "23:59",
+    endTime: "23:59",
+    category: "Deadline",
+    description: "Final delivery and handoff to operations.",
+    attendees: ["Ava Thompson", "Leo Martin", "Nina Patel"],
+  },
 ];
 
 export const reportCards = [
