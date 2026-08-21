@@ -18,7 +18,11 @@ export const metadata: Metadata = {
   description: "A collaborative workspace dashboard for product teams.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <html
       lang="en"
