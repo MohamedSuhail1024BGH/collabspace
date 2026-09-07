@@ -39,3 +39,17 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local sqlite database replica
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+collabspace.db*
+.drizzle
+
+# playwright artifacts
+/test-results/
+/playwright-report/
+
+.opencode

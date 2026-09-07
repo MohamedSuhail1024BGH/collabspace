@@ -1,17 +1,36 @@
-import {
-  activity,
-  projects,
-  stats,
-  tasks,
-  team,
-} from "@/data/mock-data";
+import Link from "next/link";
 import { ActivityItem } from "@/components/dashboard/ActivityItem";
 import { ProjectCard } from "@/components/dashboard/ProjectCard";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { TaskRow } from "@/components/dashboard/TaskRow";
 import { TeamMember } from "@/components/dashboard/TeamMember";
+import type { DashboardTask, TaskPriority } from "@/data/mock-data";
+import { getDashboardOverview } from "@/lib/db/queries";
 
-export default function Home() {
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/db/auth";
+
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const user = await getCurrentUser();
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { stats, projects, team, tasks, activity } = await getDashboardOverview();
+
+  const formattedTasks: DashboardTask[] = tasks.map((t) => ({
+    id: t.id,
+    title: t.title,
+    description: t.description,
+    assignee: t.assignee,
+    priority: t.priority as TaskPriority,
+    status: t.status,
+    due: t.due,
+    project: t.projectName ?? "General",
+  }));
+
   return (
     <>
       <section className="mb-6 overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-900 to-violet-950/70 p-6 shadow-2xl shadow-slate-950/20">
@@ -43,28 +62,55 @@ export default function Home() {
         <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-5 shadow-xl shadow-slate-950/20">
           <div className="mb-5 flex items-center justify-between">
             <h3 className="text-lg font-semibold text-white">Featured projects</h3>
-            <button type="button" className="text-sm text-violet-300 hover:text-violet-200">
+            <Link href="/projects" className="text-sm text-violet-300 hover:text-violet-200">
               View all
-            </button>
+            </Link>
           </div>
 
           <div className="space-y-4">
-            {projects.map((project) => (
-              <ProjectCard key={project.name} project={project} />
-            ))}
+            {projects.length > 0 ? (
+              projects.map((project) => (
+                <ProjectCard key={project.id} project={project} />
+              ))
+            ) : (
+              <div
+                data-testid="no-featured-projects"
+                className="rounded-2xl border border-dashed border-white/10 bg-slate-950/40 p-6 text-center text-sm text-slate-400"
+              >
+                No Featured Projects here
+              </div>
+            )}
           </div>
         </div>
 
         <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-5 shadow-xl shadow-slate-950/20">
           <div className="mb-5 flex items-center justify-between">
             <h3 className="text-lg font-semibold text-white">Team updates</h3>
-            <span className="rounded-full bg-violet-500/10 px-2 py-1 text-xs text-violet-200">4 online</span>
+            <span className="rounded-full bg-violet-500/10 px-2 py-1 text-xs text-violet-200">
+              {team.filter((m) => m.online).length} online
+            </span>
           </div>
 
           <div className="space-y-3">
-            {team.map((member) => (
-              <TeamMember key={member.name} member={member} />
-            ))}
+            {team.length > 0 ? (
+              team.map((member) => (
+                <TeamMember
+                  key={member.id}
+                  member={{
+                    name: member.name,
+                    role: member.role,
+                    color: member.color,
+                  }}
+                />
+              ))
+            ) : (
+              <div
+                data-testid="no-team-members"
+                className="rounded-2xl border border-dashed border-white/10 bg-slate-950/40 p-6 text-center text-sm text-slate-400"
+              >
+                No Team Members here
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -73,15 +119,24 @@ export default function Home() {
         <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-5 shadow-xl shadow-slate-950/20">
           <div className="mb-5 flex items-center justify-between">
             <h3 className="text-lg font-semibold text-white">Priority tasks</h3>
-            <button type="button" className="text-sm text-violet-300 hover:text-violet-200">
+            <Link href="/tasks" className="text-sm text-violet-300 hover:text-violet-200">
               Add task
-            </button>
+            </Link>
           </div>
 
           <div className="space-y-3">
-            {tasks.map((task) => (
-              <TaskRow key={task.title} task={task} />
-            ))}
+            {formattedTasks.length > 0 ? (
+              formattedTasks.map((task) => (
+                <TaskRow key={task.id} task={task} />
+              ))
+            ) : (
+              <div
+                data-testid="no-priority-tasks"
+                className="rounded-2xl border border-dashed border-white/10 bg-slate-950/40 p-6 text-center text-sm text-slate-400"
+              >
+                No Priority Tasks here
+              </div>
+            )}
           </div>
         </div>
 
@@ -92,9 +147,18 @@ export default function Home() {
           </div>
 
           <div className="space-y-3">
-            {activity.map((item) => (
-              <ActivityItem key={item} item={item} />
-            ))}
+            {activity.length > 0 ? (
+              activity.map((item, idx) => (
+                <ActivityItem key={`${item}-${idx}`} item={item} />
+              ))
+            ) : (
+              <div
+                data-testid="no-activity"
+                className="rounded-2xl border border-dashed border-white/10 bg-slate-950/40 p-6 text-center text-sm text-slate-400"
+              >
+                No Activity here
+              </div>
+            )}
           </div>
         </div>
       </section>

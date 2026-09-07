@@ -1,12 +1,23 @@
-"use client";
-
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/db/auth";
+import { getActiveWorkspace } from "@/lib/db/workspace";
+import { getWorkspaceReportsData } from "@/lib/db/queries";
 import { ReportsWorkspace } from "@/components/dashboard/ReportsWorkspace";
 
-export default function ReportsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function ReportsPage() {
+  const user = await getCurrentUser();
+  if (!user) {
+    redirect("/login");
+  }
+
+  const activeWorkspace = await getActiveWorkspace();
+  const reportsData = await getWorkspaceReportsData(activeWorkspace?.id);
+
   return (
     <div className="space-y-6 px-4 py-6 lg:px-8">
-      {/* ReportsWorkspace is a client interactive workspace built from deterministic mock data */}
-      <ReportsWorkspace />
+      <ReportsWorkspace data={reportsData} />
     </div>
   );
 }
