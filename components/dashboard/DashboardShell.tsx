@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 
 import { Header } from "@/components/dashboard/Header";
@@ -27,9 +27,36 @@ type DashboardShellProps = {
 
 export function DashboardShell({ children, activeWorkspace, workspaces, user }: DashboardShellProps) {
   const pathname = usePathname();
+  const [density, setDensity] = useState<"comfortable" | "compact">("comfortable");
 
-  // If on authentication pages (login/signup), render full-screen without dashboard frame
-  if (pathname === "/login" || pathname === "/signup") {
+  useEffect(() => {
+    const updatePrefs = () => {
+      try {
+        const savedDensity = localStorage.getItem("collabspace_density");
+        if (savedDensity === "compact" || savedDensity === "comfortable") {
+          setDensity(savedDensity);
+          document.documentElement.setAttribute("data-density", savedDensity);
+        }
+        const savedTheme = localStorage.getItem("collabspace_accent_theme");
+        if (savedTheme) {
+          document.documentElement.setAttribute("data-accent", savedTheme.toLowerCase());
+        }
+      } catch {
+        // Ignore in SSR
+      }
+    };
+
+    updatePrefs();
+    window.addEventListener("collabspace_preferences_changed", updatePrefs);
+    window.addEventListener("storage", updatePrefs);
+    return () => {
+      window.removeEventListener("collabspace_preferences_changed", updatePrefs);
+      window.removeEventListener("storage", updatePrefs);
+    };
+  }, []);
+
+  // If on auth or start pages, render full-screen without dashboard frame
+  if (pathname === "/login" || pathname === "/signup" || pathname === "/start") {
     return <>{children}</>;
   }
 
@@ -38,7 +65,13 @@ export function DashboardShell({ children, activeWorkspace, workspaces, user }: 
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50">
-      <div className="mx-auto flex max-w-7xl gap-6 px-4 py-6 lg:px-8">
+      <div
+        className={`dashboard-shell-container mx-auto flex max-w-7xl transition-all duration-200 ${
+          density === "compact"
+            ? "gap-4 px-3 py-3.5 lg:px-5"
+            : "gap-6 px-4 py-6 lg:px-8"
+        }`}
+      >
         <Sidebar
           navItems={navItems}
           pathname={pathname}
@@ -47,7 +80,7 @@ export function DashboardShell({ children, activeWorkspace, workspaces, user }: 
           user={user}
         />
 
-        <main className="flex-1">
+        <main className="flex-1 min-w-0">
           <Header title={title} user={user} />
           {children}
         </main>

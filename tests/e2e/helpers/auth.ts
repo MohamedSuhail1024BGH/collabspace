@@ -11,5 +11,13 @@ export async function loginAs(
   await page.getByPlaceholder("••••••••").fill(password);
   await page.getByRole("button", { name: "Sign In" }).click();
   await expect(page).not.toHaveURL(/\/login/);
-}
 
+  // If landed on /start, launch into workspace to reach dashboard
+  if (page.url().includes("/start")) {
+    const launchBtn = page.getByRole("button", { name: "Launch Workspace" }).first();
+    if (await launchBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await launchBtn.click();
+      await expect(page).toHaveURL("/");
+    }
+  }
+}

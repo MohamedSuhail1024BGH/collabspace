@@ -6,6 +6,7 @@ import { TaskRow } from "@/components/dashboard/TaskRow";
 import { TeamMember } from "@/components/dashboard/TeamMember";
 import type { DashboardTask, TaskPriority } from "@/data/mock-data";
 import { getDashboardOverview } from "@/lib/db/queries";
+import { getActiveWorkspace } from "@/lib/db/workspace";
 
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/db/auth";
@@ -18,7 +19,15 @@ export default async function Home() {
     redirect("/login");
   }
 
-  const { stats, projects, team, tasks, activity } = await getDashboardOverview();
+  const activeWorkspace = await getActiveWorkspace();
+  if (!activeWorkspace) {
+    redirect("/start");
+  }
+
+  const { stats, projects, team, tasks, activity } = await getDashboardOverview(
+    activeWorkspace.id,
+    user.name
+  );
 
   const formattedTasks: DashboardTask[] = tasks.map((t) => ({
     id: t.id,
@@ -36,9 +45,9 @@ export default async function Home() {
       <section className="mb-6 overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-900 to-violet-950/70 p-6 shadow-2xl shadow-slate-950/20">
         <div className="grid gap-6 lg:grid-cols-[1.5fr_0.9fr] lg:items-end">
           <div>
-            <p className="text-sm uppercase tracking-[0.22em] text-violet-200">Quarterly momentum</p>
+            <p className="text-sm uppercase tracking-[0.22em] text-violet-200">Workspace Overview</p>
             <h3 className="mt-3 text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-              Ship more, together.
+              Welcome to {activeWorkspace.name}
             </h3>
             <p className="mt-4 max-w-xl text-base text-slate-300">
               Align projects, surface blockers early, and keep teams moving with a shared workspace built for focused execution.

@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import { db } from "./index";
 import {
   calendarEvents,
@@ -8,9 +8,9 @@ import {
   projectMembers,
   projects,
   tasks,
-  teamMembers,
   users,
   workspaceMembers,
+  workspaces,
   type DbCalendarEvent,
   type DbConversation,
   type DbMessage,
@@ -35,22 +35,18 @@ export async function getTeamMembers(workspaceId?: string): Promise<DbTeamMember
     .innerJoin(users, eq(workspaceMembers.userId, users.id))
     .where(eq(workspaceMembers.workspaceId, wsId));
 
-  if (members.length > 0) {
-    return members.map((r) => ({
-      id: r.user.id,
-      name: r.user.name,
-      role: r.role,
-      initials: r.user.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() || "TM",
-      color: r.user.avatar || "bg-violet-500",
-      online: true,
-    }));
-  }
-
-  return db.select().from(teamMembers);
+  return members.map((r) => ({
+    id: r.user.id,
+    name: r.user.name,
+    role: r.role,
+    initials: r.user.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() || "TM",
+    color: r.user.avatar || "bg-violet-500",
+    online: true,
+  }));
 }
 
 export type FullProject = DbProject & {
-  teamMembers: { name: string; role: string; initials: string; color: string }[];
+  teamMembers: { id?: string; userId?: string | null; name: string; role: string; initials: string; color: string }[];
   recentActivity: string[];
   tasks: DbTask[];
 };
@@ -71,7 +67,7 @@ export async function getProjects(workspaceId?: string): Promise<FullProject[]> 
     ...p,
     teamMembers: allMembers
       .filter((m) => m.projectId === p.id)
-      .map((m) => ({ name: m.name, role: m.role, initials: m.initials, color: m.color })),
+      .map((m) => ({ id: m.id, userId: m.userId, name: m.name, role: m.role, initials: m.initials, color: m.color })),
     recentActivity: allActivities
       .filter((a) => a.projectId === p.id)
       .map((a) => a.content),
@@ -108,7 +104,14 @@ export async function getProjectById(id: string, workspaceId?: string): Promise<
 
   return {
     ...project,
-    teamMembers: members.map((m) => ({ name: m.name, role: m.role, initials: m.initials, color: m.color })),
+    teamMembers: members.map((m) => ({
+      id: m.id,
+      userId: m.userId,
+      name: m.name,
+      role: m.role,
+      initials: m.initials,
+      color: m.color,
+    })),
     recentActivity: activities.map((a) => a.content),
     tasks: projectTasks,
   };
@@ -127,19 +130,91 @@ export type FullConversation = DbConversation & {
   messages: DbMessage[];
 };
 
-export async function getConversations(workspaceId?: string): Promise<FullConversation[]> {
+export async function getConversations(workspaceId?: string, currentUserId?: string): Promise<FullConversation[]> {
   const wsId = workspaceId ?? (await getActiveWorkspaceId());
-  const allConversations = await db
-    .select()
-    .from(conversations)
-    .where(eq(conversations.workspaceId, wsId));
+  const [allConversations, allMessages, members, teamList] = await Promise.all([
+    db.select().from(conversations).where(eq(conversations.workspaceId, wsId)),
+    db.select().from(messages).orderBy(messages.timestamp),
+    getWorkspaceMembers(wsId),
+    getTeamMembers(wsId),
+  ]);
 
-  const allMessages = await db.select().from(messages).orderBy(messages.timestamp);
+  return allConversations
+    .filter((c) => {
+      const isDirect = c.type === "direct" || c.id.startsWith("conv-dm-");
+      if (!isDirect) return true; // Channels are workspace-wide
+      if (!currentUserId) return true; // If no viewer context provided, keep all
 
-  return allConversations.map((c) => ({
-    ...c,
-    messages: allMessages.filter((m) => m.conversationId === c.id),
-  }));
+      let pIds: string[] = [];
+      try {
+        pIds = JSON.parse(c.participantIds || "[]");
+      } catch {
+        pIds = [];
+      }
+      if (pIds.length === 0) {
+        if (c.id === "conv-dm-leo") pIds = ["usr-ava", "usr-leo"];
+        if (c.id === "conv-dm-mia") pIds = ["usr-ava", "usr-mia"];
+      }
+      return pIds.includes(currentUserId);
+    })
+    .map((c) => {
+      const isDirect = c.type === "direct" || c.id.startsWith("conv-dm-");
+      if (!isDirect || !currentUserId) {
+        return {
+          ...c,
+          messages: allMessages.filter((m) => m.conversationId === c.id),
+        };
+      }
+
+      let pIds: string[] = [];
+      try {
+        pIds = JSON.parse(c.participantIds || "[]");
+      } catch {
+        pIds = [];
+      }
+      if (pIds.length === 0) {
+        if (c.id === "conv-dm-leo") pIds = ["usr-ava", "usr-leo"];
+        if (c.id === "conv-dm-mia") pIds = ["usr-ava", "usr-mia"];
+      }
+
+      // Find other participant
+      const counterpartyId = pIds.find((id) => id !== currentUserId) || currentUserId;
+      const counterparty = members.find((m) => m.user.id === counterpartyId);
+
+      if (counterparty) {
+        const cpName = counterparty.user.name;
+        const nameParts = cpName.trim().split(/\s+/);
+        const cpInitials = (
+          (nameParts[0]?.[0] ?? "") +
+          (nameParts[1]?.[0] ?? nameParts[0]?.[1] ?? "")
+        ).toUpperCase();
+
+        const tm = teamList.find((t) => t.name.toLowerCase() === cpName.toLowerCase());
+        const displayRole =
+          tm?.role ||
+          (counterparty.role === "owner"
+            ? "Workspace Owner"
+            : counterparty.role === "admin"
+            ? "Administrator"
+            : "Team Member");
+        const displayColor = tm?.color || "bg-cyan-500";
+
+        return {
+          ...c,
+          name: cpName,
+          initials: cpInitials,
+          role: displayRole,
+          color: displayColor,
+          online: true,
+          messages: allMessages.filter((m) => m.conversationId === c.id),
+        };
+      }
+
+      return {
+        ...c,
+        messages: allMessages.filter((m) => m.conversationId === c.id),
+      };
+    });
 }
 
 export type ParsedCalendarEvent = Omit<DbCalendarEvent, "attendees"> & {
@@ -167,8 +242,8 @@ export async function getCalendarEvents(workspaceId?: string): Promise<ParsedCal
   });
 }
 
-export async function getDashboardOverview(workspaceId?: string) {
-  const wsId = workspaceId ?? (await getActiveWorkspaceId());
+export async function getDashboardOverview(workspaceId: string, userName?: string) {
+  const wsId = workspaceId;
   const allProjects = await db.select().from(projects).where(eq(projects.workspaceId, wsId));
   const allTasks = await db.select().from(tasks).where(eq(tasks.workspaceId, wsId));
   const members = await getTeamMembers(wsId);
@@ -183,21 +258,37 @@ export async function getDashboardOverview(workspaceId?: string) {
     .orderBy(desc(projectActivity.createdAt))
     .limit(5);
 
+  const activeProjects = allProjects.filter((p) => p.status !== "Completed").length;
+  const openTasks = allTasks.filter((t) => t.status !== "Completed").length;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const tasksDueToday = allTasks.filter((t) => t.status !== "Completed" && t.due === todayStr).length;
   const completedTasks = allTasks.filter((t) => t.status === "Completed").length;
-  const resolutionRate = allTasks.length > 0 ? Math.round((completedTasks / allTasks.length) * 100) : 85;
+  const completionRate = allTasks.length > 0 ? Math.round((completedTasks / allTasks.length) * 100) : 0;
 
   const stats = [
-    { label: "Active workspaces", value: "12", change: "+3 this week" },
-    { label: "Open tasks", value: String(allTasks.length), change: `${allTasks.filter((t) => t.due === "Today").length} due today` },
-    { label: "Team velocity", value: "92%", change: "+6.4% vs last sprint" },
-    { label: "Resolution rate", value: `${resolutionRate}%`, change: "2 day average" },
+    { label: "Active Projects", value: String(activeProjects), change: "Current workload" },
+    { label: "Open Tasks", value: String(openTasks), change: "Needs attention" },
+    { label: "Due Today", value: String(tasksDueToday), change: "Priority items" },
+    { label: "Completion Rate", value: `${completionRate}%`, change: "Overall progress" },
   ];
+
+  // Filter tasks for the dashboard Priority Tasks section
+  let priorityTasks = allTasks;
+  if (userName) {
+    priorityTasks = allTasks.filter((t) => t.assignee === userName);
+  }
+  // Sort by High priority first, then by due date
+  priorityTasks.sort((a, b) => {
+    if (a.priority === "High" && b.priority !== "High") return -1;
+    if (b.priority === "High" && a.priority !== "High") return 1;
+    return new Date(a.due).getTime() - new Date(b.due).getTime();
+  });
 
   return {
     stats,
     projects: allProjects.slice(0, 3),
     team: members,
-    tasks: allTasks.slice(0, 4),
+    tasks: priorityTasks.slice(0, 4),
     activity: activities.map((a) => a.content),
   };
 }
@@ -234,10 +325,17 @@ export async function getWorkspaceReportsData(workspaceId?: string): Promise<Wor
   const allTasks = await db.select().from(tasks).where(eq(tasks.workspaceId, wsId));
   const members = await getTeamMembers(wsId);
 
-  const completedTasks = allTasks.filter((t) => t.status === "Completed").length;
-  const inProgressTasks = allTasks.filter((t) => t.status === "In progress").length;
-  const notStartedTasks = allTasks.filter((t) => t.status === "Not started").length;
-  const blockedTasks = allTasks.filter((t) => t.status === "Blocked").length;
+  const completedTasks = allTasks.filter((t) => t.status.toLowerCase() === "completed").length;
+  const inProgressTasks = allTasks.filter((t) => t.status.toLowerCase() === "in progress").length;
+  const notStartedTasks = allTasks.filter((t) => t.status.toLowerCase() === "not started").length;
+  const reviewTasks = allTasks.filter((t) => t.status.toLowerCase() === "review").length;
+  const pendingTasks = allTasks.filter((t) => t.status.toLowerCase() === "pending").length;
+  const blockedTasks = allTasks.filter((t) => t.status.toLowerCase() === "blocked").length;
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const overdueTasks = allTasks.filter(
+    (t) => t.status.toLowerCase() !== "completed" && t.due && t.due < todayStr
+  ).length;
 
   const totalTasks = allTasks.length;
   const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
@@ -251,7 +349,7 @@ export async function getWorkspaceReportsData(workspaceId?: string): Promise<Wor
 
   const projectPerformance = allProjects.map((p) => {
     const projTasks = allTasks.filter((t) => t.projectId === p.id);
-    const projDone = projTasks.filter((t) => t.status === "Completed").length;
+    const projDone = projTasks.filter((t) => t.status.toLowerCase() === "completed").length;
     return {
       id: p.id,
       name: p.name,
@@ -268,7 +366,10 @@ export async function getWorkspaceReportsData(workspaceId?: string): Promise<Wor
     { status: "Completed", count: completedTasks, color: "bg-emerald-500" },
     { status: "In progress", count: inProgressTasks, color: "bg-amber-500" },
     { status: "Not started", count: notStartedTasks, color: "bg-slate-600" },
+    ...(reviewTasks > 0 ? [{ status: "Review", count: reviewTasks, color: "bg-purple-500" }] : []),
+    ...(pendingTasks > 0 ? [{ status: "Pending", count: pendingTasks, color: "bg-blue-500" }] : []),
     ...(blockedTasks > 0 ? [{ status: "Blocked", count: blockedTasks, color: "bg-rose-500" }] : []),
+    ...(overdueTasks > 0 ? [{ status: "Overdue", count: overdueTasks, color: "bg-red-500" }] : []),
   ];
 
   const teamPerformance = members.map((m) => {
@@ -305,4 +406,91 @@ export async function getWorkspaceReportsData(workspaceId?: string): Promise<Wor
     teamPerformance,
     activityTrends,
   };
+}
+
+export async function searchUsers(query: string) {
+  const cleanQuery = query.trim().toLowerCase().replace(/^@/, "");
+  if (!cleanQuery) return [];
+
+  const allUsers = await db
+    .select({
+      id: users.id,
+      name: users.name,
+      username: users.username,
+      email: users.email,
+      avatar: users.avatar,
+      bio: users.bio,
+    })
+    .from(users);
+
+  return allUsers.filter(
+    (u) =>
+      u.name.toLowerCase().includes(cleanQuery) ||
+      (u.username && u.username.toLowerCase().includes(cleanQuery)) ||
+      u.email.toLowerCase().includes(cleanQuery)
+  );
+}
+
+export async function searchWorkspaces(query: string) {
+  const cleanQuery = query.trim().toLowerCase().replace(/^#/, "");
+  const allWs = await db.select().from(workspaces);
+  const allMembers = await db.select().from(workspaceMembers);
+
+  const matched = cleanQuery
+    ? allWs.filter(
+        (w) =>
+          w.isPublic &&
+          (w.name.toLowerCase().includes(cleanQuery) ||
+            w.slug.toLowerCase().includes(cleanQuery) ||
+            (w.description && w.description.toLowerCase().includes(cleanQuery)))
+      )
+    : allWs.filter((w) => w.isPublic);
+
+  return matched.map((w) => ({
+    ...w,
+    memberCount: allMembers.filter((m) => m.workspaceId === w.id).length,
+  }));
+}
+
+export async function getWorkspaceMembers(workspaceId: string) {
+  const rows = await db
+    .select({
+      membershipId: workspaceMembers.id,
+      role: workspaceMembers.role,
+      joinedAt: workspaceMembers.joinedAt,
+      user: {
+        id: users.id,
+        name: users.name,
+        username: users.username,
+        email: users.email,
+        avatar: users.avatar,
+      },
+    })
+    .from(workspaceMembers)
+    .innerJoin(users, eq(workspaceMembers.userId, users.id))
+    .where(eq(workspaceMembers.workspaceId, workspaceId))
+    .orderBy(asc(workspaceMembers.joinedAt));
+
+  return rows;
+}
+
+export async function getUserWorkspacesWithDetails(userId: string) {
+  const userMemberships = await db
+    .select({
+      workspace: workspaces,
+      role: workspaceMembers.role,
+    })
+    .from(workspaceMembers)
+    .innerJoin(workspaces, eq(workspaceMembers.workspaceId, workspaces.id))
+    .where(eq(workspaceMembers.userId, userId));
+
+  const allMembers = await db.select().from(workspaceMembers);
+  const allProjects = await db.select().from(projects);
+
+  return userMemberships.map(({ workspace, role }) => ({
+    ...workspace,
+    userRole: role,
+    memberCount: allMembers.filter((m) => m.workspaceId === workspace.id).length,
+    projectCount: allProjects.filter((p) => p.workspaceId === workspace.id).length,
+  }));
 }

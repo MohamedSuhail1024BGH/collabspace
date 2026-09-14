@@ -53,3 +53,6 @@ collabspace.db*
 /playwright-report/
 
 .opencode
+
+#agent-conf
+.agents/

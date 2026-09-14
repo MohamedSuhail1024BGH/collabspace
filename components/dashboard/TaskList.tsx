@@ -4,9 +4,9 @@ import { TaskRow } from "@/components/dashboard/TaskRow";
 
 type TaskListProps = {
   tasks: DashboardTask[];
-  onEdit: (task: DashboardTask) => void;
-  onDelete: (taskId: string) => void;
-  onStatusChange: (taskId: string, status: string) => void;
+  onEdit?: (task: DashboardTask) => void;
+  onDelete?: (taskId: string) => void;
+  onStatusChange?: (taskId: string, status: string) => void;
   onResetFilters: () => void;
 };
 

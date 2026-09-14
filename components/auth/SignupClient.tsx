@@ -7,10 +7,10 @@ import { signupAction } from "@/app/actions";
 
 export function SignupClient() {
   const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [workspaceName, setWorkspaceName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
@@ -22,9 +22,9 @@ export function SignupClient() {
     startTransition(async () => {
       const res = await signupAction({
         name,
+        username,
         email,
         password,
-        workspaceName: workspaceName.trim() || `${name}'s Workspace`,
       });
 
       if (!res.success) {
@@ -113,15 +113,20 @@ export function SignupClient() {
 
             <div>
               <label className="mb-1.5 block text-xs font-medium text-slate-300">
-                Workspace Name <span className="text-slate-500">(Optional)</span>
+                Username <span className="text-violet-400 font-normal">(@handle)</span>
               </label>
-              <input
-                type="text"
-                value={workspaceName}
-                onChange={(e) => setWorkspaceName(e.target.value)}
-                placeholder="e.g. Acme Operations or My Team"
-                className="w-full rounded-2xl border border-white/10 bg-slate-950/60 px-3.5 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-violet-400 focus:outline-none"
-              />
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-sm text-slate-500">@</span>
+                <input
+                  type="text"
+                  required
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
+                  placeholder="alexmorgan"
+                  className="w-full rounded-2xl border border-white/10 bg-slate-950/60 pl-8 pr-3.5 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-violet-400 focus:outline-none"
+                />
+              </div>
+              <p className="mt-1 text-[11px] text-slate-500">People can discover and invite you using this handle.</p>
             </div>
 
             <button
@@ -129,7 +134,7 @@ export function SignupClient() {
               disabled={isPending}
               className="mt-2 flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-violet-500 to-cyan-500 py-3 text-sm font-semibold text-white shadow-lg shadow-violet-900/30 transition hover:opacity-95 disabled:opacity-50"
             >
-              {isPending ? "Creating Account..." : "Create Account & Workspace"}
+              {isPending ? "Creating Account..." : "Create Account"}
             </button>
           </form>
         </div>

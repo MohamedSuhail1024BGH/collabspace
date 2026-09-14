@@ -1,4 +1,4 @@
-import { getConversations } from "@/lib/db/queries";
+import { getConversations, getWorkspaceMembers } from "@/lib/db/queries";
 import { getActiveWorkspace } from "@/lib/db/workspace";
 import { MessagesClient } from "@/components/dashboard/MessagesClient";
 
@@ -14,6 +14,22 @@ export default async function MessagesPage() {
   }
 
   const activeWorkspace = await getActiveWorkspace();
-  const initialConversations = await getConversations(activeWorkspace.id);
-  return <MessagesClient key={activeWorkspace.id} initialConversations={initialConversations} />;
+  if (!activeWorkspace) {
+    redirect("/start");
+  }
+
+  const [initialConversations, workspaceMembers] = await Promise.all([
+    getConversations(activeWorkspace.id, user.id),
+    getWorkspaceMembers(activeWorkspace.id),
+  ]);
+
+  return (
+    <MessagesClient
+      key={activeWorkspace.id}
+      workspaceId={activeWorkspace.id}
+      currentUser={user}
+      workspaceMembers={workspaceMembers}
+      initialConversations={initialConversations}
+    />
+  );
 }

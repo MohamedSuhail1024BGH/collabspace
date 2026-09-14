@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useRef, useEffect, useOptimistic } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { switchWorkspaceAction, createWorkspaceAction } from "@/app/actions";
 import type { DbWorkspace } from "@/lib/db/schema";
 
@@ -24,7 +25,6 @@ export function WorkspaceSwitcher({ activeWorkspace, workspaces }: WorkspaceSwit
   const [isOpen, setIsOpen] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
-  const [newWorkspacePlan, setNewWorkspacePlan] = useState<"Free" | "Pro" | "Enterprise">("Pro");
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -63,7 +63,7 @@ export function WorkspaceSwitcher({ activeWorkspace, workspaces }: WorkspaceSwit
     startTransition(async () => {
       const res = await createWorkspaceAction({
         name: newWorkspaceName.trim(),
-        plan: newWorkspacePlan,
+        plan: "Pro",
       });
       if (res.id) {
         setActiveWorkspaceCookie(res.id);
@@ -93,11 +93,8 @@ export function WorkspaceSwitcher({ activeWorkspace, workspaces }: WorkspaceSwit
               <span className="truncate text-sm font-semibold text-white">
                 {currentWorkspace.name}
               </span>
-              <span className="shrink-0 rounded-full border border-violet-400/30 bg-violet-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-violet-200">
-                {currentWorkspace.plan}
-              </span>
             </div>
-            <p className="truncate text-xs text-slate-400">workspace.collabspace</p>
+            <p className="truncate text-xs text-slate-400">collabspace.app/{currentWorkspace.slug}</p>
           </div>
         </div>
 
@@ -139,7 +136,7 @@ export function WorkspaceSwitcher({ activeWorkspace, workspaces }: WorkspaceSwit
                     </div>
                     <div className="truncate">
                       <p className="truncate text-sm font-medium">{ws.name}</p>
-                      <p className="text-[10px] text-slate-400">{ws.plan} plan</p>
+                      <p className="text-[10px] text-slate-400">collabspace.app/{ws.slug}</p>
                     </div>
                   </div>
 
@@ -157,7 +154,17 @@ export function WorkspaceSwitcher({ activeWorkspace, workspaces }: WorkspaceSwit
             })}
           </div>
 
-          <div className="mt-2 border-t border-white/10 pt-2">
+          <div className="mt-2 border-t border-white/10 pt-2 space-y-1">
+            <Link
+              href="/start"
+              className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-xs font-medium text-slate-300 hover:bg-white/5 hover:text-white"
+            >
+              <svg className="h-4 w-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+              </svg>
+              <span>Start Hub & Discovery</span>
+            </Link>
+
             <button
               type="button"
               onClick={() => {
@@ -195,26 +202,6 @@ export function WorkspaceSwitcher({ activeWorkspace, workspaces }: WorkspaceSwit
                   className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:border-violet-400 focus:outline-none"
                   autoFocus
                 />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-medium text-slate-300">Subscription Tier</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(["Free", "Pro", "Enterprise"] as const).map((plan) => (
-                    <button
-                      key={plan}
-                      type="button"
-                      onClick={() => setNewWorkspacePlan(plan)}
-                      className={`rounded-xl border py-2 text-xs font-medium transition ${
-                        newWorkspacePlan === plan
-                          ? "border-violet-400 bg-violet-500/20 text-violet-200"
-                          : "border-white/10 bg-slate-950/50 text-slate-400 hover:text-white"
-                      }`}
-                    >
-                      {plan}
-                    </button>
-                  ))}
-                </div>
               </div>
             </div>
 

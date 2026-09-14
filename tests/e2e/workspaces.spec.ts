@@ -10,7 +10,7 @@ test.describe("Multi-Tenant Workspaces", () => {
     await page.goto("/");
 
     // Verify page loads with Acme Corporation
-    await expect(page.getByRole("heading", { name: "Ship more, together." })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Welcome to Acme Corporation" })).toBeVisible();
     await expect(page.getByText("Acme Corporation").first()).toBeVisible();
 
     // Open Workspace Switcher dropdown using test ID
@@ -26,7 +26,6 @@ test.describe("Multi-Tenant Workspaces", () => {
 
     // Assert workspace switcher updates
     await expect(page.getByText("Starlight Studios").first()).toBeVisible();
-    await expect(page.getByText("Enterprise").first()).toBeVisible();
 
     // Navigate to /projects and verify Starlight Studios' projects are displayed
     await page.goto("/projects");

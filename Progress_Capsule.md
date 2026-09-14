@@ -5,16 +5,23 @@ The CollabSpace project is currently an active Next.js application (version 16.3
 Recent work includes significant additions to authentication, dashboard clients, database integration with Drizzle ORM, and End-to-End testing with Playwright.
 
 ### Completed Features & Uncommitted Changes (as of Backup)
+- **Architecture Ideology Overhaul**:
+  - **Decoupled User Signup**: Separated account creation from workspace creation; added `@username` handles and bio fields.
+  - **Start Launchpad (`/start`)**: Central hub reached upon login for managing joined workspaces, discovering public workspaces, exploring the `@username` user directory, and creating organizations.
+  - **Workspace Guidance & Roles**: Configured `owner`, `admin`, `member`, and `viewer` roles with owner guidance in **Settings -> Members & Roles**.
+  - **Granular Project Roles**: Implemented dynamic team assignment with `lead`, `contributor`, `reviewer`, and `viewer` roles in project details.
+  - **Database Migrations & Schema**: Updated `users`, `workspaces`, and `project_members` tables safely with non-destructive backfills.
+  - **E2E Test Suite**: 12/12 Playwright test suites passing across all modules including the new Start Launchpad.
 - **Database Integration**: Added `drizzle-orm` and `better-sqlite3`. Configured in `drizzle.config.ts` and `lib/db/`.
-- **E2E Testing**: Integrated Playwright (`@playwright/test`) and configured in `playwright.config.ts` and `tests/`.
 - **Client Components Migration**: Separated client logic into dedicated client components:
+  - `StartClient.tsx`
   - `CalendarClient.tsx`
   - `MessagesClient.tsx`
   - `ProjectsClient.tsx`
   - `SettingsClient.tsx`
   - `TasksClient.tsx`
   - `WorkspaceSwitcher.tsx`
-- **Authentication**: Added login/signup pages and `components/auth/` components.
+- **Authentication**: Added login/signup/start pages and `components/auth/` components.
 - **Server Actions**: Introduced `app/actions.ts`.
 - **Node Environment**: Locked Node.js version to v22 via `.nvmrc`.
 
@@ -41,18 +48,7 @@ nvm install 22
 nvm use 22
 ```
 
-**Install Visual Studio Code:**
-Follow the official documentation or install via snap:
-```bash
-sudo snap install code --classic
-```
-
-### 2. Restoring the Project from GitHub
-Open your terminal and clone the repository:
-```bash
-git clone <YOUR_GITHUB_REPOSITORY_URL> collabspace
-cd collabspace
-```
+### 2. Restoring the Project from GitHub (Already restored)
 
 ### 3. Setup the Project Environment
 Once inside the project directory, install dependencies and setup the database.
@@ -70,11 +66,6 @@ npm run db:seed
 ```
 
 ### 4. Running the Application in VS Code
-Open the project in VS Code:
-```bash
-code .
-```
-
 Start the development server:
 ```bash
 npm run dev

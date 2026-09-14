@@ -16,6 +16,8 @@ export const stats = [
 ];
 
 export type ProjectMember = {
+  id?: string;
+  userId?: string | null;
   name: string;
   role: string;
   initials: string;
@@ -281,6 +283,8 @@ export type Message = {
 
 export type Conversation = {
   id: string;
+  type?: "channel" | "direct";
+  participantIds?: string[];
   name: string;
   initials: string;
   color: string; // tailwind bg color class

@@ -6,7 +6,9 @@ export const workspaces = sqliteTable("workspaces", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
+  description: text("description").default(""),
   plan: text("plan").notNull().default("Pro"), // "Free" | "Pro" | "Enterprise"
+  isPublic: integer("is_public", { mode: "boolean" }).notNull().default(true),
   createdAt: text("created_at").notNull(),
 });
 
@@ -14,6 +16,8 @@ export const workspaces = sqliteTable("workspaces", {
 export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
   email: text("email").notNull().unique(),
+  username: text("username").unique(),
+  bio: text("bio"),
   passwordHash: text("password_hash").notNull(),
   name: text("name").notNull(),
   avatar: text("avatar"),
@@ -57,7 +61,7 @@ export const projects = sqliteTable("projects", {
   id: text("id").primaryKey(),
   workspaceId: text("workspace_id")
     .notNull()
-    .default("ws-acme")
+    
     .references(() => workspaces.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   progress: integer("progress").notNull().default(0),
@@ -73,8 +77,10 @@ export const projectMembers = sqliteTable("project_members", {
   projectId: text("project_id")
     .notNull()
     .references(() => projects.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
-  role: text("role").notNull(),
+  role: text("role").notNull().default("contributor"),
   initials: text("initials").notNull(),
   color: text("color").notNull(),
 });
@@ -93,7 +99,7 @@ export const tasks = sqliteTable("tasks", {
   id: text("id").primaryKey(),
   workspaceId: text("workspace_id")
     .notNull()
-    .default("ws-acme")
+    
     .references(() => workspaces.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   description: text("description").notNull().default(""),
@@ -111,8 +117,9 @@ export const conversations = sqliteTable("conversations", {
   id: text("id").primaryKey(),
   workspaceId: text("workspace_id")
     .notNull()
-    .default("ws-acme")
     .references(() => workspaces.id, { onDelete: "cascade" }),
+  type: text("type").notNull().default("channel"), // "channel" | "direct"
+  participantIds: text("participant_ids").default("[]"), // JSON array of user IDs for direct messages
   name: text("name").notNull(),
   initials: text("initials").notNull(),
   color: text("color").notNull(),
@@ -138,7 +145,7 @@ export const calendarEvents = sqliteTable("calendar_events", {
   id: text("id").primaryKey(),
   workspaceId: text("workspace_id")
     .notNull()
-    .default("ws-acme")
+    
     .references(() => workspaces.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   date: text("date").notNull(), // YYYY-MM-DD
@@ -161,6 +168,7 @@ export const workspacesRelations = relations(workspaces, ({ many }) => ({
 export const usersRelations = relations(users, ({ many }) => ({
   sessions: many(sessions),
   workspaces: many(workspaceMembers),
+  projectMemberships: many(projectMembers),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -195,6 +203,10 @@ export const projectMembersRelations = relations(projectMembers, ({ one }) => ({
   project: one(projects, {
     fields: [projectMembers.projectId],
     references: [projects.id],
+  }),
+  user: one(users, {
+    fields: [projectMembers.userId],
+    references: [users.id],
   }),
 }));
 
@@ -234,6 +246,9 @@ export const messagesRelations = relations(messages, ({ one }) => ({
 // --- Inferred Types ---
 export const USER_ROLES = ["owner", "admin", "member", "viewer"] as const;
 export type UserRole = (typeof USER_ROLES)[number];
+
+export const PROJECT_ROLES = ["lead", "contributor", "reviewer", "viewer"] as const;
+export type ProjectRole = (typeof PROJECT_ROLES)[number];
 
 export type DbUser = typeof users.$inferSelect;
 export type DbSession = typeof sessions.$inferSelect;

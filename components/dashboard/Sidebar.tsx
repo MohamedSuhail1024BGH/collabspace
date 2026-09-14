@@ -28,7 +28,9 @@ const defaultWorkspace: DbWorkspace = {
   id: "ws-acme",
   name: "Acme Corporation",
   slug: "acme",
+  description: "Primary company workspace.",
   plan: "Pro",
+  isPublic: true,
   createdAt: new Date().toISOString(),
 };
 
@@ -48,8 +50,24 @@ export function Sidebar({
   };
 
   return (
-    <aside className="hidden w-72 shrink-0 rounded-3xl border border-white/10 bg-slate-900/80 p-5 shadow-2xl shadow-slate-950/30 lg:flex lg:flex-col">
+    <aside className="sidebar-container hidden w-72 shrink-0 rounded-3xl border border-white/10 bg-slate-900/80 p-5 shadow-2xl shadow-slate-950/30 lg:flex lg:flex-col transition-all duration-200">
       <WorkspaceSwitcher activeWorkspace={activeWorkspace} workspaces={workspaces} />
+
+      <div className="mb-4">
+        <Link
+          href="/start"
+          data-testid="sidebar-start-hub-btn"
+          className="theme-accent-badge flex items-center justify-between rounded-2xl border px-3.5 py-2.5 text-xs font-semibold transition hover:opacity-90"
+        >
+          <div className="flex items-center gap-2">
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+            </svg>
+            <span>Start Hub</span>
+          </div>
+          <span className="text-[10px] uppercase tracking-wider opacity-80">All Workspaces</span>
+        </Link>
+      </div>
 
       <nav className="space-y-2">
         {navItems.map((item) => {
@@ -61,21 +79,21 @@ export function Sidebar({
               key={item}
               href={href}
               className={[
-                "flex w-full items-center justify-between rounded-2xl px-3 py-2.5 text-left text-sm transition",
+                "flex w-full items-center justify-between rounded-2xl px-3 py-2.5 text-left text-sm transition font-medium",
                 isActive
-                  ? "bg-violet-500/15 text-violet-100 ring-1 ring-inset ring-violet-400/40"
+                  ? "theme-nav-active font-semibold"
                   : "text-slate-300 hover:bg-white/5 hover:text-white",
               ].join(" ")}
             >
               <span>{item}</span>
-              {isActive ? <span className="text-xs text-violet-200">Live</span> : null}
+              {isActive ? <span className="text-xs opacity-90">Live</span> : null}
             </Link>
           );
         })}
       </nav>
 
-      <div className="mt-auto rounded-2xl border border-violet-500/30 bg-gradient-to-br from-violet-500/10 to-cyan-500/10 p-4">
-        <p className="text-xs uppercase tracking-[0.22em] text-violet-200">Focus sprint</p>
+      <div className="theme-focus-card mt-auto rounded-2xl border p-4 transition-all">
+        <p className="text-xs uppercase tracking-[0.22em] text-slate-300">Focus sprint</p>
         <p className="mt-3 text-xl font-semibold text-white">Launch readiness</p>
         <p className="mt-2 text-sm text-slate-300">12 milestones left before the next release.</p>
       </div>

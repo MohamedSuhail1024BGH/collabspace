@@ -9,6 +9,7 @@ export type TaskDraft = {
   status: string;
   due: string;
   project: string;
+  projectId?: string;
 };
 
 type TaskFormProps = {
@@ -17,6 +18,8 @@ type TaskFormProps = {
   assigneeOptions: string[];
   statusOptions: string[];
   priorityOptions: TaskPriority[];
+  projectOptions?: { id: string; name: string }[];
+  isSaving?: boolean;
   onFieldChange: (field: keyof TaskDraft, value: string) => void;
   onCancel: () => void;
   onSave: () => void;
@@ -28,6 +31,8 @@ export function TaskForm({
   assigneeOptions,
   statusOptions,
   priorityOptions,
+  projectOptions = [],
+  isSaving = false,
   onFieldChange,
   onCancel,
   onSave,
@@ -88,12 +93,37 @@ export function TaskForm({
 
           <div>
             <label className="mb-2 block text-sm text-slate-300">Project</label>
-            <input
-              value={draft.project}
-              onChange={(event) => onFieldChange("project", event.target.value)}
-              placeholder="Project"
-              className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-violet-400/50 focus:outline-none"
-            />
+            {projectOptions && projectOptions.length > 0 ? (
+              <select
+                value={draft.projectId || ""}
+                onChange={(event) => {
+                  const val = event.target.value;
+                  const match = projectOptions.find((p) => p.id === val);
+                  if (match) {
+                    onFieldChange("project", match.name);
+                    onFieldChange("projectId", match.id);
+                  } else {
+                    onFieldChange("project", "General");
+                    onFieldChange("projectId", "");
+                  }
+                }}
+                className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2.5 text-sm text-white focus:border-violet-400/50 focus:outline-none"
+              >
+                <option value="">General (No project)</option>
+                {projectOptions.map((proj) => (
+                  <option key={proj.id} value={proj.id}>
+                    {proj.name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                value={draft.project}
+                onChange={(event) => onFieldChange("project", event.target.value)}
+                placeholder="Project"
+                className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-violet-400/50 focus:outline-none"
+              />
+            )}
           </div>
 
           <div>
@@ -147,10 +177,11 @@ export function TaskForm({
           </button>
           <button
             type="button"
+            disabled={isSaving}
             onClick={onSave}
-            className="rounded-2xl bg-violet-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-violet-400"
+            className="rounded-2xl bg-violet-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-violet-400 disabled:opacity-50"
           >
-            {mode === "create" ? "Create task" : "Save changes"}
+            {isSaving ? "Saving..." : mode === "create" ? "Create task" : "Save changes"}
           </button>
         </div>
       </div>

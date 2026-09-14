@@ -3,6 +3,54 @@
 :root {
   --background: #020817;
   --foreground: #e2e8f0;
+
+  /* Default: Violet Theme */
+  --accent-color: #8b5cf6;
+  --accent-hover: #7c3aed;
+  --accent-rgb: 139, 92, 246;
+  --accent-secondary-rgb: 34, 211, 238;
+  --accent-gradient: linear-gradient(135deg, #8b5cf6, #4f46e5);
+  --accent-glow: rgba(139, 92, 246, 0.25);
+}
+
+/* Cyan Theme */
+html[data-accent="cyan"], html[data-accent="Cyan"] {
+  --accent-color: #06b6d4;
+  --accent-hover: #0891b2;
+  --accent-rgb: 6, 182, 212;
+  --accent-secondary-rgb: 59, 130, 246;
+  --accent-gradient: linear-gradient(135deg, #06b6d4, #2563eb);
+  --accent-glow: rgba(6, 182, 212, 0.25);
+}
+
+/* Emerald Theme */
+html[data-accent="emerald"], html[data-accent="Emerald"] {
+  --accent-color: #10b981;
+  --accent-hover: #059669;
+  --accent-rgb: 16, 185, 129;
+  --accent-secondary-rgb: 20, 184, 166;
+  --accent-gradient: linear-gradient(135deg, #10b981, #0d9488);
+  --accent-glow: rgba(16, 185, 129, 0.25);
+}
+
+/* Amber Theme */
+html[data-accent="amber"], html[data-accent="Amber"] {
+  --accent-color: #f59e0b;
+  --accent-hover: #d97706;
+  --accent-rgb: 245, 158, 11;
+  --accent-secondary-rgb: 234, 88, 12;
+  --accent-gradient: linear-gradient(135deg, #f59e0b, #ea580c);
+  --accent-glow: rgba(245, 158, 11, 0.25);
+}
+
+/* Rose Theme */
+html[data-accent="rose"], html[data-accent="Rose"] {
+  --accent-color: #f43f5e;
+  --accent-hover: #e11d48;
+  --accent-rgb: 244, 63, 94;
+  --accent-secondary-rgb: 236, 72, 153;
+  --accent-gradient: linear-gradient(135deg, #f43f5e, #db2777);
+  --accent-glow: rgba(244, 63, 94, 0.25);
 }
 
 @theme inline {
@@ -24,13 +72,83 @@ body {
   min-height: 100vh;
   margin: 0;
   background:
-    radial-gradient(circle at top, rgba(139, 92, 246, 0.14), transparent 26%),
-    radial-gradient(circle at right, rgba(34, 211, 238, 0.12), transparent 28%),
+    radial-gradient(circle at top, rgba(var(--accent-rgb), 0.16), transparent 28%),
+    radial-gradient(circle at right, rgba(var(--accent-secondary-rgb), 0.12), transparent 30%),
     var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+  transition: background 0.3s ease;
 }
 
 button {
   cursor: pointer;
+}
+
+/* Dynamic Accent Utility Classes */
+.theme-btn-primary {
+  background: var(--accent-gradient) !important;
+  box-shadow: 0 10px 15px -3px var(--accent-glow) !important;
+}
+
+.theme-btn-primary:hover {
+  filter: brightness(1.1);
+}
+
+.theme-nav-active {
+  background: rgba(var(--accent-rgb), 0.15) !important;
+  color: #fff !important;
+  box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.4) !important;
+}
+
+.theme-accent-badge {
+  background: rgba(var(--accent-rgb), 0.15) !important;
+  color: var(--accent-color) !important;
+  border-color: rgba(var(--accent-rgb), 0.3) !important;
+}
+
+.theme-accent-border {
+  border-color: rgba(var(--accent-rgb), 0.3) !important;
+}
+
+.theme-focus-card {
+  border-color: rgba(var(--accent-rgb), 0.3) !important;
+  background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.12), rgba(var(--accent-secondary-rgb), 0.08)) !important;
+}
+
+.theme-accent-text {
+  color: var(--accent-color) !important;
+}
+
+.theme-accent-bg-subtle {
+  background: rgba(var(--accent-rgb), 0.15) !important;
+}
+
+.theme-accent-ring {
+  --tw-ring-color: rgba(var(--accent-rgb), 0.5) !important;
+}
+
+.theme-input-focus:focus {
+  border-color: var(--accent-color) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 1px var(--accent-color) !important;
+}
+
+.theme-checkbox {
+  accent-color: var(--accent-color) !important;
+}
+
+/* Layout Density Rules */
+html[data-density="compact"] .dashboard-shell-container {
+  gap: 1rem !important;
+  padding-top: 0.75rem !important;
+  padding-bottom: 0.75rem !important;
+}
+
+html[data-density="compact"] .sidebar-container {
+  padding: 1rem !important;
+}
+
+html[data-density="compact"] section {
+  padding: 1.15rem !important;
+  border-radius: 1.25rem !important;
 }

@@ -28,6 +28,7 @@ test.describe("Authentication & Workspace Onboarding", () => {
     const testId = Date.now();
     const testEmail = `founder_${testId}@venturelab.io`;
     const testName = `Founder ${testId}`;
+    const testUsername = `founder${testId}`;
     const testWorkspace = `Venture Lab ${testId}`;
 
     await page.getByPlaceholder("e.g. Alex Morgan").fill(testName);
@@ -43,9 +44,10 @@ test.describe("Authentication & Workspace Onboarding", () => {
     await showPasswordCheckbox.uncheck();
     await expect(passwordInput).toHaveAttribute("type", "password");
 
-    await page.getByPlaceholder("e.g. Acme Operations or My Team").fill(testWorkspace);
+    // Fill username handle
+    await page.getByPlaceholder("alexmorgan").fill(testUsername);
 
-    await page.getByRole("button", { name: "Create Account & Workspace" }).click();
+    await page.getByRole("button", { name: "Create Account" }).click();
 
     // Verify redirected to /login with registered=true and success banner visible
     await expect(page).toHaveURL(/\/login\?registered=true/);
@@ -57,9 +59,19 @@ test.describe("Authentication & Workspace Onboarding", () => {
     await page.getByPlaceholder("••••••••").fill("securePass123!");
     await page.getByRole("button", { name: "Sign In" }).click();
 
+    // Verify redirected to /start hub
+    await expect(page).toHaveURL(/\/start/);
+    await expect(page.getByRole("heading", { name: `Ready to collaborate, ${testName}?` })).toBeVisible();
+
+    // Create a new workspace from /start hub
+    await page.getByTestId("start-create-workspace-btn").click();
+    await expect(page.getByTestId("create-workspace-modal")).toBeVisible();
+    await page.getByTestId("new-workspace-name-input").fill(testWorkspace);
+    await page.getByTestId("submit-create-workspace-btn").click();
+
     // Verify redirected to dashboard
     await expect(page).toHaveURL("/");
-    await expect(page.getByRole("heading", { name: "Ship more, together." })).toBeVisible();
+    await expect(page.getByRole("heading", { name: `Welcome to ${testWorkspace}` })).toBeVisible();
 
     // Verify user profile in sidebar
     await expect(page.getByRole("complementary").getByText(testName)).toBeVisible();
@@ -109,6 +121,15 @@ test.describe("Authentication & Workspace Onboarding", () => {
     // Click Sign In
     await page.getByRole("button", { name: "Sign In" }).click();
 
+    // Assert redirect to /start
+    await expect(page).toHaveURL(/\/start/);
+    await expect(page.getByRole("heading", { name: "Ready to collaborate, Ava Thompson?" })).toBeVisible();
+
+    // Launch workspace from /start hub
+    const launchBtn = page.getByTestId("launch-workspace-acme");
+    await expect(launchBtn).toBeVisible();
+    await launchBtn.click();
+
     // Assert redirect to dashboard
     await expect(page).toHaveURL("/");
     await expect(page.getByRole("complementary").getByText("Ava Thompson")).toBeVisible();
@@ -138,8 +159,8 @@ test.describe("Authentication & Workspace Onboarding", () => {
     await page.getByPlaceholder("e.g. Alex Morgan").fill(`Delete Target ${testId}`);
     await page.getByPlaceholder("alex@company.com").fill(testEmail);
     await page.getByPlaceholder("At least 6 characters").fill(testPassword);
-    await page.getByPlaceholder("e.g. Acme Operations or My Team").fill(testWorkspace);
-    await page.getByRole("button", { name: "Create Account & Workspace" }).click();
+    await page.getByPlaceholder("alexmorgan").fill(`deltarget${testId}`);
+    await page.getByRole("button", { name: "Create Account" }).click();
 
     // Verify redirected to /login
     await expect(page).toHaveURL(/\/login\?registered=true/);
@@ -148,6 +169,15 @@ test.describe("Authentication & Workspace Onboarding", () => {
     await page.getByPlaceholder("name@company.com").fill(testEmail);
     await page.getByPlaceholder("••••••••").fill(testPassword);
     await page.getByRole("button", { name: "Sign In" }).click();
+
+    // Land on /start
+    await expect(page).toHaveURL(/\/start/);
+
+    // Create a workspace to launch into dashboard
+    await page.getByTestId("start-create-workspace-btn").click();
+    await expect(page.getByTestId("create-workspace-modal")).toBeVisible();
+    await page.getByTestId("new-workspace-name-input").fill(testWorkspace);
+    await page.getByTestId("submit-create-workspace-btn").click();
 
     // Verify dashboard reached
     await expect(page).toHaveURL("/");

@@ -26,6 +26,8 @@ export function ensureTables() {
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       email TEXT NOT NULL UNIQUE,
+      username TEXT UNIQUE,
+      bio TEXT,
       password_hash TEXT NOT NULL,
       name TEXT NOT NULL,
       avatar TEXT,
@@ -43,7 +45,9 @@ export function ensureTables() {
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       slug TEXT NOT NULL UNIQUE,
+      description TEXT DEFAULT '',
       plan TEXT NOT NULL DEFAULT 'Pro',
+      is_public INTEGER NOT NULL DEFAULT 1,
       created_at TEXT NOT NULL
     );
 
@@ -66,7 +70,7 @@ export function ensureTables() {
 
     CREATE TABLE IF NOT EXISTS projects (
       id TEXT PRIMARY KEY,
-      workspace_id TEXT NOT NULL DEFAULT 'ws-acme' REFERENCES workspaces(id) ON DELETE CASCADE,
+      workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
       progress INTEGER NOT NULL DEFAULT 0,
       due TEXT NOT NULL,
@@ -79,8 +83,9 @@ export function ensureTables() {
     CREATE TABLE IF NOT EXISTS project_members (
       id TEXT PRIMARY KEY,
       project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
-      role TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'contributor',
       initials TEXT NOT NULL,
       color TEXT NOT NULL
     );
@@ -94,7 +99,7 @@ export function ensureTables() {
 
     CREATE TABLE IF NOT EXISTS tasks (
       id TEXT PRIMARY KEY,
-      workspace_id TEXT NOT NULL DEFAULT 'ws-acme' REFERENCES workspaces(id) ON DELETE CASCADE,
+      workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
       title TEXT NOT NULL,
       description TEXT NOT NULL DEFAULT '',
       assignee TEXT NOT NULL DEFAULT 'Unassigned',
@@ -108,7 +113,9 @@ export function ensureTables() {
 
     CREATE TABLE IF NOT EXISTS conversations (
       id TEXT PRIMARY KEY,
-      workspace_id TEXT NOT NULL DEFAULT 'ws-acme' REFERENCES workspaces(id) ON DELETE CASCADE,
+      workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+      type TEXT NOT NULL DEFAULT 'channel',
+      participant_ids TEXT DEFAULT '[]',
       name TEXT NOT NULL,
       initials TEXT NOT NULL,
       color TEXT NOT NULL,
@@ -129,7 +136,7 @@ export function ensureTables() {
 
     CREATE TABLE IF NOT EXISTS calendar_events (
       id TEXT PRIMARY KEY,
-      workspace_id TEXT NOT NULL DEFAULT 'ws-acme' REFERENCES workspaces(id) ON DELETE CASCADE,
+      workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
       title TEXT NOT NULL,
       date TEXT NOT NULL,
       start_time TEXT NOT NULL,
@@ -139,6 +146,38 @@ export function ensureTables() {
       attendees TEXT NOT NULL DEFAULT '[]'
     );
   `);
+
+  // Safe non-destructive migrations for existing database columns
+  const safeAlter = (sql: string) => {
+    try {
+      sqlite.exec(sql);
+    } catch {
+      // Column already exists
+    }
+  };
+
+  safeAlter("ALTER TABLE users ADD COLUMN username TEXT;");
+  safeAlter("ALTER TABLE users ADD COLUMN bio TEXT;");
+  safeAlter("ALTER TABLE workspaces ADD COLUMN description TEXT DEFAULT '';");
+  safeAlter("ALTER TABLE workspaces ADD COLUMN is_public INTEGER NOT NULL DEFAULT 1;");
+  safeAlter("ALTER TABLE project_members ADD COLUMN user_id TEXT REFERENCES users(id) ON DELETE CASCADE;");
+  safeAlter("ALTER TABLE conversations ADD COLUMN type TEXT NOT NULL DEFAULT 'channel';");
+  safeAlter("ALTER TABLE conversations ADD COLUMN participant_ids TEXT DEFAULT '[]';");
+
+  // Automatically backfill usernames for all existing users if null
+  try {
+    const userRows = sqlite.prepare("SELECT id, email, username FROM users WHERE username IS NULL").all() as {
+      id: string;
+      email: string;
+      username: string | null;
+    }[];
+    for (const u of userRows) {
+      const handle = u.email.split("@")[0].toLowerCase().replace(/[^a-z0-9_]/g, "");
+      sqlite.prepare("UPDATE users SET username = ? WHERE id = ?").run(handle, u.id);
+    }
+  } catch {
+    // Ignore migration catch
+  }
 }
 
 export function resetDatabase() {
@@ -169,262 +208,12 @@ export async function seedDatabase(forceRefresh = false) {
   }
 
   if (forceRefresh) {
-    console.log("Refreshing database schema & demo accounts...");
+    console.log("Refreshing database schema...");
     resetDatabase();
   }
 
-  console.log("Seeding users & multi-tenant workspaces...");
-
-  const now = new Date().toISOString();
-  const defaultPasswordHash = hashPassword("password123");
-
-  // 1. Seed Demo Users
-  await db.insert(users).values([
-    {
-      id: "usr-ava",
-      email: "ava@acme.com",
-      name: "Ava Thompson",
-      passwordHash: defaultPasswordHash,
-      avatar: "bg-violet-500",
-      createdAt: now,
-    },
-    {
-      id: "usr-leo",
-      email: "leo@starlight.com",
-      name: "Leo Martin",
-      passwordHash: defaultPasswordHash,
-      avatar: "bg-cyan-500",
-      createdAt: now,
-    },
-  ]);
-
-  // 2. Workspaces
-  await db.insert(workspaces).values([
-    {
-      id: "ws-acme",
-      name: "Acme Corporation",
-      slug: "acme",
-      plan: "Pro",
-      createdAt: now,
-    },
-    {
-      id: "ws-starlight",
-      name: "Starlight Studios",
-      slug: "starlight",
-      plan: "Enterprise",
-      createdAt: now,
-    },
-  ]);
-
-  // 3. Team Members (Directory)
-  for (const member of team) {
-    const initials = (member.name.split(" ")[0]?.[0] ?? "") + (member.name.split(" ")[1]?.[0] ?? "");
-    const id = `tm-${member.name.toLowerCase().replace(/\s+/g, "-")}`;
-    await db.insert(teamMembers).values({
-      id,
-      name: member.name,
-      role: member.role,
-      initials,
-      color: member.color,
-      online: true,
-    });
-  }
-
-  // 4. Workspace Membership with Roles (RBAC)
-  // Ava owns Acme Corp, Leo owns Starlight Studios; both belong to each workspace for cross-tenant demoing
-  await db.insert(workspaceMembers).values([
-    { id: "wm-acme-1", workspaceId: "ws-acme", userId: "usr-ava", role: "owner", joinedAt: now },
-    { id: "wm-acme-2", workspaceId: "ws-acme", userId: "usr-leo", role: "member", joinedAt: now },
-    { id: "wm-star-1", workspaceId: "ws-starlight", userId: "usr-leo", role: "owner", joinedAt: now },
-    { id: "wm-star-2", workspaceId: "ws-starlight", userId: "usr-ava", role: "member", joinedAt: now },
-  ]);
-
-  // 5. Acme Corp Data (from mock dataset)
-  for (const proj of projectDirectory) {
-    await db.insert(projects).values({
-      id: proj.id,
-      workspaceId: "ws-acme",
-      name: proj.name,
-      progress: proj.progress,
-      due: proj.due,
-      owner: proj.owner,
-      status: proj.status,
-      overview: proj.overview,
-      createdAt: now,
-    });
-
-    for (let i = 0; i < proj.teamMembers.length; i++) {
-      const tm = proj.teamMembers[i];
-      await db.insert(projectMembers).values({
-        id: `pm-${proj.id}-${i}`,
-        projectId: proj.id,
-        name: tm.name,
-        role: tm.role,
-        initials: tm.initials,
-        color: tm.color,
-      });
-    }
-
-    for (let i = 0; i < proj.recentActivity.length; i++) {
-      await db.insert(projectActivity).values({
-        id: `pa-${proj.id}-${i}`,
-        projectId: proj.id,
-        content: proj.recentActivity[i],
-        createdAt: now,
-      });
-    }
-  }
-
-  for (const task of taskBoard) {
-    await db.insert(tasks).values({
-      id: task.id,
-      workspaceId: "ws-acme",
-      title: task.title,
-      description: task.description,
-      assignee: task.assignee,
-      priority: task.priority,
-      status: task.status,
-      due: task.due,
-      projectId: task.project?.toLowerCase().replace(/\s+/g, "-"),
-      projectName: task.project ?? "General",
-      createdAt: now,
-    });
-  }
-
-  for (const conv of initialConversations) {
-    await db.insert(conversations).values({
-      id: conv.id,
-      workspaceId: "ws-acme",
-      name: conv.name,
-      initials: conv.initials,
-      color: conv.color,
-      role: conv.role,
-      online: conv.online,
-      lastMessage: conv.lastMessage,
-      lastTimestamp: conv.lastTimestamp,
-      unread: conv.unread,
-    });
-
-    for (const msg of conv.messages) {
-      await db.insert(messages).values({
-        id: msg.id,
-        conversationId: conv.id,
-        sender: msg.sender,
-        content: msg.content,
-        timestamp: msg.timestamp,
-      });
-    }
-  }
-
-  for (const ev of initialEvents) {
-    await db.insert(calendarEvents).values({
-      id: ev.id,
-      workspaceId: "ws-acme",
-      title: ev.title,
-      date: ev.date,
-      startTime: ev.startTime,
-      endTime: ev.endTime ?? null,
-      category: ev.category,
-      description: ev.description ?? "",
-      attendees: JSON.stringify(ev.attendees ?? []),
-    });
-  }
-
-  // 6. Starlight Studios Data (Isolated Workspace 2)
-  await db.insert(projects).values([
-    {
-      id: "mobile-app-launch",
-      workspaceId: "ws-starlight",
-      name: "Mobile App Launch",
-      progress: 85,
-      due: "Next Friday",
-      owner: "Ava Thompson",
-      status: "On track",
-      overview: "Launch the native iOS and Android companion app with offline sync.",
-      createdAt: now,
-    },
-    {
-      id: "design-system-v2",
-      workspaceId: "ws-starlight",
-      name: "Design System v2",
-      progress: 42,
-      due: "End of month",
-      owner: "Leo Martin",
-      status: "Review",
-      overview: "Upgrade component library to Tailwind v4 and unified dark mode theme.",
-      createdAt: now,
-    },
-  ]);
-
-  await db.insert(tasks).values([
-    {
-      id: "star-task-1",
-      workspaceId: "ws-starlight",
-      title: "Audit Figma design tokens",
-      description: "Ensure color variables and typography map 1:1 to Tailwind CSS classes.",
-      assignee: "Leo Martin",
-      priority: "High",
-      status: "In progress",
-      due: "2026-09-08",
-      projectId: "design-system-v2",
-      projectName: "Design System v2",
-      createdAt: now,
-    },
-    {
-      id: "star-task-2",
-      workspaceId: "ws-starlight",
-      title: "Submit TestFlight build",
-      description: "Bundle release candidate build and distribute to beta test group.",
-      assignee: "Ava Thompson",
-      priority: "High",
-      status: "Pending",
-      due: "2026-09-12",
-      projectId: "mobile-app-launch",
-      projectName: "Mobile App Launch",
-      createdAt: now,
-    },
-  ]);
-
-  await db.insert(conversations).values([
-    {
-      id: "conv-star-mobile",
-      workspaceId: "ws-starlight",
-      name: "Mobile Guild",
-      initials: "MG",
-      color: "bg-cyan-500",
-      role: "Engineering",
-      online: true,
-      lastMessage: "TestFlight build #44 is approved and live for testers.",
-      lastTimestamp: now,
-      unread: 1,
-    },
-  ]);
-
-  await db.insert(messages).values([
-    {
-      id: "msg-star-1",
-      conversationId: "conv-star-mobile",
-      sender: "Ava Thompson",
-      content: "TestFlight build #44 is approved and live for testers.",
-      timestamp: now,
-    },
-  ]);
-
-  await db.insert(calendarEvents).values([
-    {
-      id: "ev-star-1",
-      workspaceId: "ws-starlight",
-      title: "Mobile App Demo",
-      date: "2026-09-14",
-      startTime: "15:00",
-      endTime: "16:00",
-      category: "Meeting",
-      description: "Live walkthrough of native features for leadership.",
-      attendees: JSON.stringify(["Ava Thompson", "Leo Martin"]),
-    },
-  ]);
-
-  console.log("Database seeded successfully with demo users (ava@acme.com / leo@starlight.com) and workspaces!");
+  console.log("Database schema initialized successfully.");
+  console.log("No demo accounts or workspaces were created (Manual creation preferred).");
 }
 
 if (require.main === module || process.argv[1]?.endsWith("seed.ts")) {

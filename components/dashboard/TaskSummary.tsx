@@ -30,9 +30,9 @@ export function TaskSummary({ tasks }: { tasks: DashboardTask[] }) {
 
   const cards = [
     { label: "Total tasks", value: tasks.length.toString(), change: "Across all workstreams" },
-    { label: "In progress", value: inProgress.toString(), change: "+3 active today" },
-    { label: "Completed", value: completed.toString(), change: "This cycle" },
-    { label: "Overdue", value: overdue.toString(), change: "Needs attention" },
+    { label: "In progress", value: inProgress.toString(), change: inProgress > 0 ? `${inProgress} active currently` : "None in progress" },
+    { label: "Completed", value: completed.toString(), change: completed > 0 ? `${completed} delivered` : "None completed" },
+    { label: "Overdue", value: overdue.toString(), change: overdue > 0 ? `${overdue} overdue items` : "All on schedule" },
   ];
 
   return (

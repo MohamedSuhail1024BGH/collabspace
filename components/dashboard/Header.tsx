@@ -14,6 +14,7 @@ export function Header({ title, user }: HeaderProps) {
   const router = useRouter();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const handleLogout = async () => {
     await logoutAction();
@@ -22,13 +23,14 @@ export function Header({ title, user }: HeaderProps) {
   };
 
   const handleDeleteAccount = async () => {
+    setDeleteError(null);
     setIsDeleting(true);
     const res = await deleteAccountAction();
     if (res.success) {
       router.push("/login?deleted=true");
       router.refresh();
     } else {
-      alert(res.error || "Failed to delete account");
+      setDeleteError(res.error || "Failed to delete account");
       setIsDeleting(false);
     }
   };
@@ -44,7 +46,7 @@ export function Header({ title, user }: HeaderProps) {
         <div className="flex flex-wrap items-center gap-3 self-start sm:self-auto">
           {user && (
             <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-slate-950/60 py-1.5 pl-2.5 pr-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-cyan-400 text-xs font-bold text-white shadow">
+              <div className={`flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br ${user.avatar || "from-violet-500 to-cyan-400"} text-xs font-bold text-white shadow`}>
                 {user.name.charAt(0).toUpperCase()}
               </div>
               <div className="hidden text-left sm:block">
@@ -103,6 +105,12 @@ export function Header({ title, user }: HeaderProps) {
             <p className="mt-1 text-xs text-rose-300">
               This action is irreversible. All your personal sessions, memberships, and sole workspace data will be permanently deleted.
             </p>
+
+            {deleteError && (
+              <div className="mt-3 rounded-xl border border-rose-500/30 bg-rose-500/10 p-2.5 text-xs text-rose-300">
+                {deleteError}
+              </div>
+            )}
 
             <div className="mt-6 flex justify-end gap-3">
               <button

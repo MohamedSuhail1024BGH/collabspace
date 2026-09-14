@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import {
   createProjectAction,
@@ -11,21 +12,18 @@ import { StatCard } from "@/components/dashboard/StatCard";
 import type { Project } from "@/data/mock-data";
 import type { FullProject } from "@/lib/db/queries";
 
-const defaultProjectDraft = {
-  name: "",
-  owner: "",
-  status: "Planning",
-  due: "Next week",
-  progress: 0,
-  overview: "Add project context, timeline, and key milestones for the team.",
+type WorkspaceMemberItem = {
+  membershipId: string;
+  role: string;
+  joinedAt: string;
+  user: {
+    id: string;
+    name: string;
+    username: string | null;
+    email: string;
+    avatar: string | null;
+  };
 };
-
-const reportCards = [
-  { title: "Delivery efficiency", value: "92%", trend: "+6.4%" },
-  { title: "Customer feedback", value: "4.8/5", trend: "+0.3" },
-  { title: "Open blockers", value: "7", trend: "-2" },
-  { title: "Team capacity", value: "84%", trend: "+5%" },
-];
 
 function toProject(p: FullProject): Project {
   return {
@@ -49,15 +47,55 @@ function toProject(p: FullProject): Project {
   };
 }
 
-export function ProjectsClient({ initialProjects }: { initialProjects: FullProject[] }) {
+export function ProjectsClient({
+  initialProjects,
+  workspaceMembers = [],
+  currentUser,
+  userRole = "member",
+}: {
+  initialProjects: FullProject[];
+  workspaceMembers?: WorkspaceMemberItem[];
+  currentUser?: { id: string; name: string; email: string };
+  userRole?: string;
+}) {
+  const router = useRouter();
   const [projects, setProjects] = useState<Project[]>(() => initialProjects.map(toProject));
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [selectedProjectId, setSelectedProjectId] = useState(initialProjects[0]?.id ?? "");
   const [showNewProject, setShowNewProject] = useState(false);
   const [draftProject, setDraftProject] = useState<Project | null>(null);
-  const [newProject, setNewProject] = useState(defaultProjectDraft);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const isViewer = userRole === "viewer";
+
+  const [newProject, setNewProject] = useState(() => ({
+    name: "",
+    ownerUserId: currentUser?.id ?? workspaceMembers[0]?.user.id ?? "",
+    ownerName: currentUser?.name ?? workspaceMembers[0]?.user.name ?? "Unassigned",
+    status: "Planning",
+    due: "Next week",
+    progress: 0,
+    overview: "Add project context, timeline, and key milestones for the team.",
+  }));
   const [, startTransition] = useTransition();
+
+  const liveReportCards = useMemo(() => {
+    const total = projects.length;
+    const inProgress = projects.filter(
+      (p) => p.status === "In progress" || p.status === "Planning" || p.status === "On track"
+    ).length;
+    const completed = projects.filter((p) => p.status === "Completed" || p.status === "Ready").length;
+    const avgProgress =
+      total > 0 ? Math.round(projects.reduce((acc, p) => acc + (Number(p.progress) || 0), 0) / total) : 0;
+
+    return [
+      { title: "Total projects", value: String(total), trend: "Active workspace" },
+      { title: "In progress", value: String(inProgress), trend: "Underway" },
+      { title: "Completed", value: String(completed), trend: "Delivered" },
+      { title: "Average progress", value: `${avgProgress}%`, trend: "Across portfolio" },
+    ];
+  }, [projects]);
 
   const statusOptions = useMemo(
     () => ["All", ...Array.from(new Set(projects.map((project) => project.status)))],
@@ -82,41 +120,52 @@ export function ProjectsClient({ initialProjects }: { initialProjects: FullProje
     setDraftProject({ ...draftProject, ...updates });
   };
 
-  const handleCreateProject = () => {
+  const handleCreateProject = async () => {
     const projectName = newProject.name.trim() || "Untitled project";
-    const tempId = `project-${Date.now()}`;
-    const ownerName = newProject.owner || "Unassigned";
+    const ownerName = newProject.ownerName || currentUser?.name || "Unassigned";
 
-    const createdProject: Project = {
-      id: tempId,
+    setIsSubmitting(true);
+    const res = await createProjectAction({
       name: projectName,
-      progress: Number(newProject.progress) || 0,
-      due: newProject.due || "Next week",
       owner: ownerName,
+      ownerUserId: newProject.ownerUserId,
       status: newProject.status || "Planning",
+      due: newProject.due || "Next week",
+      progress: Number(newProject.progress) || 0,
       overview: newProject.overview || "Add project context, timeline, and key milestones for the team.",
-      teamMembers: [
-        { name: ownerName, role: "Project owner", initials: ownerName.slice(0, 2).toUpperCase(), color: "bg-violet-500" },
-      ],
-      recentActivity: ["Project created and ready for the next planning cycle."],
-      tasks: [],
-    };
-
-    setProjects((current) => [createdProject, ...current]);
-    setSelectedProjectId(createdProject.id);
-    setShowNewProject(false);
-    setNewProject(defaultProjectDraft);
-
-    startTransition(async () => {
-      await createProjectAction({
-        name: createdProject.name,
-        owner: createdProject.owner,
-        status: createdProject.status,
-        due: createdProject.due,
-        progress: createdProject.progress,
-        overview: createdProject.overview,
-      });
     });
+
+    if (res.success && res.id) {
+      const createdProject: Project = {
+        id: res.id,
+        name: projectName,
+        progress: Number(newProject.progress) || 0,
+        due: newProject.due || "Next week",
+        owner: ownerName,
+        status: newProject.status || "Planning",
+        overview: newProject.overview || "Add project context, timeline, and key milestones for the team.",
+        teamMembers: [
+          { name: ownerName, role: "lead", initials: ownerName.slice(0, 2).toUpperCase() || "PO", color: "bg-violet-500" },
+        ],
+        recentActivity: [`${currentUser?.name || "User"} created project '${projectName}'.`],
+        tasks: [],
+      };
+
+      setProjects((current) => [createdProject, ...current]);
+      setSelectedProjectId(createdProject.id);
+      setShowNewProject(false);
+      setNewProject({
+        name: "",
+        ownerUserId: currentUser?.id ?? workspaceMembers[0]?.user.id ?? "",
+        ownerName: currentUser?.name ?? workspaceMembers[0]?.user.name ?? "Unassigned",
+        status: "Planning",
+        due: "Next week",
+        progress: 0,
+        overview: "Add project context, timeline, and key milestones for the team.",
+      });
+      router.refresh();
+    }
+    setIsSubmitting(false);
   };
 
   const handleDeleteProject = (projectId: string) => {
@@ -210,29 +259,31 @@ export function ProjectsClient({ initialProjects }: { initialProjects: FullProje
           </div>
         </button>
 
-        <div className="mt-4 flex items-center justify-between gap-3">
+          <div className="mt-4 flex items-center justify-between gap-3">
           <Link
             href={`/projects/${project.id}`}
             className="text-sm font-medium text-violet-300 hover:text-violet-200"
           >
             Open details
           </Link>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setDraftProject({ ...project })}
-              className="rounded-xl border border-white/10 bg-slate-900/80 px-2.5 py-1.5 text-xs text-slate-200 hover:border-violet-500/40 hover:text-white"
-            >
-              Edit
-            </button>
-            <button
-              type="button"
-              onClick={() => handleDeleteProject(project.id)}
-              className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-2.5 py-1.5 text-xs text-rose-200 hover:bg-rose-500/20"
-            >
-              Delete
-            </button>
-          </div>
+          {!isViewer && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setDraftProject({ ...project })}
+                className="rounded-xl border border-white/10 bg-slate-900/80 px-2.5 py-1.5 text-xs text-slate-200 hover:border-violet-500/40 hover:text-white"
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDeleteProject(project.id)}
+                className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-2.5 py-1.5 text-xs text-rose-200 hover:bg-rose-500/20"
+              >
+                Delete
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -241,7 +292,7 @@ export function ProjectsClient({ initialProjects }: { initialProjects: FullProje
   return (
     <>
       <section className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {reportCards.map((report) => (
+        {liveReportCards.map((report) => (
           <StatCard key={report.title} label={report.title} value={report.value} change={report.trend} />
         ))}
       </section>
@@ -270,13 +321,15 @@ export function ProjectsClient({ initialProjects }: { initialProjects: FullProje
                   </option>
                 ))}
               </select>
-              <button
-                type="button"
-                onClick={() => setShowNewProject((current) => !current)}
-                className="rounded-2xl bg-violet-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-violet-400"
-              >
-                {showNewProject ? "Close" : "New project"}
-              </button>
+              {!isViewer && (
+                <button
+                  type="button"
+                  onClick={() => setShowNewProject((current) => !current)}
+                  className="rounded-2xl bg-violet-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-violet-400"
+                >
+                  {showNewProject ? "Close" : "New project"}
+                </button>
+              )}
             </div>
           </div>
 
@@ -294,12 +347,29 @@ export function ProjectsClient({ initialProjects }: { initialProjects: FullProje
                   placeholder="Project name"
                   className="rounded-xl border border-white/10 bg-slate-950/60 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:border-violet-400/50 focus:outline-none"
                 />
-                <input
-                  value={newProject.owner}
-                  onChange={(event) => setNewProject((current) => ({ ...current, owner: event.target.value }))}
-                  placeholder="Owner"
-                  className="rounded-xl border border-white/10 bg-slate-950/60 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:border-violet-400/50 focus:outline-none"
-                />
+                <select
+                  data-testid="new-project-owner-select"
+                  value={newProject.ownerUserId}
+                  onChange={(event) => {
+                    const selected = workspaceMembers.find((m) => m.user.id === event.target.value);
+                    setNewProject((current) => ({
+                      ...current,
+                      ownerUserId: event.target.value,
+                      ownerName: selected ? selected.user.name : current.ownerName,
+                    }));
+                  }}
+                  className="rounded-xl border border-white/10 bg-slate-950/60 px-3 py-2 text-sm text-white focus:border-violet-400/50 focus:outline-none"
+                >
+                  {workspaceMembers.length > 0 ? (
+                    workspaceMembers.map((m) => (
+                      <option key={m.user.id} value={m.user.id}>
+                        {m.user.name} ({m.role})
+                      </option>
+                    ))
+                  ) : (
+                    <option value={currentUser?.id ?? ""}>{currentUser?.name ?? "Current User"}</option>
+                  )}
+                </select>
                 <select
                   value={newProject.status}
                   onChange={(event) => setNewProject((current) => ({ ...current, status: event.target.value }))}
@@ -349,10 +419,11 @@ export function ProjectsClient({ initialProjects }: { initialProjects: FullProje
                 </button>
                 <button
                   type="button"
+                  disabled={isSubmitting}
                   onClick={handleCreateProject}
-                  className="rounded-xl bg-violet-500 px-3 py-2 text-sm font-medium text-white hover:bg-violet-400"
+                  className="rounded-xl bg-violet-500 px-3 py-2 text-sm font-medium text-white hover:bg-violet-400 disabled:opacity-50"
                 >
-                  Save project
+                  {isSubmitting ? "Creating..." : "Save project"}
                 </button>
               </div>
             </div>
@@ -485,20 +556,24 @@ export function ProjectsClient({ initialProjects }: { initialProjects: FullProje
                     >
                       Open project
                     </Link>
-                    <button
-                      type="button"
-                      onClick={() => setDraftProject({ ...selectedProject })}
-                      className="rounded-xl border border-white/10 bg-slate-950/60 px-3 py-2 text-sm text-slate-200"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteProject(selectedProject.id)}
-                      className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-sm text-rose-200"
-                    >
-                      Delete
-                    </button>
+                    {!isViewer && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setDraftProject({ ...selectedProject })}
+                          className="rounded-xl border border-white/10 bg-slate-950/60 px-3 py-2 text-sm text-slate-200"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteProject(selectedProject.id)}
+                          className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-sm text-rose-200"
+                        >
+                          Delete
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               )}

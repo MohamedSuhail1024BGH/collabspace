@@ -13,11 +13,15 @@ export default async function ReportsPage() {
   }
 
   const activeWorkspace = await getActiveWorkspace();
-  const reportsData = await getWorkspaceReportsData(activeWorkspace?.id);
+  if (!activeWorkspace) {
+    redirect("/start");
+  }
+
+  const reportsData = await getWorkspaceReportsData(activeWorkspace.id);
 
   return (
     <div className="space-y-6 px-4 py-6 lg:px-8">
-      <ReportsWorkspace data={reportsData} />
+      <ReportsWorkspace data={reportsData} workspaceName={activeWorkspace.name} />
     </div>
   );
 }

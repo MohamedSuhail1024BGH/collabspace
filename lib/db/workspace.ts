@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { db } from "./index";
 import { workspaces, workspaceMembers, type DbWorkspace, type UserRole } from "./schema";
@@ -27,7 +27,7 @@ export async function getAllWorkspaces(): Promise<DbWorkspace[]> {
   return db.select().from(workspaces);
 }
 
-export async function getActiveWorkspace(): Promise<DbWorkspace> {
+export async function getActiveWorkspace(): Promise<DbWorkspace | null> {
   const user = await getCurrentUser();
 
   if (user) {
@@ -38,23 +38,16 @@ export async function getActiveWorkspace(): Promise<DbWorkspace> {
       if (match) return match;
       return userWs[0];
     }
+    return null;
   }
 
   const activeId = await getActiveWorkspaceId();
-  const [found] = await db.select().from(workspaces).where(eq(workspaces.id, activeId)).limit(1);
+  if (activeId && activeId !== DEFAULT_WORKSPACE_ID) {
+    const [found] = await db.select().from(workspaces).where(eq(workspaces.id, activeId)).limit(1);
+    if (found) return found;
+  }
 
-  if (found) return found;
-
-  const all = await db.select().from(workspaces);
-  return (
-    all[0] ?? {
-      id: DEFAULT_WORKSPACE_ID,
-      name: "Acme Corp",
-      slug: "acme",
-      plan: "Pro",
-      createdAt: new Date().toISOString(),
-    }
-  );
+  return null;
 }
 
 export async function getWorkspaceMembersWithDetails(workspaceId: string) {
@@ -64,6 +57,15 @@ export async function getWorkspaceMembersWithDetails(workspaceId: string) {
       user: true,
     },
   });
+}
+
+export async function getUserRoleInWorkspace(workspaceId: string, userId: string): Promise<UserRole | null> {
+  const [membership] = await db
+    .select({ role: workspaceMembers.role })
+    .from(workspaceMembers)
+    .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, userId)))
+    .limit(1);
+  return (membership?.role as UserRole) ?? null;
 }
 
 // --- Role-Based Access Control (RBAC) ---

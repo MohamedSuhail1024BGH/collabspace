@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/db/auth";
 import { getActiveWorkspace } from "@/lib/db/workspace";
+import { getWorkspaceMembers } from "@/lib/db/queries";
 import { SettingsClient } from "@/components/dashboard/SettingsClient";
 
 export const dynamic = "force-dynamic";
@@ -12,10 +13,14 @@ export default async function SettingsPage() {
   }
 
   const activeWorkspace = await getActiveWorkspace();
+  if (!activeWorkspace) {
+    redirect("/start");
+  }
+  const members = await getWorkspaceMembers(activeWorkspace.id);
 
   return (
     <div className="space-y-6 px-4 py-6 lg:px-8">
-      <SettingsClient user={user} workspace={activeWorkspace} />
+      <SettingsClient user={user} workspace={activeWorkspace} initialMembers={members} />
     </div>
   );
 }

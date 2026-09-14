@@ -1,7 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import { ProjectDetailView } from "@/components/dashboard/ProjectDetailView";
-import { getProjectById } from "@/lib/db/queries";
+import { getProjectById, getWorkspaceMembers } from "@/lib/db/queries";
 import { getCurrentUser } from "@/lib/db/auth";
+import { getActiveWorkspace, getUserRoleInWorkspace } from "@/lib/db/workspace";
 import type { Project } from "@/data/mock-data";
 
 export const dynamic = "force-dynamic";
@@ -16,12 +17,28 @@ export default async function ProjectDetailPage({
     redirect("/login");
   }
 
+  const activeWorkspace = await getActiveWorkspace();
+  if (!activeWorkspace) {
+    redirect("/start");
+  }
+
   const { projectId } = await params;
-  const project = await getProjectById(projectId);
+  const project = await getProjectById(projectId, activeWorkspace.id);
 
   if (!project) {
     notFound();
   }
+
+  const [workspaceMembers, userRole] = await Promise.all([
+    getWorkspaceMembers(activeWorkspace.id),
+    getUserRoleInWorkspace(activeWorkspace.id, user.id),
+  ]);
+
+  const isOwnerOrAdmin = userRole === "owner" || userRole === "admin";
+  const isLead =
+    project.owner === user.name ||
+    project.teamMembers.some((m) => m.userId === user.id && (m.role === "lead" || m.role === "Project owner"));
+  const canManageProject = isOwnerOrAdmin || isLead;
 
   const mappedProject: Project = {
     id: project.id,
@@ -43,5 +60,13 @@ export default async function ProjectDetailPage({
     })),
   };
 
-  return <ProjectDetailView project={mappedProject} />;
+  return (
+    <ProjectDetailView
+      project={mappedProject}
+      workspaceMembers={workspaceMembers}
+      canManageProject={canManageProject}
+      currentUser={user}
+      workspaceId={activeWorkspace.id}
+    />
+  );
 }

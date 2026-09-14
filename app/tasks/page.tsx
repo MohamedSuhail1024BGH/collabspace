@@ -1,7 +1,6 @@
-import { getTasks } from "@/lib/db/queries";
-import { getActiveWorkspace } from "@/lib/db/workspace";
+import { getProjects, getTasks, getWorkspaceMembers } from "@/lib/db/queries";
+import { getActiveWorkspace, getUserRoleInWorkspace } from "@/lib/db/workspace";
 import { TasksClient } from "@/components/dashboard/TasksClient";
-
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/db/auth";
 
@@ -14,6 +13,26 @@ export default async function TasksPage() {
   }
 
   const activeWorkspace = await getActiveWorkspace();
-  const initialTasks = await getTasks(activeWorkspace.id);
-  return <TasksClient key={activeWorkspace.id} initialTasks={initialTasks} />;
+  if (!activeWorkspace) {
+    redirect("/start");
+  }
+
+  const [initialTasks, workspaceMembers, projects, userRole] = await Promise.all([
+    getTasks(activeWorkspace.id),
+    getWorkspaceMembers(activeWorkspace.id),
+    getProjects(activeWorkspace.id),
+    getUserRoleInWorkspace(activeWorkspace.id, user.id),
+  ]);
+
+  return (
+    <TasksClient
+      key={activeWorkspace.id}
+      initialTasks={initialTasks}
+      workspaceMembers={workspaceMembers}
+      projects={projects}
+      currentUser={user}
+      userRole={userRole ?? "member"}
+      workspaceId={activeWorkspace.id}
+    />
+  );
 }

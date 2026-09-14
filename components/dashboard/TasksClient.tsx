@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
-  createTaskAction,
   deleteTaskAction,
   updateTaskAction,
   updateTaskStatusAction,
@@ -19,15 +19,23 @@ const priorityOptions = ["All", "High", "Medium", "Low"];
 
 const getTodayValue = () => new Date().toISOString().slice(0, 10);
 
-const buildDefaultDraft = (): TaskDraft => ({
-  title: "",
-  description: "",
-  assignee: "Unassigned",
-  priority: "Medium",
-  status: "Not started",
-  due: getTodayValue(),
-  project: "General",
-});
+type WorkspaceMemberItem = {
+  membershipId: string;
+  role: string;
+  joinedAt: string;
+  user: {
+    id: string;
+    name: string;
+    username: string | null;
+    email: string;
+    avatar: string | null;
+  };
+};
+
+type ProjectOption = {
+  id: string;
+  name: string;
+};
 
 function toDashboardTask(t: DbTask): DashboardTask {
   return {
@@ -42,7 +50,22 @@ function toDashboardTask(t: DbTask): DashboardTask {
   };
 }
 
-export function TasksClient({ initialTasks }: { initialTasks: DbTask[] }) {
+export function TasksClient({
+  initialTasks,
+  workspaceMembers = [],
+  projects = [],
+  currentUser: _currentUser,
+  userRole = "member",
+  workspaceId: _workspaceId,
+}: {
+  initialTasks: DbTask[];
+  workspaceMembers?: WorkspaceMemberItem[];
+  projects?: ProjectOption[];
+  currentUser?: { id: string; name: string; email: string };
+  userRole?: string;
+  workspaceId?: string;
+}) {
+  const router = useRouter();
   const [tasks, setTasks] = useState<DashboardTask[]>(() => initialTasks.map(toDashboardTask));
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -50,12 +73,27 @@ export function TasksClient({ initialTasks }: { initialTasks: DbTask[] }) {
   const [assigneeFilter, setAssigneeFilter] = useState("All");
   const [draftTask, setDraftTask] = useState<TaskDraft | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [, startTransition] = useTransition();
 
-  const assigneeOptions = useMemo(
-    () => ["All", ...Array.from(new Set(tasks.map((task) => task.assignee).filter(Boolean)))],
-    [tasks],
-  );
+  const isViewer = userRole === "viewer";
+
+  const assigneeOptions = useMemo(() => {
+    const memberNames = workspaceMembers.map((m) => m.user.name);
+    const taskAssignees = tasks.map((task) => task.assignee).filter(Boolean);
+    const unique = Array.from(new Set([...memberNames, ...taskAssignees, "Unassigned"]));
+    return ["All", ...unique];
+  }, [workspaceMembers, tasks]);
+
+  const formAssigneeOptions = useMemo(() => {
+    const memberNames = workspaceMembers.map((m) => m.user.name);
+    const taskAssignees = tasks.map((task) => task.assignee).filter(Boolean);
+    return Array.from(new Set([...memberNames, ...taskAssignees, "Unassigned"]));
+  }, [workspaceMembers, tasks]);
+
+  const projectOptions = useMemo(() => {
+    return projects.map((p) => ({ id: p.id, name: p.name }));
+  }, [projects]);
 
   const filteredTasks = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -73,12 +111,8 @@ export function TasksClient({ initialTasks }: { initialTasks: DbTask[] }) {
     });
   }, [assigneeFilter, priorityFilter, search, statusFilter, tasks]);
 
-  const openCreateTask = () => {
-    setDraftTask(buildDefaultDraft());
-    setIsFormOpen(true);
-  };
-
   const openEditTask = (task: DashboardTask) => {
+    const matchedProj = projects.find((p) => p.name === task.project);
     setDraftTask({
       id: task.id,
       title: task.title,
@@ -88,6 +122,7 @@ export function TasksClient({ initialTasks }: { initialTasks: DbTask[] }) {
       status: task.status,
       due: task.due,
       project: task.project ?? "General",
+      projectId: matchedProj?.id,
     });
     setIsFormOpen(true);
   };
@@ -107,67 +142,47 @@ export function TasksClient({ initialTasks }: { initialTasks: DbTask[] }) {
     });
   };
 
-  const handleSaveTask = () => {
-    if (!draftTask) return;
+  const handleSaveTask = async () => {
+    if (!draftTask || !draftTask.id) return;
 
     const normalizedTask = {
       title: draftTask.title.trim() || "Untitled task",
       description: draftTask.description.trim(),
       assignee: draftTask.assignee.trim() || "Unassigned",
       projectName: draftTask.project.trim() || "General",
+      projectId: draftTask.projectId,
       due: draftTask.due || getTodayValue(),
       status: draftTask.status || "Not started",
       priority: (draftTask.priority || "Medium") as TaskPriority,
     };
 
-    if (draftTask.id) {
-      const taskId = draftTask.id;
-      setTasks((current) =>
-        current.map((task) =>
-          task.id === taskId
-            ? {
-                ...task,
-                ...normalizedTask,
-                project: normalizedTask.projectName,
-              }
-            : task,
-        ),
-      );
+    setIsSaving(true);
+    const taskId = draftTask.id;
+    setTasks((current) =>
+      current.map((task) =>
+        task.id === taskId
+          ? {
+              ...task,
+              ...normalizedTask,
+              project: normalizedTask.projectName,
+            }
+          : task,
+      ),
+    );
 
-      startTransition(async () => {
-        await updateTaskAction(taskId, {
-          title: normalizedTask.title,
-          description: normalizedTask.description,
-          assignee: normalizedTask.assignee,
-          priority: normalizedTask.priority,
-          status: normalizedTask.status,
-          due: normalizedTask.due,
-          projectName: normalizedTask.projectName,
-        });
-      });
-    } else {
-      const tempId = `task-${Date.now()}`;
-      const createdTask: DashboardTask = {
-        ...normalizedTask,
-        project: normalizedTask.projectName,
-        id: tempId,
-      };
+    await updateTaskAction(taskId, {
+      title: normalizedTask.title,
+      description: normalizedTask.description,
+      assignee: normalizedTask.assignee,
+      priority: normalizedTask.priority,
+      status: normalizedTask.status,
+      due: normalizedTask.due,
+      projectId: normalizedTask.projectId,
+      projectName: normalizedTask.projectName,
+    });
+    router.refresh();
 
-      setTasks((current) => [createdTask, ...current]);
-
-      startTransition(async () => {
-        await createTaskAction({
-          title: normalizedTask.title,
-          description: normalizedTask.description,
-          assignee: normalizedTask.assignee,
-          priority: normalizedTask.priority,
-          status: normalizedTask.status,
-          due: normalizedTask.due,
-          projectName: normalizedTask.projectName,
-        });
-      });
-    }
-
+    setIsSaving(false);
     closeForm();
   };
 
@@ -201,13 +216,6 @@ export function TasksClient({ initialTasks }: { initialTasks: DbTask[] }) {
       <section className="rounded-3xl border border-white/10 bg-slate-900/80 p-5 shadow-xl shadow-slate-950/20">
         <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h3 className="text-lg font-semibold text-white">Task queue</h3>
-          <button
-            type="button"
-            onClick={openCreateTask}
-            className="rounded-2xl bg-violet-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-violet-400"
-          >
-            New task
-          </button>
         </div>
 
         <TaskFilters
@@ -227,9 +235,9 @@ export function TasksClient({ initialTasks }: { initialTasks: DbTask[] }) {
 
         <TaskList
           tasks={filteredTasks}
-          onEdit={openEditTask}
-          onDelete={handleDeleteTask}
-          onStatusChange={handleStatusChange}
+          onEdit={!isViewer ? openEditTask : undefined}
+          onDelete={!isViewer ? handleDeleteTask : undefined}
+          onStatusChange={!isViewer ? handleStatusChange : undefined}
           onResetFilters={handleResetFilters}
         />
       </section>
@@ -238,9 +246,11 @@ export function TasksClient({ initialTasks }: { initialTasks: DbTask[] }) {
         <TaskForm
           mode={draftTask.id ? "edit" : "create"}
           draft={draftTask}
-          assigneeOptions={[...new Set([...tasks.map((task) => task.assignee), "Unassigned"])].filter(Boolean)}
+          assigneeOptions={formAssigneeOptions}
+          projectOptions={projectOptions}
           statusOptions={statusOptions.slice(1)}
           priorityOptions={["High", "Medium", "Low"]}
+          isSaving={isSaving}
           onFieldChange={updateDraftTask}
           onCancel={closeForm}
           onSave={handleSaveTask}

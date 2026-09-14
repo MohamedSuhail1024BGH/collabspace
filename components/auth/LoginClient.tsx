@@ -26,7 +26,7 @@ export function LoginClient() {
         setError(res.error ?? "Failed to log in.");
         return;
       }
-      router.push("/");
+      router.push("/start");
       router.refresh();
     });
   };
