@@ -57,3 +57,4 @@ collabspace.db*
 #agent-conf
 .agents/
 .freebuff/
+.test-tmp/

@@ -1,28 +1,40 @@
 import { db, sqlite } from "./index";
-import {
-  users,
-  workspaces,
-  workspaceMembers,
-  teamMembers,
-  projects,
-  projectMembers,
-  projectActivity,
-  tasks,
-  conversations,
-  messages,
-  calendarEvents,
-} from "./schema";
-import {
-  team,
-  projectDirectory,
-  taskBoard,
-  conversations as initialConversations,
-  calendarEvents as initialEvents,
-} from "../../data/mock-data";
-import { hashPassword } from "./auth";
+import { users } from "./schema";
+import { verifyUniqueIndexes } from "@/scripts/migrate-uniqueness";
 
-export function ensureTables() {
-  sqlite.exec(`
+/**
+ * Creates canonical unique indexes for workspace and project membership.
+ * Used strictly during explicit database reset/initialization.
+ */
+export function createCanonicalIndexes(sqliteInstance = sqlite): void {
+  sqliteInstance.exec(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_workspace_members_ws_user
+    ON workspace_members(workspace_id, user_id);
+
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_project_members_proj_user
+    ON project_members(project_id, user_id)
+    WHERE user_id IS NOT NULL;
+  `);
+}
+
+/**
+ * Verifies that canonical unique indexes exist and are valid.
+ * Throws loudly if missing or invalid; does not perform schema repair.
+ */
+export function verifyStartupIndexes(sqliteInstance = sqlite): void {
+  const verif = verifyUniqueIndexes(sqliteInstance);
+  if (!verif.ok) {
+    throw new Error(
+      `[CollabSpace] Database schema error: required unique indexes are missing or invalid (${verif.error}). Migration required. Run: npx tsx scripts/migrate-uniqueness.ts`
+    );
+  }
+}
+
+/**
+ * Ensures table DDL exists without attempting index repair.
+ */
+export function ensureTablesBasic(sqliteInstance = sqlite): void {
+  sqliteInstance.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       email TEXT NOT NULL UNIQUE,
@@ -51,6 +63,14 @@ export function ensureTables() {
       created_at TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS workspace_members (
+      id TEXT PRIMARY KEY,
+      workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      role TEXT NOT NULL DEFAULT 'member',
+      joined_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS team_members (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
@@ -60,22 +80,14 @@ export function ensureTables() {
       online INTEGER NOT NULL DEFAULT 0
     );
 
-    CREATE TABLE IF NOT EXISTS workspace_members (
-      id TEXT PRIMARY KEY,
-      workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
-      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      role TEXT NOT NULL DEFAULT 'member',
-      joined_at TEXT NOT NULL
-    );
-
     CREATE TABLE IF NOT EXISTS projects (
       id TEXT PRIMARY KEY,
       workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
-      progress INTEGER NOT NULL DEFAULT 0,
-      due TEXT NOT NULL,
       owner TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'Planning',
+      due TEXT NOT NULL,
+      progress INTEGER NOT NULL DEFAULT 0,
       overview TEXT NOT NULL,
       created_at TEXT NOT NULL
     );
@@ -101,13 +113,13 @@ export function ensureTables() {
       id TEXT PRIMARY KEY,
       workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
       title TEXT NOT NULL,
-      description TEXT NOT NULL DEFAULT '',
-      assignee TEXT NOT NULL DEFAULT 'Unassigned',
+      description TEXT DEFAULT '',
+      assignee TEXT NOT NULL,
       priority TEXT NOT NULL DEFAULT 'Medium',
-      status TEXT NOT NULL DEFAULT 'Not started',
+      status TEXT NOT NULL DEFAULT 'Todo',
       due TEXT NOT NULL,
-      project_id TEXT REFERENCES projects(id) ON DELETE SET NULL,
-      project_name TEXT,
+      project_id TEXT NOT NULL,
+      project_name TEXT NOT NULL,
       created_at TEXT NOT NULL
     );
 
@@ -147,13 +159,10 @@ export function ensureTables() {
     );
   `);
 
-  // Safe non-destructive migrations for existing database columns
   const safeAlter = (sql: string) => {
     try {
-      sqlite.exec(sql);
-    } catch {
-      // Column already exists
-    }
+      sqliteInstance.exec(sql);
+    } catch {}
   };
 
   safeAlter("ALTER TABLE users ADD COLUMN username TEXT;");
@@ -163,25 +172,23 @@ export function ensureTables() {
   safeAlter("ALTER TABLE project_members ADD COLUMN user_id TEXT REFERENCES users(id) ON DELETE CASCADE;");
   safeAlter("ALTER TABLE conversations ADD COLUMN type TEXT NOT NULL DEFAULT 'channel';");
   safeAlter("ALTER TABLE conversations ADD COLUMN participant_ids TEXT DEFAULT '[]';");
-
-  // Automatically backfill usernames for all existing users if null
-  try {
-    const userRows = sqlite.prepare("SELECT id, email, username FROM users WHERE username IS NULL").all() as {
-      id: string;
-      email: string;
-      username: string | null;
-    }[];
-    for (const u of userRows) {
-      const handle = u.email.split("@")[0].toLowerCase().replace(/[^a-z0-9_]/g, "");
-      sqlite.prepare("UPDATE users SET username = ? WHERE id = ?").run(handle, u.id);
-    }
-  } catch {
-    // Ignore migration catch
-  }
 }
 
-export function resetDatabase() {
-  sqlite.exec(`
+/**
+ * Normal application startup table verification.
+ * Strictly verification-only: does NOT call ensureTablesBasic, CREATE TABLE, or ALTER TABLE.
+ * Fails fast with loud "migration required" if required schema or indexes are missing or invalid.
+ */
+export function ensureTables(sqliteInstance = sqlite) {
+  verifyStartupIndexes(sqliteInstance);
+}
+
+/**
+ * Explicit database reset. Drops tables, creates tables,
+ * explicitly creates canonical indexes, and verifies them.
+ */
+export function resetDatabase(sqliteInstance = sqlite) {
+  sqliteInstance.exec(`
     DROP TABLE IF EXISTS messages;
     DROP TABLE IF EXISTS conversations;
     DROP TABLE IF EXISTS project_activity;
@@ -195,21 +202,23 @@ export function resetDatabase() {
     DROP TABLE IF EXISTS users;
     DROP TABLE IF EXISTS workspaces;
   `);
-  ensureTables();
+  ensureTablesBasic(sqliteInstance);
+  createCanonicalIndexes(sqliteInstance);
+  verifyStartupIndexes(sqliteInstance);
 }
 
 export async function seedDatabase(forceRefresh = false) {
-  ensureTables();
+  if (forceRefresh) {
+    console.log("Refreshing database schema...");
+    resetDatabase();
+  } else {
+    ensureTables();
+  }
 
   const existingUsers = await db.select().from(users);
   if (existingUsers.length > 0 && !forceRefresh) {
     console.log("Database already initialized, skipping seed.");
     return;
-  }
-
-  if (forceRefresh) {
-    console.log("Refreshing database schema...");
-    resetDatabase();
   }
 
   console.log("Database schema initialized successfully.");

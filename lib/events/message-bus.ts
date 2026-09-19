@@ -39,14 +39,14 @@ class MessageBus {
   }
 }
 
-// Attach to globalThis to preserve instance across Next.js HMR/Turbopack reloads
+// Attach to globalThis to preserve singleton across Next.js bundles and HMR/Turbopack reloads
 const globalForBus = globalThis as unknown as {
   __messageBus?: MessageBus;
 };
 
-export const messageBus = globalForBus.__messageBus ?? new MessageBus();
-
-if (process.env.NODE_ENV !== "production") {
-  globalForBus.__messageBus = messageBus;
+if (!globalForBus.__messageBus) {
+  globalForBus.__messageBus = new MessageBus();
 }
+
+export const messageBus = globalForBus.__messageBus;
 

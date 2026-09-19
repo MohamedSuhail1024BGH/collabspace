@@ -20,6 +20,7 @@ import {
 } from "@/lib/db/schema";
 import {
   ACTIVE_WORKSPACE_COOKIE,
+  getActiveWorkspace,
   getActiveWorkspaceId,
 } from "@/lib/db/workspace";
 import {
@@ -29,7 +30,23 @@ import {
   destroySession,
   getCurrentUser,
   getUserWorkspaces,
+  AuthError,
+  requireUser,
+  requireWorkspaceMember,
+  requireWorkspaceRole,
+  getTargetWorkspaceMembership,
 } from "@/lib/db/auth";
+import { sqlite } from "@/lib/db";
+import { classifyConversation, validateDirectConversation } from "@/lib/auth/dm-validator";
+
+function isUniqueConstraintError(err: unknown): boolean {
+  if (err && typeof err === "object") {
+    const e = err as { code?: string; message?: string };
+    if (e.code === "SQLITE_CONSTRAINT_UNIQUE" || e.code === "SQLITE_CONSTRAINT") return true;
+    if (e.message && e.message.includes("UNIQUE constraint failed")) return true;
+  }
+  return false;
+}
 
 function safeRevalidatePath(path: string) {
   try {
@@ -183,24 +200,37 @@ export async function deleteAccountAction() {
 // --- Workspace Tenant Actions ---
 export async function switchWorkspaceAction(workspaceId: string) {
   try {
-    const cookieStore = await cookies();
-    cookieStore.set(ACTIVE_WORKSPACE_COOKIE, workspaceId, {
-      path: "/",
-      maxAge: 60 * 60 * 24 * 365, // 1 year
-      sameSite: "lax",
-    });
-  } catch {
-    // Non-request context
+    if (!workspaceId || typeof workspaceId !== "string") {
+      return { success: false, error: "A valid workspace ID is required." };
+    }
+
+    await requireWorkspaceMember(workspaceId);
+
+    try {
+      const cookieStore = await cookies();
+      cookieStore.set(ACTIVE_WORKSPACE_COOKIE, workspaceId, {
+        path: "/",
+        maxAge: 60 * 60 * 24 * 365, // 1 year
+        sameSite: "lax",
+      });
+    } catch {
+      // Non-request context
+    }
+
+    safeRevalidatePath("/");
+    safeRevalidatePath("/projects");
+    safeRevalidatePath("/tasks");
+    safeRevalidatePath("/messages");
+    safeRevalidatePath("/calendar");
+    safeRevalidatePath("/reports");
+
+    return { success: true, activeWorkspaceId: workspaceId };
+  } catch (err: unknown) {
+    if (err instanceof AuthError) {
+      return { success: false, error: err.message };
+    }
+    return { success: false, error: "You are not a member of this workspace." };
   }
-
-  safeRevalidatePath("/");
-  safeRevalidatePath("/projects");
-  safeRevalidatePath("/tasks");
-  safeRevalidatePath("/messages");
-  safeRevalidatePath("/calendar");
-  safeRevalidatePath("/reports");
-
-  return { success: true, activeWorkspaceId: workspaceId };
 }
 
 export async function createWorkspaceAction(data: {
@@ -250,32 +280,60 @@ export async function createWorkspaceAction(data: {
 }
 
 export async function joinWorkspaceAction(workspaceId: string) {
-  const user = await getCurrentUser();
-  if (!user) {
-    return { success: false, error: "Must be logged in to join a workspace." };
+  try {
+    const user = await requireUser();
+
+    if (!workspaceId || typeof workspaceId !== "string") {
+      return { success: false, error: "A valid workspace ID is required." };
+    }
+
+    const [workspace] = await db
+      .select()
+      .from(workspaces)
+      .where(eq(workspaces.id, workspaceId))
+      .limit(1);
+
+    if (!workspace) {
+      return { success: false, error: "Workspace not found." };
+    }
+
+    if (!workspace.isPublic) {
+      return { success: false, error: "Private workspaces cannot be self-joined." };
+    }
+
+    const [existing] = await db
+      .select()
+      .from(workspaceMembers)
+      .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, user.id)))
+      .limit(1);
+
+    if (!existing) {
+      const now = new Date().toISOString();
+      try {
+        await db.insert(workspaceMembers).values({
+          id: `wm-${workspaceId}-${user.id}`,
+          workspaceId,
+          userId: user.id,
+          role: "member",
+          joinedAt: now,
+        });
+      } catch (insertErr) {
+        if (!isUniqueConstraintError(insertErr)) {
+          throw insertErr;
+        }
+      }
+    }
+
+    await switchWorkspaceAction(workspaceId);
+    safeRevalidatePath("/start");
+    safeRevalidatePath("/");
+    return { success: true };
+  } catch (err: unknown) {
+    if (err instanceof AuthError) {
+      return { success: false, error: err.message };
+    }
+    return { success: false, error: err instanceof Error ? err.message : "Failed to join workspace." };
   }
-
-  const [existing] = await db
-    .select()
-    .from(workspaceMembers)
-    .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, user.id)))
-    .limit(1);
-
-  if (!existing) {
-    const now = new Date().toISOString();
-    await db.insert(workspaceMembers).values({
-      id: `wm-${workspaceId}-${user.id}`,
-      workspaceId,
-      userId: user.id,
-      role: "member",
-      joinedAt: now,
-    });
-  }
-
-  await switchWorkspaceAction(workspaceId);
-  safeRevalidatePath("/start");
-  safeRevalidatePath("/");
-  return { success: true };
 }
 
 export async function addWorkspaceMemberAction(data: {
@@ -523,62 +581,299 @@ export async function assignProjectMemberAction(data: {
   projectId: string;
   userId: string;
   role: "lead" | "contributor" | "reviewer" | "viewer";
+  replacementUserId?: string;
 }) {
-  const [user] = await db.select().from(users).where(eq(users.id, data.userId)).limit(1);
-  if (!user) return { success: false, error: "User not found." };
+  try {
+    const currentUser = await requireUser();
 
-  const id = `pm-${data.projectId}-${data.userId}`;
-  const initials =
-    (user.name.split(" ")[0]?.[0] ?? "") +
-    (user.name.split(" ")[1]?.[0] ?? user.name[1] ?? "").toUpperCase();
-  const color = user.avatar || "bg-violet-500";
+    if (!data.projectId || !data.userId) {
+      return { success: false, error: "Project ID and User ID are required." };
+    }
 
-  const [existing] = await db
-    .select()
-    .from(projectMembers)
-    .where(and(eq(projectMembers.projectId, data.projectId), eq(projectMembers.userId, data.userId)))
-    .limit(1);
+    const VALID_ROLES = ["lead", "contributor", "reviewer", "viewer"];
+    if (!VALID_ROLES.includes(data.role)) {
+      return { success: false, error: `Invalid project role: ${data.role}` };
+    }
 
-  if (existing) {
-    await db
-      .update(projectMembers)
-      .set({ role: data.role })
-      .where(eq(projectMembers.id, existing.id));
-  } else {
-    await db.insert(projectMembers).values({
-      id,
-      projectId: data.projectId,
-      userId: data.userId,
-      name: user.name,
-      role: data.role,
-      initials: initials || "TM",
-      color,
-    });
+    // 100% synchronous execution of all authorization, state reads, lead invariants, and writes inside one transaction
+    sqlite.transaction(() => {
+      // 1. Look up project
+      const project = sqlite
+        .prepare("SELECT id, workspace_id as workspaceId FROM projects WHERE id = ?")
+        .get(data.projectId) as { id: string; workspaceId: string } | undefined;
+      if (!project) {
+        throw new Error("Project not found.");
+      }
+
+      // 2. Caller authorization: must be workspace owner/admin or current project lead
+      const callerWs = sqlite
+        .prepare("SELECT role FROM workspace_members WHERE workspace_id = ? AND user_id = ?")
+        .get(project.workspaceId, currentUser.id) as { role: string } | undefined;
+      if (!callerWs) {
+        throw new Error("You are not a member of this workspace.");
+      }
+
+      const isWsAdmin = callerWs.role === "owner" || callerWs.role === "admin";
+      const callerProj = sqlite
+        .prepare("SELECT role FROM project_members WHERE project_id = ? AND user_id = ?")
+        .get(data.projectId, currentUser.id) as { role: string } | undefined;
+      const isProjectLead = callerProj?.role === "lead";
+
+      if (!isWsAdmin && !isProjectLead) {
+        throw new Error("Permission denied. Only workspace owners, admins, or the current project lead can manage the project roster.");
+      }
+
+      // 3. Starting lead invariant check: project must start with exactly 1 lead
+      const startingLeads = sqlite
+        .prepare("SELECT id, user_id, name, role FROM project_members WHERE project_id = ? AND role = 'lead'")
+        .all(data.projectId) as { id: string; user_id: string; name: string; role: string }[];
+
+      if (startingLeads.length !== 1) {
+        throw new Error("Project invariant violation: project must start with exactly one lead.");
+      }
+      const currentLead = startingLeads[0];
+
+      // 4. Target user validation: must belong to this workspace
+      const targetWs = sqlite
+        .prepare("SELECT id FROM workspace_members WHERE workspace_id = ? AND user_id = ?")
+        .get(project.workspaceId, data.userId) as { id: string } | undefined;
+      if (!targetWs) {
+        throw new Error("User is not a member of this workspace.");
+      }
+
+      const targetUser = sqlite
+        .prepare("SELECT id, name, avatar FROM users WHERE id = ?")
+        .get(data.userId) as { id: string; name: string; avatar: string | null } | undefined;
+      if (!targetUser) {
+        throw new Error("User not found.");
+      }
+
+      const targetMember = sqlite
+        .prepare("SELECT id, role FROM project_members WHERE project_id = ? AND user_id = ?")
+        .get(data.projectId, data.userId) as { id: string; role: string } | undefined;
+
+      const initials =
+        (targetUser.name.split(" ")[0]?.[0] ?? "") +
+        (targetUser.name.split(" ")[1]?.[0] ?? targetUser.name[1] ?? "").toUpperCase();
+      const color = targetUser.avatar || "bg-violet-500";
+
+      // 5. Apply role changes
+      if (data.role === "lead") {
+        // Ordinary lead transfer / promotion
+        if (data.userId !== currentLead.user_id) {
+          // Demote current lead to contributor
+          sqlite
+            .prepare("UPDATE project_members SET role = 'contributor' WHERE id = ?")
+            .run(currentLead.id);
+
+          // Promote or insert target user as lead
+          if (targetMember) {
+            sqlite
+              .prepare("UPDATE project_members SET role = 'lead' WHERE id = ?")
+              .run(targetMember.id);
+          } else {
+            const id = `pm-${data.projectId}-${data.userId}`;
+            sqlite
+              .prepare("INSERT INTO project_members (id, project_id, user_id, name, role, initials, color) VALUES (?, ?, ?, ?, 'lead', ?, ?)")
+              .run(id, data.projectId, data.userId, targetUser.name, initials || "TM", color);
+          }
+        }
+      } else {
+        // Assigning a non-lead role
+        if (data.userId === currentLead.user_id) {
+          // Demotion of the sole project lead!
+          if (!data.replacementUserId) {
+            throw new Error("Cannot demote the sole project lead without promoting a replacement lead in the same transaction.");
+          }
+          if (data.replacementUserId === data.userId) {
+            throw new Error("Replacement lead must be a different user.");
+          }
+
+          const repWs = sqlite
+            .prepare("SELECT id FROM workspace_members WHERE workspace_id = ? AND user_id = ?")
+            .get(project.workspaceId, data.replacementUserId) as { id: string } | undefined;
+          if (!repWs) {
+            throw new Error("Replacement user is not a member of this workspace.");
+          }
+
+          const repUser = sqlite
+            .prepare("SELECT id, name, avatar FROM users WHERE id = ?")
+            .get(data.replacementUserId) as { id: string; name: string; avatar: string | null } | undefined;
+          if (!repUser) {
+            throw new Error("Replacement user not found.");
+          }
+
+          const repMember = sqlite
+            .prepare("SELECT id, role FROM project_members WHERE project_id = ? AND user_id = ?")
+            .get(data.projectId, data.replacementUserId) as { id: string; role: string } | undefined;
+
+          const repInitials =
+            (repUser.name.split(" ")[0]?.[0] ?? "") +
+            (repUser.name.split(" ")[1]?.[0] ?? repUser.name[1] ?? "").toUpperCase();
+          const repColor = repUser.avatar || "bg-violet-500";
+
+          // Promote replacement to lead
+          if (repMember) {
+            sqlite
+              .prepare("UPDATE project_members SET role = 'lead' WHERE id = ?")
+              .run(repMember.id);
+          } else {
+            const repId = `pm-${data.projectId}-${data.replacementUserId}`;
+            sqlite
+              .prepare("INSERT INTO project_members (id, project_id, user_id, name, role, initials, color) VALUES (?, ?, ?, ?, 'lead', ?, ?)")
+              .run(repId, data.projectId, data.replacementUserId, repUser.name, repInitials || "TM", repColor);
+          }
+
+          // Demote target (current lead) to requested non-lead role
+          sqlite
+            .prepare("UPDATE project_members SET role = ? WHERE id = ?")
+            .run(data.role, currentLead.id);
+        } else {
+          // Target is not current lead: update or insert non-lead role
+          if (targetMember) {
+            sqlite
+              .prepare("UPDATE project_members SET role = ? WHERE id = ?")
+              .run(data.role, targetMember.id);
+          } else {
+            const id = `pm-${data.projectId}-${data.userId}`;
+            sqlite
+              .prepare("INSERT INTO project_members (id, project_id, user_id, name, role, initials, color) VALUES (?, ?, ?, ?, ?, ?, ?)")
+              .run(id, data.projectId, data.userId, targetUser.name, data.role, initials || "TM", color);
+          }
+        }
+      }
+
+      // 6. Ending lead invariant check: project must end with exactly 1 lead
+      const endingLeads = sqlite
+        .prepare("SELECT COUNT(*) as cnt FROM project_members WHERE project_id = ? AND role = 'lead'")
+        .get(data.projectId) as { cnt: number };
+
+      if (endingLeads.cnt !== 1) {
+        throw new Error("Project invariant violation: project must end with exactly one lead.");
+      }
+
+      // 7. Insert audit activity log
+      sqlite
+        .prepare("INSERT INTO project_activity (id, project_id, content, created_at) VALUES (?, ?, ?, ?)")
+        .run(
+          `pa-${Date.now()}`,
+          data.projectId,
+          `${targetUser.name} was assigned as ${data.role}.`,
+          new Date().toISOString()
+        );
+    })();
+
+    safeRevalidatePath("/projects");
+    safeRevalidatePath(`/projects/${data.projectId}`);
+    return { success: true };
+  } catch (err: unknown) {
+    if (err instanceof AuthError) {
+      return { success: false, error: err.message };
+    }
+    if (isUniqueConstraintError(err)) {
+      return { success: false, error: "User is already assigned to this project." };
+    }
+    return { success: false, error: err instanceof Error ? err.message : "Failed to assign project member." };
   }
-
-  await db.insert(projectActivity).values({
-    id: `pa-${Date.now()}`,
-    projectId: data.projectId,
-    content: `${user.name} was assigned as ${data.role}.`,
-    createdAt: new Date().toISOString(),
-  });
-
-  safeRevalidatePath("/projects");
-  safeRevalidatePath(`/projects/${data.projectId}`);
-  return { success: true };
 }
 
 export async function removeProjectMemberAction(projectId: string, memberId: string) {
-  await db
-    .delete(projectMembers)
-    .where(and(eq(projectMembers.projectId, projectId), eq(projectMembers.id, memberId)));
-  safeRevalidatePath("/projects");
-  safeRevalidatePath(`/projects/${projectId}`);
-  return { success: true };
+  try {
+    const currentUser = await requireUser();
+
+    if (!projectId || !memberId) {
+      return { success: false, error: "Project ID and Member ID are required." };
+    }
+
+    const [project] = await db.select().from(projects).where(eq(projects.id, projectId)).limit(1);
+    if (!project) {
+      return { success: false, error: "Project not found." };
+    }
+
+    // Verify caller is a workspace member
+    const { membership: callerWsMembership } = await requireWorkspaceMember(project.workspaceId);
+
+    const isWsAdmin = callerWsMembership.role === "owner" || callerWsMembership.role === "admin";
+    const [callerProjectRole] = await db
+      .select()
+      .from(projectMembers)
+      .where(and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, currentUser.id)))
+      .limit(1);
+    const isProjectLead = callerProjectRole?.role === "lead";
+
+    if (!isWsAdmin && !isProjectLead) {
+      return {
+        success: false,
+        error: "Permission denied. Only workspace owners, admins, or the current project lead can manage the project roster.",
+      };
+    }
+
+    // Scoped member lookup: membership ID must belong to this specific project
+    const [member] = await db
+      .select()
+      .from(projectMembers)
+      .where(and(eq(projectMembers.projectId, projectId), eq(projectMembers.id, memberId)))
+      .limit(1);
+
+    if (!member) {
+      return { success: false, error: "Project member not found in this project." };
+    }
+
+    // Sole-Lead Protection: cannot remove the project lead
+    if (member.role === "lead") {
+      return {
+        success: false,
+        error: "Cannot remove the project lead. Reassign the project lead before removing.",
+      };
+    }
+
+    await db
+      .delete(projectMembers)
+      .where(and(eq(projectMembers.projectId, projectId), eq(projectMembers.id, memberId)));
+
+    safeRevalidatePath("/projects");
+    safeRevalidatePath(`/projects/${projectId}`);
+    return { success: true };
+  } catch (err: unknown) {
+    if (err instanceof AuthError) {
+      return { success: false, error: err.message };
+    }
+    return { success: false, error: err instanceof Error ? err.message : "Failed to remove project member." };
+  }
 }
 
-export async function searchUsersAction(query: string) {
-  return searchUsers(query);
+export async function searchUsersAction(query: string, workspaceId?: string) {
+  try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) return [];
+
+    let targetWsId = workspaceId;
+    if (!targetWsId) {
+      const activeWs = await getActiveWorkspace();
+      if (!activeWs) return [];
+      targetWsId = activeWs.id;
+    }
+
+    // Verify caller is an active member of this workspace (rejects tampered workspace cookie)
+    const [membership] = await db
+      .select()
+      .from(workspaceMembers)
+      .where(
+        and(
+          eq(workspaceMembers.workspaceId, targetWsId),
+          eq(workspaceMembers.userId, currentUser.id)
+        )
+      )
+      .limit(1);
+
+    if (!membership) {
+      return [];
+    }
+
+    return searchUsers(query, targetWsId);
+  } catch {
+    return [];
+  }
 }
 
 export async function searchWorkspacesAction(query: string) {
@@ -680,7 +975,7 @@ export async function updateTaskAction(
     return { success: false, error: "Permission denied." };
   }
 
-  let projectId = data.projectId !== undefined ? data.projectId : task.projectId;
+  const projectId = data.projectId !== undefined ? data.projectId : task.projectId;
   let projectName = data.projectName !== undefined ? data.projectName : task.projectName;
   if (projectId) {
     const [foundProj] = await db
@@ -763,7 +1058,6 @@ export async function deleteTaskAction(id: string) {
   return { success: true };
 }
 
-// --- Projects Actions ---
 export async function createProjectAction(data: {
   workspaceId?: string;
   name: string;
@@ -775,96 +1069,173 @@ export async function createProjectAction(data: {
   overview?: string;
   members?: { userId?: string; name: string; role: string }[];
 }) {
-  const currentUser = await getCurrentUser();
-  if (!currentUser) return { success: false, error: "Unauthorized." };
+  try {
+    const currentUser = await requireUser();
+    const wsId = data.workspaceId ?? (await getActiveWorkspaceId());
 
-  const wsId = data.workspaceId ?? (await getActiveWorkspaceId());
+    // Check workspace permission (viewers cannot create projects)
+    await requireWorkspaceRole(wsId, ["owner", "admin", "member"]);
 
-  // Check workspace permission
-  const [membership] = await db
-    .select()
-    .from(workspaceMembers)
-    .where(and(eq(workspaceMembers.workspaceId, wsId), eq(workspaceMembers.userId, currentUser.id)))
-    .limit(1);
-
-  if (!membership || membership.role === "viewer") {
-    return { success: false, error: "Viewers cannot create projects." };
-  }
-
-  const id = `project-${Date.now()}`;
-  const now = new Date().toISOString();
-
-  let ownerName = data.owner?.trim() || currentUser.name || "Unassigned";
-  let ownerUserId = data.ownerUserId;
-  let ownerColor = currentUser.avatar || "bg-violet-500";
-  let ownerInitials =
-    (currentUser.name.split(" ")[0]?.[0] ?? "") +
-    (currentUser.name.split(" ")[1]?.[0] ?? currentUser.name[1] ?? "").toUpperCase() || "PO";
-
-  if (ownerUserId) {
-    const [targetUser] = await db.select().from(users).where(eq(users.id, ownerUserId)).limit(1);
-    if (targetUser) {
-      ownerName = targetUser.name;
-      ownerColor = targetUser.avatar || "bg-violet-500";
-      ownerInitials =
-        (targetUser.name.split(" ")[0]?.[0] ?? "") +
-        (targetUser.name.split(" ")[1]?.[0] ?? targetUser.name[1] ?? "").toUpperCase() || "PO";
+    const trimmedName = data.name?.trim();
+    if (!trimmedName) {
+      return { success: false, error: "Project name is required." };
     }
-  } else if (data.owner?.trim()) {
-    ownerName = data.owner.trim();
-    ownerInitials = ownerName.slice(0, 2).toUpperCase() || "PO";
-  } else {
-    ownerUserId = currentUser.id;
-  }
 
-  await db.insert(projects).values({
-    id,
-    workspaceId: wsId,
-    name: data.name.trim() || "Untitled project",
-    owner: ownerName,
-    status: data.status || "Planning",
-    due: data.due || "Next week",
-    progress: data.progress ?? 0,
-    overview: data.overview?.trim() || "Add project context, timeline, and key milestones.",
-    createdAt: now,
-  });
+    const VALID_ROLES = ["lead", "contributor", "reviewer", "viewer"];
 
-  await db.insert(projectMembers).values({
-    id: `pm-${id}-0`,
-    projectId: id,
-    userId: ownerUserId || null,
-    name: ownerName,
-    role: "lead",
-    initials: ownerInitials,
-    color: ownerColor,
-  });
-
-  if (data.members && data.members.length > 0) {
-    for (let i = 0; i < data.members.length; i++) {
-      const m = data.members[i];
-      if (m.name === ownerName || (m.userId && m.userId === ownerUserId)) continue;
-      await db.insert(projectMembers).values({
-        id: `pm-${id}-${i + 1}`,
-        projectId: id,
-        userId: m.userId || null,
-        name: m.name,
-        role: m.role || "contributor",
-        initials: m.name.slice(0, 2).toUpperCase() || "TM",
-        color: "bg-cyan-500",
-      });
+    // Owner / Lead user validation
+    const leadUserId = data.ownerUserId || currentUser.id;
+    const leadMembership = await getTargetWorkspaceMembership(wsId, leadUserId);
+    if (!leadMembership) {
+      return { success: false, error: "Project lead must be a member of this workspace." };
     }
+
+    const [leadUser] = await db.select().from(users).where(eq(users.id, leadUserId)).limit(1);
+    const leadName = leadUser?.name || data.owner?.trim() || currentUser.name;
+    const leadColor = leadUser?.avatar || "bg-violet-500";
+    const leadInitials =
+      (leadName.split(" ")[0]?.[0] ?? "") +
+      (leadName.split(" ")[1]?.[0] ?? leadName[1] ?? "").toUpperCase() || "PL";
+
+    // Validate members roster
+    const rosterToInsert: {
+      userId: string | null;
+      name: string;
+      role: "lead" | "contributor" | "reviewer" | "viewer";
+      initials: string;
+      color: string;
+    }[] = [];
+
+    // Lead is always index 0
+    rosterToInsert.push({
+      userId: leadUserId,
+      name: leadName,
+      role: "lead",
+      initials: leadInitials,
+      color: leadColor,
+    });
+
+    const seenUserIds = new Set<string>([leadUserId]);
+
+    if (data.members && data.members.length > 0) {
+      for (const m of data.members) {
+        if (!m.userId || !m.userId.trim()) {
+          return {
+            success: false,
+            error: "Member roster entries must have a valid user ID.",
+          };
+        }
+
+        const memberUserId = m.userId.trim();
+
+        // Check if secondary lead is attempted
+        if (m.role === "lead") {
+          return {
+            success: false,
+            error: "Project can only have one lead. Additional members cannot be assigned the lead role during creation.",
+          };
+        }
+
+        const memberRole = (m.role || "contributor") as "lead" | "contributor" | "reviewer" | "viewer";
+        if (!VALID_ROLES.includes(memberRole)) {
+          return { success: false, error: `Invalid project role: ${m.role}` };
+        }
+
+        // Check duplicate
+        if (seenUserIds.has(memberUserId)) {
+          return { success: false, error: `Duplicate member in roster: ${memberUserId}` };
+        }
+
+        // Verify user belongs to workspace
+        const mWs = await getTargetWorkspaceMembership(wsId, memberUserId);
+        if (!mWs) {
+          return { success: false, error: `Member ${m.name || memberUserId} must belong to this workspace.` };
+        }
+
+        const [mUser] = await db.select().from(users).where(eq(users.id, memberUserId)).limit(1);
+        if (!mUser) {
+          return { success: false, error: `User ${memberUserId} not found.` };
+        }
+
+        seenUserIds.add(memberUserId);
+
+        const memberName = mUser.name || m.name?.trim() || "Team Member";
+        const memberInitials =
+          (memberName.split(" ")[0]?.[0] ?? "") +
+          (memberName.split(" ")[1]?.[0] ?? memberName[1] ?? "").toUpperCase();
+        const memberColor = mUser.avatar || "bg-cyan-500";
+
+        rosterToInsert.push({
+          userId: memberUserId,
+          name: memberName,
+          role: memberRole,
+          initials: memberInitials || "TM",
+          color: memberColor,
+        });
+      }
+    }
+
+    const projectId = `project-${Date.now()}`;
+    const now = new Date().toISOString();
+
+    // Atomic execution of project creation + roster insertion + initial activity in single transaction
+    sqlite.transaction(() => {
+      sqlite.prepare(`
+        INSERT INTO projects (id, workspace_id, name, owner, status, due, progress, overview, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        projectId,
+        wsId,
+        trimmedName,
+        leadName,
+        data.status || "Planning",
+        data.due || "Next week",
+        data.progress ?? 0,
+        data.overview?.trim() || "Add project context, timeline, and key milestones.",
+        now
+      );
+
+      const insertMemberStmt = sqlite.prepare(`
+        INSERT INTO project_members (id, project_id, user_id, name, role, initials, color)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `);
+
+      for (let i = 0; i < rosterToInsert.length; i++) {
+        const item = rosterToInsert[i];
+        insertMemberStmt.run(
+          `pm-${projectId}-${i}`,
+          projectId,
+          item.userId,
+          item.name,
+          item.role,
+          item.initials,
+          item.color
+        );
+      }
+
+      sqlite.prepare(`
+        INSERT INTO project_activity (id, project_id, content, created_at)
+        VALUES (?, ?, ?, ?)
+      `).run(
+        `pa-${projectId}-0`,
+        projectId,
+        `${currentUser.name} created project '${trimmedName}'.`,
+        now
+      );
+    })();
+
+    safeRevalidatePath("/projects");
+    safeRevalidatePath("/");
+    return { success: true, id: projectId };
+  } catch (err: unknown) {
+    if (err instanceof AuthError) {
+      return { success: false, error: err.message };
+    }
+    if (isUniqueConstraintError(err)) {
+      return { success: false, error: "A project member or project with this identity already exists." };
+    }
+    return { success: false, error: err instanceof Error ? err.message : "Failed to create project." };
   }
-
-  await db.insert(projectActivity).values({
-    id: `pa-${id}-0`,
-    projectId: id,
-    content: `${currentUser.name} created project '${data.name.trim() || "Untitled project"}'.`,
-    createdAt: now,
-  });
-
-  safeRevalidatePath("/projects");
-  safeRevalidatePath("/");
-  return { success: true, id };
 }
 
 export async function updateProjectAction(
@@ -949,42 +1320,73 @@ export async function deleteProjectAction(id: string) {
 }
 
 // --- Messages Actions ---
-export async function sendMessageAction(conversationId: string, sender: string, content: string) {
-  const currentUser = await getCurrentUser();
-  const effectiveSender = currentUser?.name || sender || "Me";
-  const msgId = `m-${Date.now()}`;
-  const timestamp = new Date().toISOString();
+export async function sendMessageAction(conversationId: string, _sender: string, content: string) {
+  try {
+    const currentUser = await requireUser();
 
-  await db.insert(messages).values({
-    id: msgId,
-    conversationId,
-    sender: effectiveSender,
-    content: content.trim(),
-    timestamp,
-  });
+    if (!conversationId || typeof conversationId !== "string") {
+      return { success: false, error: "A valid conversation ID is required." };
+    }
 
-  const [conv] = await db
-    .select()
-    .from(conversations)
-    .where(eq(conversations.id, conversationId))
-    .limit(1);
+    if (!content || !content.trim()) {
+      return { success: false, error: "Message content cannot be empty." };
+    }
 
-  await db
-    .update(conversations)
-    .set({
-      lastMessage: content.trim(),
-      lastTimestamp: timestamp,
-      unread: 0,
-    })
-    .where(eq(conversations.id, conversationId));
+    const [conv] = await db
+      .select()
+      .from(conversations)
+      .where(eq(conversations.id, conversationId))
+      .limit(1);
 
-  // Broadcast real-time message event to connected workspace clients
-  if (conv?.workspaceId) {
+    if (!conv) {
+      return { success: false, error: "Conversation not found." };
+    }
+
+    const classification = classifyConversation(conv);
+    if (classification === "invalid") {
+      return { success: false, error: "Invalid conversation type." };
+    }
+
+    // Viewers cannot send messages
+    await requireWorkspaceRole(conv.workspaceId, ["owner", "admin", "member"]);
+
+    // If DM, enforce shared canonical DM validation fail-closed
+    if (classification === "direct") {
+      const dmCheck = await validateDirectConversation(conv, currentUser.id);
+      if (!dmCheck.valid) {
+        return { success: false, error: "Access denied. You are not an authorized participant in this conversation." };
+      }
+    }
+
+    // Sender identity is strictly bound to authenticated currentUser.name (never trust _sender)
+    const effectiveSender = currentUser.name;
+    const msgId = `m-${Date.now()}`;
+    const timestamp = new Date().toISOString();
+
+    await db.insert(messages).values({
+      id: msgId,
+      conversationId,
+      sender: effectiveSender,
+      content: content.trim(),
+      timestamp,
+    });
+
+    await db
+      .update(conversations)
+      .set({
+        lastMessage: content.trim(),
+        lastTimestamp: timestamp,
+        unread: 0,
+      })
+      .where(eq(conversations.id, conversationId));
+
+    // Broadcast real-time message event to connected workspace clients
     let pIds: string[] | undefined = undefined;
-    try {
-      pIds = JSON.parse(conv.participantIds || "[]");
-    } catch {
-      pIds = undefined;
+    if (conv.type === "direct") {
+      try {
+        const parsed = JSON.parse(conv.participantIds || "[]");
+        if (Array.isArray(parsed)) pIds = parsed;
+      } catch {}
     }
 
     messageBus.publishMessage({
@@ -999,21 +1401,33 @@ export async function sendMessageAction(conversationId: string, sender: string, 
       },
       participantIds: pIds && pIds.length > 0 ? pIds : undefined,
     });
-  }
 
-  safeRevalidatePath("/messages");
-  return { success: true, id: msgId, sender: effectiveSender, timestamp };
+    safeRevalidatePath("/messages");
+    return { success: true, id: msgId, sender: effectiveSender, timestamp };
+  } catch (err: unknown) {
+    if (err instanceof AuthError) {
+      return { success: false, error: err.message };
+    }
+    return { success: false, error: err instanceof Error ? err.message : "Failed to send message." };
+  }
 }
 
 export async function getLiveConversationsAction(workspaceId?: string) {
-  const currentUser = await getCurrentUser();
-  if (!currentUser) return { success: false, error: "Unauthorized." };
+  try {
+    const currentUser = await requireUser();
+    const wsId = workspaceId ?? (await getActiveWorkspaceId());
+    if (!wsId) return { success: false, error: "No active workspace." };
 
-  const wsId = workspaceId ?? (await getActiveWorkspaceId());
-  if (!wsId) return { success: false, error: "No active workspace." };
+    await requireWorkspaceMember(wsId);
 
-  const convs = await getConversations(wsId, currentUser.id);
-  return { success: true, conversations: convs };
+    const convs = await getConversations(wsId, currentUser.id);
+    return { success: true, conversations: convs };
+  } catch (err: unknown) {
+    if (err instanceof AuthError) {
+      return { success: false, error: err.message };
+    }
+    return { success: false, error: err instanceof Error ? err.message : "Failed to load conversations." };
+  }
 }
 
 export async function createConversationAction(data: {
@@ -1025,32 +1439,118 @@ export async function createConversationAction(data: {
   type?: "channel" | "direct";
   recipientId?: string;
 }) {
-  const currentUser = await getCurrentUser();
-  if (!currentUser) return { success: false, error: "Unauthorized." };
+  try {
+    const currentUser = await requireUser();
+    const wsId = data.workspaceId ?? (await getActiveWorkspaceId());
+    if (!wsId) return { success: false, error: "No active workspace." };
 
-  const wsId = data.workspaceId ?? (await getActiveWorkspaceId());
-  if (!wsId) return { success: false, error: "No active workspace." };
+    // Viewers cannot create conversations (channels or DMs)
+    await requireWorkspaceRole(wsId, ["owner", "admin", "member"]);
 
-  const trimmedName = data.name.trim();
-  if (!trimmedName) return { success: false, error: "Conversation name required." };
+    const convType = data.type || (data.recipientId ? "direct" : "channel");
+    if (convType !== "channel" && convType !== "direct") {
+      return { success: false, error: "Invalid conversation type." };
+    }
 
-  const isDirect = data.type === "direct" || Boolean(data.recipientId);
+    const trimmedName = data.name?.trim() || "";
 
-  if (isDirect && data.recipientId) {
-    // Look for existing direct conversation between currentUser.id and data.recipientId in this workspace
+    if (convType === "channel") {
+      if (data.recipientId) {
+        return { success: false, error: "Channel conversations cannot specify a recipient." };
+      }
+      if (!trimmedName) {
+        return { success: false, error: "Channel name is required." };
+      }
+
+      // Check if channel with this exact name already exists in this workspace
+      const [existing] = await db
+        .select()
+        .from(conversations)
+        .where(and(eq(conversations.workspaceId, wsId), eq(conversations.name, trimmedName)))
+        .limit(1);
+
+      if (existing) {
+        if (data.initialMessage?.trim()) {
+          await sendMessageAction(existing.id, currentUser.name, data.initialMessage.trim());
+        }
+        return { success: true, id: existing.id, isExisting: true };
+      }
+
+      const id = `conv-${Date.now()}`;
+      const now = new Date().toISOString();
+      const initials = (trimmedName.split(" ")[0]?.[0] ?? "").toUpperCase() || "#";
+
+      await db.insert(conversations).values({
+        id,
+        workspaceId: wsId,
+        type: "channel",
+        participantIds: "[]",
+        name: trimmedName,
+        initials,
+        color: data.color || "bg-violet-500",
+        role: data.role?.trim() || "Team Channel",
+        online: false,
+        lastMessage: data.initialMessage?.trim() || "",
+        lastTimestamp: now,
+        unread: 0,
+      });
+
+      if (data.initialMessage?.trim()) {
+        await sendMessageAction(id, currentUser.name, data.initialMessage.trim());
+      }
+
+      safeRevalidatePath("/messages");
+      return { success: true, id, isExisting: false };
+    }
+
+    // Direct Conversation
+    if (!data.recipientId || typeof data.recipientId !== "string" || !data.recipientId.trim()) {
+      return { success: false, error: "Direct conversations require a recipient." };
+    }
+
+    if (data.recipientId === currentUser.id) {
+      return { success: false, error: "Cannot start a direct conversation with yourself." };
+    }
+
+    // Recipient must be an active member of this workspace
+    const recipientMember = await getTargetWorkspaceMembership(wsId, data.recipientId);
+    if (!recipientMember) {
+      return { success: false, error: "Recipient is not a member of this workspace." };
+    }
+
+    const [recipientUser] = await db.select().from(users).where(eq(users.id, data.recipientId)).limit(1);
+    if (!recipientUser) {
+      return { success: false, error: "Recipient not found." };
+    }
+
+    // Canonical sorted participant array
+    const canonicalParticipants = [currentUser.id, data.recipientId].sort();
+    const participantsJson = JSON.stringify(canonicalParticipants);
+
+    // Look for existing direct conversation between these exact two participants in wsId
+    // Filter candidates through shared classifier and canonical validator
     const wsConversations = await db
       .select()
       .from(conversations)
-      .where(and(eq(conversations.workspaceId, wsId), eq(conversations.type, "direct")));
+      .where(eq(conversations.workspaceId, wsId));
 
-    const existingDm = wsConversations.find((c) => {
-      try {
-        const pIds = JSON.parse(c.participantIds || "[]") as string[];
-        return pIds.includes(currentUser.id) && pIds.includes(data.recipientId!);
-      } catch {
-        return false;
+    let existingDm: typeof wsConversations[number] | undefined;
+    for (const c of wsConversations) {
+      const classification = classifyConversation(c);
+      if (classification !== "direct") continue;
+
+      const dmCheck = await validateDirectConversation(c, currentUser.id);
+      if (!dmCheck.valid || !dmCheck.participantIds) continue;
+
+      if (
+        dmCheck.participantIds.length === 2 &&
+        dmCheck.participantIds.includes(currentUser.id) &&
+        dmCheck.participantIds.includes(data.recipientId!)
+      ) {
+        existingDm = c;
+        break;
       }
-    });
+    }
 
     if (existingDm) {
       if (data.initialMessage?.trim()) {
@@ -1058,61 +1558,41 @@ export async function createConversationAction(data: {
       }
       return { success: true, id: existingDm.id, isExisting: true };
     }
-  } else if (!isDirect) {
-    // Check if channel with this exact name already exists in this workspace
-    const [existing] = await db
-      .select()
-      .from(conversations)
-      .where(and(eq(conversations.workspaceId, wsId), eq(conversations.name, trimmedName)))
-      .limit(1);
 
-    if (existing) {
-      if (data.initialMessage?.trim()) {
-        await sendMessageAction(existing.id, currentUser.name, data.initialMessage.trim());
-      }
-      return { success: true, id: existing.id, isExisting: true };
-    }
-  }
+    const id = `conv-${Date.now()}`;
+    const now = new Date().toISOString();
+    const displayName = recipientUser.name;
+    const initials =
+      (displayName.split(" ")[0]?.[0] ?? "") +
+      (displayName.split(" ")[1]?.[0] ?? displayName[1] ?? "").toUpperCase();
 
-  const id = `conv-${Date.now()}`;
-  const now = new Date().toISOString();
-  const initials =
-    (trimmedName.split(" ")[0]?.[0] ?? "") +
-    (trimmedName.split(" ")[1]?.[0] ?? trimmedName[1] ?? "").toUpperCase();
-  const color = data.color || (isDirect ? "bg-cyan-500" : "bg-violet-500");
-  const role = data.role || (isDirect ? "Direct Message" : "Team Channel");
-  const participantIds =
-    isDirect && data.recipientId
-      ? JSON.stringify([currentUser.id, data.recipientId])
-      : "[]";
-
-  await db.insert(conversations).values({
-    id,
-    workspaceId: wsId,
-    type: isDirect ? "direct" : "channel",
-    participantIds,
-    name: trimmedName,
-    initials,
-    color,
-    role,
-    online: true,
-    lastMessage: data.initialMessage?.trim() || "Conversation started.",
-    lastTimestamp: now,
-    unread: 0,
-  });
-
-  if (data.initialMessage?.trim()) {
-    await db.insert(messages).values({
-      id: `m-${Date.now()}`,
-      conversationId: id,
-      sender: currentUser.name,
-      content: data.initialMessage.trim(),
-      timestamp: now,
+    await db.insert(conversations).values({
+      id,
+      workspaceId: wsId,
+      type: "direct",
+      participantIds: participantsJson,
+      name: displayName,
+      initials: initials || "DM",
+      color: recipientUser.avatar || "bg-cyan-500",
+      role: recipientMember.role || "Direct Message",
+      online: true,
+      lastMessage: data.initialMessage?.trim() || "",
+      lastTimestamp: now,
+      unread: 0,
     });
-  }
 
-  safeRevalidatePath("/messages");
-  return { success: true, id, isExisting: false };
+    if (data.initialMessage?.trim()) {
+      await sendMessageAction(id, currentUser.name, data.initialMessage.trim());
+    }
+
+    safeRevalidatePath("/messages");
+    return { success: true, id, isExisting: false };
+  } catch (err: unknown) {
+    if (err instanceof AuthError) {
+      return { success: false, error: err.message };
+    }
+    return { success: false, error: err instanceof Error ? err.message : "Failed to create conversation." };
+  }
 }
 
 // --- Calendar Actions ---

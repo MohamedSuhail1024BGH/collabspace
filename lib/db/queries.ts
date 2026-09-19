@@ -20,6 +20,7 @@ import {
 } from "./schema";
 import { ensureTables } from "./seed";
 import { getActiveWorkspaceId } from "./workspace";
+import { classifyConversation, validateDirectConversation } from "@/lib/auth/dm-validator";
 
 // Ensure tables exist whenever queries are initialized
 ensureTables();
@@ -139,46 +140,28 @@ export async function getConversations(workspaceId?: string, currentUserId?: str
     getTeamMembers(wsId),
   ]);
 
-  return allConversations
-    .filter((c) => {
-      const isDirect = c.type === "direct" || c.id.startsWith("conv-dm-");
-      if (!isDirect) return true; // Channels are workspace-wide
-      if (!currentUserId) return true; // If no viewer context provided, keep all
+  const results: FullConversation[] = [];
 
-      let pIds: string[] = [];
-      try {
-        pIds = JSON.parse(c.participantIds || "[]");
-      } catch {
-        pIds = [];
-      }
-      if (pIds.length === 0) {
-        if (c.id === "conv-dm-leo") pIds = ["usr-ava", "usr-leo"];
-        if (c.id === "conv-dm-mia") pIds = ["usr-ava", "usr-mia"];
-      }
-      return pIds.includes(currentUserId);
-    })
-    .map((c) => {
-      const isDirect = c.type === "direct" || c.id.startsWith("conv-dm-");
-      if (!isDirect || !currentUserId) {
-        return {
-          ...c,
-          messages: allMessages.filter((m) => m.conversationId === c.id),
-        };
+  for (const c of allConversations) {
+    const classification = classifyConversation(c);
+
+    // 1. Unknown or malformed type fails closed (omitted)
+    if (classification === "invalid") {
+      continue;
+    }
+
+    // 2. Direct message requires canonical validation
+    if (classification === "direct") {
+      if (!currentUserId) {
+        continue;
       }
 
-      let pIds: string[] = [];
-      try {
-        pIds = JSON.parse(c.participantIds || "[]");
-      } catch {
-        pIds = [];
-      }
-      if (pIds.length === 0) {
-        if (c.id === "conv-dm-leo") pIds = ["usr-ava", "usr-leo"];
-        if (c.id === "conv-dm-mia") pIds = ["usr-ava", "usr-mia"];
+      const dmCheck = await validateDirectConversation(c, currentUserId);
+      if (!dmCheck.valid) {
+        continue;
       }
 
-      // Find other participant
-      const counterpartyId = pIds.find((id) => id !== currentUserId) || currentUserId;
+      const counterpartyId = dmCheck.otherUserId;
       const counterparty = members.find((m) => m.user.id === counterpartyId);
 
       if (counterparty) {
@@ -199,7 +182,7 @@ export async function getConversations(workspaceId?: string, currentUserId?: str
             : "Team Member");
         const displayColor = tm?.color || "bg-cyan-500";
 
-        return {
+        results.push({
           ...c,
           name: cpName,
           initials: cpInitials,
@@ -207,14 +190,23 @@ export async function getConversations(workspaceId?: string, currentUserId?: str
           color: displayColor,
           online: true,
           messages: allMessages.filter((m) => m.conversationId === c.id),
-        };
+        });
+      } else {
+        results.push({
+          ...c,
+          messages: allMessages.filter((m) => m.conversationId === c.id),
+        });
       }
-
-      return {
+    } else {
+      // 3. Channels are visible to all workspace members
+      results.push({
         ...c,
         messages: allMessages.filter((m) => m.conversationId === c.id),
-      };
-    });
+      });
+    }
+  }
+
+  return results;
 }
 
 export type ParsedCalendarEvent = Omit<DbCalendarEvent, "attendees"> & {
@@ -408,11 +400,11 @@ export async function getWorkspaceReportsData(workspaceId?: string): Promise<Wor
   };
 }
 
-export async function searchUsers(query: string) {
+export async function searchUsers(query: string, workspaceId?: string) {
   const cleanQuery = query.trim().toLowerCase().replace(/^@/, "");
-  if (!cleanQuery) return [];
+  if (!cleanQuery || !workspaceId) return [];
 
-  const allUsers = await db
+  const wsUsers = await db
     .select({
       id: users.id,
       name: users.name,
@@ -421,9 +413,11 @@ export async function searchUsers(query: string) {
       avatar: users.avatar,
       bio: users.bio,
     })
-    .from(users);
+    .from(workspaceMembers)
+    .innerJoin(users, eq(workspaceMembers.userId, users.id))
+    .where(eq(workspaceMembers.workspaceId, workspaceId));
 
-  return allUsers.filter(
+  return wsUsers.filter(
     (u) =>
       u.name.toLowerCase().includes(cleanQuery) ||
       (u.username && u.username.toLowerCase().includes(cleanQuery)) ||

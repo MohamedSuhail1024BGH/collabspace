@@ -1,5 +1,9 @@
+import { and, eq } from "drizzle-orm";
 import { getCurrentUser } from "@/lib/db/auth";
+import { db } from "@/lib/db";
+import { conversations, workspaceMembers } from "@/lib/db/schema";
 import { messageBus, MessageEventPayload } from "@/lib/events/message-bus";
+import { classifyConversation, validateDirectConversation } from "@/lib/auth/dm-validator";
 
 export const dynamic = "force-dynamic";
 
@@ -7,13 +11,30 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const workspaceId = url.searchParams.get("workspaceId");
 
-  if (!workspaceId) {
+  if (!workspaceId || !workspaceId.trim()) {
     return new Response("Missing workspaceId", { status: 400 });
   }
 
+  // 1. Authenticate caller
   const currentUser = await getCurrentUser();
   if (!currentUser) {
     return new Response("Unauthorized", { status: 401 });
+  }
+
+  // 2. Authorize workspace membership
+  const [membership] = await db
+    .select()
+    .from(workspaceMembers)
+    .where(
+      and(
+        eq(workspaceMembers.workspaceId, workspaceId),
+        eq(workspaceMembers.userId, currentUser.id)
+      )
+    )
+    .limit(1);
+
+  if (!membership) {
+    return new Response("Forbidden", { status: 403 });
   }
 
   const encoder = new TextEncoder();
@@ -31,15 +52,37 @@ export async function GET(req: Request) {
       // Subscribe to message events for this workspace
       const unsubscribe = messageBus.subscribe(
         workspaceId,
-        (payload: MessageEventPayload) => {
+        async (payload: MessageEventPayload) => {
           try {
-            // If the message is a private DM, only deliver if current user is a participant
-            if (
-              payload.participantIds &&
-              payload.participantIds.length > 0 &&
-              !payload.participantIds.includes(currentUser.id)
-            ) {
+            if (!payload.conversationId) return;
+
+            // Never trust event payload metadata alone; verify against authoritative DB
+            const [conv] = await db
+              .select()
+              .from(conversations)
+              .where(
+                and(
+                  eq(conversations.id, payload.conversationId),
+                  eq(conversations.workspaceId, workspaceId)
+                )
+              )
+              .limit(1);
+
+            if (!conv) return;
+
+            const classification = classifyConversation(conv);
+            if (classification === "invalid") {
+              // Unknown/malformed type -> drop event completely
               return;
+            }
+
+            // If direct message, validate via canonical DM validator
+            if (classification === "direct") {
+              const dmCheck = await validateDirectConversation(conv, currentUser.id);
+              if (!dmCheck.valid) {
+                // Not authorized or corrupt DM -> drop event completely
+                return;
+              }
             }
 
             controller.enqueue(

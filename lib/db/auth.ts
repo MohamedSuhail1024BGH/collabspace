@@ -1,11 +1,17 @@
 import crypto from "crypto";
 import { cookies } from "next/headers";
+import { AsyncLocalStorage } from "async_hooks";
 import { eq, and, gt } from "drizzle-orm";
 import { db } from "./index";
-import { users, sessions, workspaces, workspaceMembers, type DbUser, type DbWorkspace, type UserRole } from "./schema";
+import { users, sessions, workspaces, workspaceMembers, type DbUser, type DbWorkspace } from "./schema";
 import { ACTIVE_WORKSPACE_COOKIE } from "./workspace";
 
 export const AUTH_COOKIE_NAME = "collabspace_session";
+
+export const testAuthStorage =
+  process.env.NODE_ENV !== "production"
+    ? new AsyncLocalStorage<{ userId: string }>()
+    : null;
 
 export function hashPassword(password: string): string {
   const salt = crypto.randomBytes(16).toString("hex");
@@ -53,6 +59,26 @@ export async function createSession(userId: string): Promise<string> {
 }
 
 export async function getCurrentUser(): Promise<Omit<DbUser, "passwordHash"> | null> {
+  if (process.env.NODE_ENV !== "production" && testAuthStorage) {
+    const testStore = testAuthStorage.getStore();
+    if (testStore?.userId) {
+      const [user] = await db
+        .select({
+          id: users.id,
+          email: users.email,
+          username: users.username,
+          bio: users.bio,
+          name: users.name,
+          avatar: users.avatar,
+          createdAt: users.createdAt,
+        })
+        .from(users)
+        .where(eq(users.id, testStore.userId))
+        .limit(1);
+      return user || null;
+    }
+  }
+
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get(AUTH_COOKIE_NAME)?.value;
@@ -114,4 +140,11 @@ export async function getUserWorkspaces(userId: string): Promise<DbWorkspace[]> 
   return memberships.map((m) => m.workspace);
 }
 
-
+export {
+  AuthError,
+  requireUser,
+  requireWorkspaceMember,
+  requireWorkspaceRole,
+  getTargetWorkspaceMembership,
+  requireTargetWorkspaceMember,
+} from "@/lib/auth/tenant";

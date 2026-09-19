@@ -1,4 +1,4 @@
-import { resetDatabase, ensureTables } from "./seed";
+import { resetDatabase } from "./seed";
 import { db } from "./index";
 import { users, workspaces, teamMembers, workspaceMembers, projects, projectMembers, projectActivity, tasks, conversations, messages, calendarEvents } from "./schema";
 import { team, projectDirectory, taskBoard, conversations as initialConversations, calendarEvents as initialEvents } from "../../data/mock-data";
@@ -59,7 +59,9 @@ async function seedTestData() {
     });
     for (let i = 0; i < proj.teamMembers.length; i++) {
       const tm = proj.teamMembers[i];
-      await db.insert(projectMembers).values({ id: `pm-${proj.id}-${i}`, projectId: proj.id, name: tm.name, role: tm.role, initials: tm.initials, color: tm.color });
+      const role = tm.role.toLowerCase().includes("lead") ? "lead" : "contributor";
+      const userId = tm.name === "Ava Thompson" ? "usr-ava" : tm.name === "Leo Martin" ? "usr-leo" : tm.name === "Mia Chen" ? "usr-mia" : null;
+      await db.insert(projectMembers).values({ id: `pm-${proj.id}-${i}`, projectId: proj.id, userId, name: tm.name, role, initials: tm.initials, color: tm.color });
     }
     for (let i = 0; i < proj.recentActivity.length; i++) {
       await db.insert(projectActivity).values({ id: `pa-${proj.id}-${i}`, projectId: proj.id, content: proj.recentActivity[i], createdAt: now });

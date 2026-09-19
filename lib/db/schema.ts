@@ -1,5 +1,5 @@
-import { relations } from "drizzle-orm";
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { relations, sql } from "drizzle-orm";
+import { integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 // --- Workspaces (Organizations) ---
 export const workspaces = sqliteTable("workspaces", {
@@ -44,24 +44,32 @@ export const teamMembers = sqliteTable("team_members", {
 });
 
 // --- Workspace Membership & RBAC ---
-export const workspaceMembers = sqliteTable("workspace_members", {
-  id: text("id").primaryKey(),
-  workspaceId: text("workspace_id")
-    .notNull()
-    .references(() => workspaces.id, { onDelete: "cascade" }),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  role: text("role").notNull().default("member"), // "owner" | "admin" | "member" | "viewer"
-  joinedAt: text("joined_at").notNull(),
-});
+export const workspaceMembers = sqliteTable(
+  "workspace_members",
+  {
+    id: text("id").primaryKey(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: text("role").notNull().default("member"), // "owner" | "admin" | "member" | "viewer"
+    joinedAt: text("joined_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("idx_workspace_members_ws_user").on(
+      table.workspaceId,
+      table.userId
+    ),
+  ]
+);
 
 // --- Projects ---
 export const projects = sqliteTable("projects", {
   id: text("id").primaryKey(),
   workspaceId: text("workspace_id")
     .notNull()
-    
     .references(() => workspaces.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   progress: integer("progress").notNull().default(0),
@@ -72,18 +80,25 @@ export const projects = sqliteTable("projects", {
   createdAt: text("created_at").notNull(),
 });
 
-export const projectMembers = sqliteTable("project_members", {
-  id: text("id").primaryKey(),
-  projectId: text("project_id")
-    .notNull()
-    .references(() => projects.id, { onDelete: "cascade" }),
-  userId: text("user_id")
-    .references(() => users.id, { onDelete: "cascade" }),
-  name: text("name").notNull(),
-  role: text("role").notNull().default("contributor"),
-  initials: text("initials").notNull(),
-  color: text("color").notNull(),
-});
+export const projectMembers = sqliteTable(
+  "project_members",
+  {
+    id: text("id").primaryKey(),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    role: text("role").notNull().default("contributor"),
+    initials: text("initials").notNull(),
+    color: text("color").notNull(),
+  },
+  (table) => [
+    uniqueIndex("idx_project_members_proj_user")
+      .on(table.projectId, table.userId)
+      .where(sql`user_id IS NOT NULL`),
+  ]
+);
 
 export const projectActivity = sqliteTable("project_activity", {
   id: text("id").primaryKey(),
