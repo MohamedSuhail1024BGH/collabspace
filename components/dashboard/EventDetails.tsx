@@ -12,13 +12,13 @@ type Props = {
 };
 
 const categoryBadgeStyles: Record<string, string> = {
-  Meeting: "border-cyan-500/30 bg-cyan-500/10 text-cyan-300",
-  Planning: "border-blue-500/30 bg-blue-500/10 text-blue-300",
-  Design: "border-violet-500/30 bg-violet-500/10 text-violet-300",
-  Engineering: "border-amber-500/30 bg-amber-500/10 text-amber-300",
-  Deadline: "border-rose-500/30 bg-rose-500/10 text-rose-300",
-  Client: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
-  Other: "border-slate-500/30 bg-slate-500/10 text-slate-300",
+  Meeting: "border-secondary/30 bg-secondary-container/20 text-secondary",
+  Planning: "border-primary/30 bg-primary-container/20 text-primary",
+  Design: "border-outline/30 bg-surface-container-high text-on-surface",
+  Engineering: "border-tertiary/30 bg-tertiary-container/20 text-tertiary",
+  Deadline: "border-error/30 bg-error-container/20 text-error",
+  Client: "border-secondary/30 bg-secondary-container/20 text-secondary",
+  Other: "border-outline/30 bg-surface-container text-on-surface-variant",
 };
 
 export default function EventDetails({
@@ -34,17 +34,17 @@ export default function EventDetails({
 
   return (
     <div
-      className="w-full rounded-3xl border border-white/10 bg-slate-950/70 p-5 shadow-xl shadow-slate-950/30"
+      className="w-full rounded border border-outline/20 bg-surface-container-low p-4 text-on-surface shadow-md"
       data-testid="event-details-card"
     >
-      <div className="mb-4 flex items-start justify-between gap-3">
+      <div className="mb-3 flex items-start justify-between gap-3">
         <div>
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+          <span className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">
             {event.date}
           </span>
-          <h4 className="mt-1 text-xl font-bold text-white leading-tight">{event.title}</h4>
+          <h4 className="mt-0.5 text-base font-bold text-on-surface leading-snug">{event.title}</h4>
           <span
-            className={`mt-2.5 inline-block rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${badgeStyle}`}
+            className={`mt-2 inline-block rounded border px-2 py-0.5 text-[10px] font-mono ${badgeStyle}`}
           >
             {event.category}
           </span>
@@ -52,7 +52,7 @@ export default function EventDetails({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-xl border border-white/10 bg-slate-900/60 p-1.5 text-slate-400 transition hover:bg-slate-800 hover:text-white"
+          className="rounded p-1 text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
           title="Close details"
         >
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -61,15 +61,15 @@ export default function EventDetails({
         </button>
       </div>
 
-      <div className="space-y-4 text-sm">
-        <div className="rounded-2xl border border-white/5 bg-slate-900/50 p-3.5 text-slate-300">
-          <div className="flex items-center gap-2 text-xs text-slate-400">
-            <svg className="h-4 w-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="space-y-3 text-xs">
+        <div className="rounded border border-outline/20 bg-surface-container-lowest p-3 text-on-surface">
+          <div className="flex items-center gap-1.5 text-[11px] font-mono text-on-surface-variant">
+            <svg className="h-3.5 w-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span className="font-semibold uppercase tracking-wider text-[11px]">Time Window</span>
+            <span className="uppercase tracking-wider">Time Window</span>
           </div>
-          <p className="mt-1.5 font-medium text-white">
+          <p className="mt-1 font-mono text-xs font-semibold text-on-surface">
             {formatTimeShort(`${event.date}T${event.startTime}`)} —{" "}
             {formatTimeShort(`${event.date}T${event.endTime ?? event.startTime}`)}
           </p>
@@ -77,10 +77,10 @@ export default function EventDetails({
 
         {event.description ? (
           <div>
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">
               Description
             </span>
-            <p className="mt-1.5 text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">
+            <p className="mt-1 text-xs text-on-surface leading-relaxed whitespace-pre-wrap">
               {event.description}
             </p>
           </div>
@@ -88,16 +88,16 @@ export default function EventDetails({
 
         {event.attendees && event.attendees.length > 0 ? (
           <div>
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">
               Attendees ({event.attendees.length})
             </span>
-            <div className="mt-2 flex flex-wrap gap-2">
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
               {event.attendees.map((attendee) => (
                 <div
                   key={attendee}
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-slate-900/80 px-2.5 py-1 text-xs text-slate-200"
+                  className="inline-flex items-center gap-1.5 rounded border border-outline/20 bg-surface-container-lowest px-2 py-0.5 text-xs text-on-surface font-mono"
                 >
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-violet-600/30 text-[10px] font-bold text-violet-300">
+                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-on-primary">
                     {attendee.slice(0, 1).toUpperCase()}
                   </span>
                   <span>{attendee}</span>
@@ -108,13 +108,13 @@ export default function EventDetails({
         ) : null}
 
         {canManage && (
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/10">
+          <div className="flex items-center justify-end gap-2 pt-2.5 border-t border-outline/10">
             {onEdit && (
               <button
                 type="button"
                 data-testid="event-edit-btn"
                 onClick={() => onEdit(event)}
-                className="rounded-xl border border-white/10 bg-slate-900 px-3.5 py-2 text-xs font-semibold text-slate-200 transition hover:bg-slate-800 hover:text-white"
+                className="rounded bg-surface-container hover:bg-surface-container-highest px-3 py-1 text-xs font-mono text-on-surface transition"
               >
                 Edit event
               </button>
@@ -124,7 +124,7 @@ export default function EventDetails({
                 type="button"
                 data-testid="event-delete-btn"
                 onClick={() => onDelete(event.id)}
-                className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3.5 py-2 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/20"
+                className="rounded bg-error-container/20 hover:bg-error-container/30 px-3 py-1 text-xs font-mono text-error transition"
               >
                 Delete
               </button>

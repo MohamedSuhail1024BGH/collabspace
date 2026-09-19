@@ -11,7 +11,7 @@ export default async function LoginPage() {
     redirect("/");
   }
   return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-slate-950" />}>
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-surface" />}>
       <LoginClient />
     </Suspense>
   );

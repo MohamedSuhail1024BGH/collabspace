@@ -15,13 +15,13 @@ type Props = {
 };
 
 const categoryBadgeStyles: Record<string, string> = {
-  Meeting: "border-cyan-500/30 bg-cyan-500/10 text-cyan-300",
-  Planning: "border-blue-500/30 bg-blue-500/10 text-blue-300",
-  Design: "border-violet-500/30 bg-violet-500/10 text-violet-300",
-  Engineering: "border-amber-500/30 bg-amber-500/10 text-amber-300",
-  Deadline: "border-rose-500/30 bg-rose-500/10 text-rose-300",
-  Client: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
-  Other: "border-slate-500/30 bg-slate-500/10 text-slate-300",
+  Meeting: "border-secondary/30 bg-secondary-container/20 text-secondary",
+  Planning: "border-primary/30 bg-primary-container/20 text-primary",
+  Design: "border-outline/30 bg-surface-container-high text-on-surface",
+  Engineering: "border-tertiary/30 bg-tertiary-container/20 text-tertiary",
+  Deadline: "border-error/30 bg-error-container/20 text-error",
+  Client: "border-secondary/30 bg-secondary-container/20 text-secondary",
+  Other: "border-outline/30 bg-surface-container text-on-surface-variant",
 };
 
 export default function CalendarWeekView({
@@ -58,124 +58,98 @@ export default function CalendarWeekView({
       const d = new Date(sunday);
       d.setDate(sunday.getDate() + i);
       const ymd = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+      const dayEvents = events.filter(
+        (e) => e.date === ymd && (!category || category === "All" || e.category === category),
+      );
+
       days.push({
+        date: d,
         dateStr: ymd,
-        dayName: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][i],
+        dayName: dayNames[i],
         dayNumber: d.getDate(),
         isToday: ymd === todayYmd,
-        isSelected: ymd === selectedDate,
+        isSelected: selectedDate === ymd,
         inCurrentMonth: d.getMonth() === month,
+        events: dayEvents,
       });
     }
-    return days;
-  }, [refDate, selectedDate, month]);
 
-  const filteredEventsForDate = (dateStr: string) => {
-    return events
-      .filter(
-        (ev) =>
-          ev.date === dateStr &&
-          (!category || category === "All" || ev.category === category),
-      )
-      .sort((a, b) => a.startTime.localeCompare(b.startTime));
-  };
+    return days;
+  }, [refDate, events, category, selectedDate, month]);
 
   return (
-    <div className="overflow-x-auto" data-testid="calendar-week-view">
-      <div className="grid min-w-[700px] grid-cols-7 gap-2">
-        {weekDays.map((day) => {
-          const dayEvents = filteredEventsForDate(day.dateStr);
-
-          return (
+    <div data-testid="calendar-week-view" className="overflow-x-auto select-none">
+      <div className="grid min-w-[620px] grid-cols-7 gap-2">
+        {weekDays.map((day) => (
+          <div
+            key={day.dateStr}
+            className={`flex min-h-[340px] flex-col rounded border transition-all ${
+              day.isSelected
+                ? "border-2 border-primary bg-surface-container-high shadow-xs"
+                : day.inCurrentMonth
+                ? "border-outline/20 bg-surface-container-lowest hover:bg-surface-container"
+                : "border-outline/10 bg-surface-container-lowest/30 opacity-70"
+            }`}
+          >
+            {/* Day Header */}
             <div
-              key={day.dateStr}
-              className={`flex min-h-[360px] flex-col rounded-2xl border transition-all ${
-                day.isSelected
-                  ? "border-violet-500 bg-slate-900/70 shadow-lg shadow-violet-500/5"
-                  : day.inCurrentMonth
-                  ? "border-white/10 bg-slate-950/50 hover:border-white/20"
-                  : "border-white/5 bg-slate-950/20 opacity-75"
-              }`}
+              onClick={() => onSelectDate(day.dateStr)}
+              className="cursor-pointer border-b border-outline/10 p-2.5 text-center transition"
             >
-              {/* Day Header */}
-              <div
-                onClick={() => onSelectDate(day.dateStr)}
-                className="cursor-pointer border-b border-white/5 p-3 text-center transition hover:bg-white/[0.02]"
-              >
-                <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                  {day.dayName}
-                </div>
-                <div className="mt-1 flex items-center justify-center">
-                  <span
-                    className={`flex h-7 w-7 items-center justify-center rounded-full text-sm font-semibold transition ${
-                      day.isToday
-                        ? "bg-violet-600 font-bold text-white shadow-md shadow-violet-600/30"
-                        : day.isSelected
-                        ? "bg-white/10 text-white"
-                        : "text-slate-200"
-                    }`}
-                  >
-                    {day.dayNumber}
-                  </span>
-                </div>
-                {dayEvents.length > 0 && (
-                  <span className="mt-1 block text-[10px] text-slate-400">
-                    {dayEvents.length} event{dayEvents.length > 1 ? "s" : ""}
-                  </span>
-                )}
+              <div className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">
+                {day.dayName}
               </div>
+              <div className="mt-1 flex items-center justify-center">
+                <span
+                  className={`flex h-6 w-6 items-center justify-center rounded text-xs font-mono transition ${
+                    day.isToday
+                      ? "bg-primary font-bold text-on-primary shadow-xs"
+                      : day.isSelected
+                      ? "bg-surface-container-highest text-primary font-bold"
+                      : "text-on-surface"
+                  }`}
+                >
+                  {day.dayNumber}
+                </span>
+              </div>
+            </div>
 
-              {/* Day Events */}
-              <div className="flex-1 space-y-2 p-2">
-                {dayEvents.map((ev) => {
-                  const badgeStyle =
-                    categoryBadgeStyles[ev.category] || categoryBadgeStyles.Other;
+            {/* Events in Day */}
+            <div className="flex-1 space-y-1.5 p-2 overflow-y-auto max-h-72">
+              {day.events.length === 0 ? (
+                <div className="pt-8 text-center text-[10px] font-mono text-on-surface-variant/40">
+                  No events
+                </div>
+              ) : (
+                day.events.map((ev) => {
+                  const style =
+                    categoryBadgeStyles[ev.category] ||
+                    "border-outline/20 bg-surface-container text-on-surface";
+
                   return (
                     <div
                       key={ev.id}
                       onClick={(e) => {
                         e.stopPropagation();
-                        onSelectDate(ev.date);
                         onSelectEvent(ev);
                       }}
-                      className="cursor-pointer rounded-xl border border-white/5 bg-slate-900/80 p-2 text-xs transition hover:border-violet-500/40 hover:bg-slate-850"
+                      className={`cursor-pointer rounded border p-2 text-left transition hover:brightness-110 shadow-xs ${style}`}
                     >
-                      <div className="font-semibold text-white truncate" title={ev.title}>
-                        {ev.title}
+                      <div className="flex items-center justify-between text-[10px] font-mono opacity-80 mb-0.5">
+                        <span>{formatTimeShort(ev.startTime)}</span>
+                        {ev.endTime && <span>{formatTimeShort(ev.endTime)}</span>}
                       </div>
-                      <div className="mt-0.5 text-[10px] font-medium text-slate-400">
-                        {formatTimeShort(`${ev.date}T${ev.startTime}`)}
-                      </div>
-                      <div className="mt-1.5 flex items-center justify-between gap-1">
-                        <span
-                          className={`rounded-md border px-1.5 py-0.5 text-[9px] font-semibold ${badgeStyle}`}
-                        >
-                          {ev.category}
-                        </span>
-                        {ev.attendees && ev.attendees.length > 0 && (
-                          <span className="text-[10px] text-slate-400">
-                            👥 {ev.attendees.length}
-                          </span>
-                        )}
-                      </div>
+                      <p className="font-medium text-xs truncate leading-snug">{ev.title}</p>
                     </div>
                   );
-                })}
-
-                {dayEvents.length === 0 && (
-                  <div
-                    onClick={() => onSelectDate(day.dateStr)}
-                    className="flex h-full min-h-[80px] cursor-pointer items-center justify-center rounded-xl p-2 text-center text-[11px] text-slate-600 transition hover:bg-white/[0.01] hover:text-slate-400"
-                  >
-                    No events
-                  </div>
-                )}
-              </div>
+                })
+              )}
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
     </div>
   );
 }
-

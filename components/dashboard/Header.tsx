@@ -1,139 +1,113 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import type { DbUser } from "@/lib/db/schema";
-import { logoutAction, deleteAccountAction } from "@/app/actions";
+import { UserAvatar } from "@/components/ui/UserAvatar";
+import { CommandPalette } from "@/components/ui/CommandPalette";
 
 type HeaderProps = {
   title: string;
   user?: Omit<DbUser, "passwordHash"> | null;
+  activeWorkspaceName?: string;
+  onToggleMobileMenu?: () => void;
+  isProjectsSidebarOpen?: boolean;
+  onToggleProjectsSidebar?: () => void;
 };
 
-export function Header({ title, user }: HeaderProps) {
-  const router = useRouter();
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-
-  const handleLogout = async () => {
-    await logoutAction();
-    router.push("/login");
-    router.refresh();
-  };
-
-  const handleDeleteAccount = async () => {
-    setDeleteError(null);
-    setIsDeleting(true);
-    const res = await deleteAccountAction();
-    if (res.success) {
-      router.push("/login?deleted=true");
-      router.refresh();
-    } else {
-      setDeleteError(res.error || "Failed to delete account");
-      setIsDeleting(false);
-    }
-  };
+export function Header({
+  title,
+  user,
+  activeWorkspaceName,
+  onToggleMobileMenu,
+  isProjectsSidebarOpen,
+  onToggleProjectsSidebar,
+}: HeaderProps) {
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
 
   return (
     <>
-      <header className="mb-6 flex flex-col gap-4 rounded-3xl border border-white/10 bg-slate-900/80 p-4 shadow-xl shadow-slate-950/20 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-sm text-slate-400">Good morning</p>
-          <h2 className="text-2xl font-semibold text-white">{title}</h2>
+      <header className="fixed top-0 md:left-60 left-0 right-0 h-14 bg-surface/90 backdrop-blur-xl z-40 border-b border-outline-variant/20 flex items-center justify-between px-3 sm:px-6 transition-all">
+        {/* Left: Mobile Toggle + Breadcrumbs */}
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          {/* Mobile hamburger menu toggle */}
+          <button
+            type="button"
+            onClick={onToggleMobileMenu}
+            className="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all md:hidden focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+            aria-label="Open mobile menu"
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+
+          <div className="flex items-center gap-1.5 sm:gap-2 text-xs text-on-surface-variant min-w-0">
+            <span className="truncate max-w-[120px] sm:max-w-none text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer font-medium">
+              {activeWorkspaceName || "Acme Corporation"}
+            </span>
+            <span className="text-on-surface-variant/40">/</span>
+            <h2 className="text-on-surface font-semibold truncate text-xs sm:text-sm font-headline-sm">{title}</h2>
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 self-start sm:self-auto">
+        {/* Center / Search trigger */}
+        <button
+          type="button"
+          onClick={() => setIsCommandPaletteOpen(true)}
+          className="hidden md:flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-surface-lowest border border-outline-variant/20 text-xs text-on-surface-variant hover:border-primary/40 hover:text-on-surface transition-all w-52 lg:w-64 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+          title="Open Command Palette (Cmd+K)"
+        >
+          <svg className="h-3.5 w-3.5 shrink-0 text-on-surface-variant/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <span className="flex-1 text-left truncate text-on-surface-variant/50 font-body-sm">Search or jump to...</span>
+          <kbd className="stitch-kbd text-[9px]">⌘K</kbd>
+        </button>
+
+        {/* Right: Actions (Tested landmarks) */}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Mobile search icon */}
+          <button
+            type="button"
+            onClick={() => setIsCommandPaletteOpen(true)}
+            className="md:hidden p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+            title="Search (Cmd+K)"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </button>
+
+          {onToggleProjectsSidebar && (
+            <button
+              type="button"
+              data-testid="header-toggle-projects-btn"
+              onClick={onToggleProjectsSidebar}
+              title={isProjectsSidebarOpen ? "Collapse projects panel" : "Expand projects panel"}
+              className="hidden lg:flex items-center gap-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high border border-outline-variant/20 px-2.5 py-1 text-xs font-mono text-on-surface-variant hover:text-on-surface transition-all focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+            >
+              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h10M4 18h16" />
+              </svg>
+              <span>{isProjectsSidebarOpen ? "Hide Projects" : "Show Projects"}</span>
+            </button>
+          )}
+
           {user && (
-            <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-slate-950/60 py-1.5 pl-2.5 pr-2">
-              <div className={`flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br ${user.avatar || "from-violet-500 to-cyan-400"} text-xs font-bold text-white shadow`}>
-                {user.name.charAt(0).toUpperCase()}
-              </div>
-              <div className="hidden text-left sm:block">
-                <p className="max-w-[130px] truncate text-xs font-medium text-white">{user.name}</p>
-                <p className="max-w-[130px] truncate text-[10px] text-slate-400">{user.email}</p>
-              </div>
-
-              {/* Logout Button */}
-              <button
-                type="button"
-                data-testid="header-logout-button"
-                onClick={handleLogout}
-                title="Log out"
-                className="flex items-center gap-1.5 rounded-xl border border-rose-500/20 bg-rose-500/10 px-2.5 py-1.5 text-xs font-medium text-rose-300 transition hover:bg-rose-500/20 hover:text-rose-200"
-              >
-                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-                <span>Log out</span>
-              </button>
-
-              {/* Delete Account Button */}
-              <button
-                type="button"
-                data-testid="header-delete-account-button"
-                onClick={() => setShowDeleteModal(true)}
-                title="Delete account"
-                className="flex items-center gap-1 rounded-xl border border-rose-500/30 bg-rose-950/40 p-1.5 text-xs text-rose-400 transition hover:bg-rose-900/60 hover:text-rose-200"
-              >
-                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
+            <div className="hidden sm:flex items-center gap-2 pl-1.5 pr-2.5 py-1 rounded-lg bg-surface-container border border-outline-variant/15 select-none">
+              <UserAvatar avatar={user.avatar} name={user.name} size="xs" showStatus />
+              <span className="text-xs font-medium text-on-surface truncate max-w-[120px]">{user.name}</span>
             </div>
           )}
         </div>
       </header>
 
-      {/* Delete Account Confirmation Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
-          <div
-            data-testid="delete-account-modal"
-            className="w-full max-w-md rounded-3xl border border-rose-500/30 bg-slate-900 p-6 shadow-2xl shadow-rose-950/50"
-          >
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-500/10 text-rose-400">
-              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-semibold text-white">Delete Account</h3>
-            <p className="mt-2 text-sm text-slate-300">
-              Are you sure you want to permanently delete your account (
-              <span className="font-semibold text-white">{user?.email}</span>)?
-            </p>
-            <p className="mt-1 text-xs text-rose-300">
-              This action is irreversible. All your personal sessions, memberships, and sole workspace data will be permanently deleted.
-            </p>
-
-            {deleteError && (
-              <div className="mt-3 rounded-xl border border-rose-500/30 bg-rose-500/10 p-2.5 text-xs text-rose-300">
-                {deleteError}
-              </div>
-            )}
-
-            <div className="mt-6 flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setShowDeleteModal(false)}
-                disabled={isDeleting}
-                className="rounded-xl border border-white/10 px-4 py-2 text-xs font-medium text-slate-300 transition hover:bg-white/5"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                data-testid="confirm-delete-account-button"
-                onClick={handleDeleteAccount}
-                disabled={isDeleting}
-                className="flex items-center gap-1.5 rounded-xl bg-rose-600 px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-rose-900/40 transition hover:bg-rose-500 disabled:opacity-50"
-              >
-                {isDeleting ? "Deleting..." : "Yes, Delete Account"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Global Command Palette */}
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onOpen={() => setIsCommandPaletteOpen(true)}
+        onClose={() => setIsCommandPaletteOpen(false)}
+      />
     </>
   );
 }

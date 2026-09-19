@@ -56,3 +56,4 @@ collabspace.db*
 
 #agent-conf
 .agents/
+.freebuff/

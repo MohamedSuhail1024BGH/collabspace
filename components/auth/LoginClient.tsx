@@ -32,65 +32,82 @@ export function LoginClient() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-950 p-4 text-slate-100">
+    <main className="flex min-h-screen items-center justify-center bg-surface p-4 text-on-surface">
       <div className="w-full max-w-md">
         {/* Brand Header */}
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-cyan-400 font-bold text-white shadow-lg shadow-violet-950/50">
+        <div className="mb-6 text-center">
+          <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded bg-surface-container-high border border-outline/20 font-mono font-bold text-primary text-sm tracking-wider shadow-sm">
             CS
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">Welcome back</h1>
-          <p className="mt-2 text-sm text-slate-400">Sign in to your CollabSpace workspace</p>
+          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-surface-container-high text-on-surface-variant font-mono text-[10px] mb-2 uppercase tracking-widest">
+            <span className="w-1.5 h-1.5 rounded-full bg-secondary" />
+            <span>SEC-AUTH-V2 · ONLINE</span>
+          </div>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-on-surface">Welcome back</h1>
+          <p className="mt-1 text-xs font-mono text-on-surface-variant">Sign in to your CollabSpace workspace</p>
         </div>
 
         {/* Login Card */}
-        <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-6 shadow-2xl backdrop-blur-xl sm:p-8">
+        <div className="rounded-lg border border-outline/20 bg-surface-container-low p-6 shadow-2xl backdrop-blur-xl sm:p-7">
           {registered && (
             <div
               data-testid="registered-success-banner"
-              className="mb-5 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-sm text-emerald-300"
+              className="mb-4 rounded border border-secondary/30 bg-secondary/10 p-3 text-xs font-mono text-secondary flex items-start gap-2"
             >
-              Account created successfully! Please sign in with your credentials.
+              <svg className="h-4 w-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span>Account created successfully! Please sign in with your credentials.</span>
             </div>
           )}
 
           {deleted && (
             <div
               data-testid="deleted-success-banner"
-              className="mb-5 rounded-2xl border border-sky-500/30 bg-sky-500/10 p-3.5 text-sm text-sky-300"
+              className="mb-4 rounded border border-primary/30 bg-primary/10 p-3 text-xs font-mono text-primary flex items-start gap-2"
             >
-              Your account has been successfully deleted.
+              <svg className="h-4 w-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>Your account has been successfully deleted.</span>
             </div>
           )}
 
           {error && (
-            <div className="mb-5 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-300">
-              {error}
+            <div className="mb-4 rounded border border-error/30 bg-error/10 p-3 text-xs font-mono text-error flex items-start gap-2">
+              <svg className="h-4 w-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <span>{error}</span>
             </div>
           )}
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-slate-300">Email address</label>
+              <label className="mb-1 block text-[11px] font-mono uppercase tracking-wider text-on-surface-variant">
+                Email address
+              </label>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@company.com"
-                className="w-full rounded-2xl border border-white/10 bg-slate-950/60 px-3.5 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-violet-400 focus:outline-none"
+                className="w-full rounded bg-surface-container-lowest border border-outline/20 px-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:outline-none transition"
               />
             </div>
 
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-slate-300">Password</label>
+              <label className="mb-1 block text-[11px] font-mono uppercase tracking-wider text-on-surface-variant">
+                Password
+              </label>
               <input
                 type={showPassword ? "text" : "password"}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full rounded-2xl border border-white/10 bg-slate-950/60 px-3.5 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-violet-400 focus:outline-none"
+                className="w-full rounded bg-surface-container-lowest border border-outline/20 px-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:outline-none transition font-mono"
               />
               <div className="mt-2 flex items-center gap-2">
                 <input
@@ -99,11 +116,11 @@ export function LoginClient() {
                   type="checkbox"
                   checked={showPassword}
                   onChange={(e) => setShowPassword(e.target.checked)}
-                  className="h-4 w-4 rounded border-white/20 bg-slate-950/60 text-violet-500 focus:ring-violet-400 focus:ring-offset-0"
+                  className="h-3.5 w-3.5 rounded border-outline/30 bg-surface-container-lowest text-primary focus:ring-0 focus:ring-offset-0 cursor-pointer"
                 />
                 <label
                   htmlFor="login-show-password"
-                  className="cursor-pointer select-none text-xs text-slate-400 hover:text-slate-300"
+                  className="cursor-pointer select-none text-xs text-on-surface-variant hover:text-on-surface transition font-mono text-[11px]"
                 >
                   Show password
                 </label>
@@ -113,7 +130,7 @@ export function LoginClient() {
             <button
               type="submit"
               disabled={isPending}
-              className="mt-2 flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-violet-500 to-cyan-500 py-3 text-sm font-semibold text-white shadow-lg shadow-violet-900/30 transition hover:opacity-95 disabled:opacity-50"
+              className="mt-2 flex w-full items-center justify-center rounded bg-primary hover:bg-primary/90 text-on-primary py-2.5 text-xs font-medium tracking-wide shadow-sm transition disabled:opacity-50"
             >
               {isPending ? "Signing in..." : "Sign In"}
             </button>
@@ -121,9 +138,9 @@ export function LoginClient() {
         </div>
 
         {/* Signup Link */}
-        <p className="mt-6 text-center text-sm text-slate-400">
+        <p className="mt-5 text-center text-xs font-mono text-on-surface-variant">
           Don&apos;t have an account?{" "}
-          <Link href="/signup" className="font-semibold text-violet-400 hover:text-violet-300">
+          <Link href="/signup" className="text-primary hover:underline font-medium">
             Create an account
           </Link>
         </p>
@@ -131,4 +148,3 @@ export function LoginClient() {
     </main>
   );
 }
-

@@ -50,15 +50,6 @@ export async function getActiveWorkspace(): Promise<DbWorkspace | null> {
   return null;
 }
 
-export async function getWorkspaceMembersWithDetails(workspaceId: string) {
-  return db.query.workspaceMembers.findMany({
-    where: eq(workspaceMembers.workspaceId, workspaceId),
-    with: {
-      user: true,
-    },
-  });
-}
-
 export async function getUserRoleInWorkspace(workspaceId: string, userId: string): Promise<UserRole | null> {
   const [membership] = await db
     .select({ role: workspaceMembers.role })
@@ -66,17 +57,4 @@ export async function getUserRoleInWorkspace(workspaceId: string, userId: string
     .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, userId)))
     .limit(1);
   return (membership?.role as UserRole) ?? null;
-}
-
-// --- Role-Based Access Control (RBAC) ---
-export const PERMISSIONS = {
-  owner: ["create:project", "edit:project", "delete:project", "create:task", "edit:task", "delete:task", "manage:members", "manage:billing"],
-  admin: ["create:project", "edit:project", "delete:project", "create:task", "edit:task", "delete:task", "manage:members"],
-  member: ["create:project", "edit:project", "create:task", "edit:task", "send:message", "create:event"],
-  viewer: ["read:all", "send:message"],
-} as const;
-
-export function canUser(role: UserRole, permission: string): boolean {
-  const allowed = PERMISSIONS[role] as readonly string[];
-  return allowed ? allowed.includes(permission) : false;
 }

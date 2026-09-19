@@ -14,15 +14,15 @@ export function TeamMember({ member }: TeamMemberProps) {
     .join("");
 
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/50 p-3">
+    <div className="flex items-center gap-3 rounded bg-surface-container-low border border-outline/20 p-2.5 hover:bg-surface-container transition-all">
       <div
-        className={`flex h-10 w-10 items-center justify-center rounded-full ${member.color} text-xs font-semibold text-white`}
+        className={`flex h-8 w-8 items-center justify-center rounded-full ${member.color} text-xs font-bold text-white shrink-0`}
       >
         {initials}
       </div>
-      <div>
-        <p className="text-sm font-medium text-white">{member.name}</p>
-        <p className="text-xs text-slate-400">{member.role}</p>
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-medium text-on-surface truncate">{member.name}</p>
+        <p className="text-[11px] text-on-surface-variant truncate">{member.role}</p>
       </div>
     </div>
   );

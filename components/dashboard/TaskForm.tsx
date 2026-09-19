@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect } from "react";
 import type { TaskPriority } from "@/data/mock-data";
 
 export type TaskDraft = {
@@ -37,54 +40,64 @@ export function TaskForm({
   onCancel,
   onSave,
 }: TaskFormProps) {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onCancel();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onCancel]);
+
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-2xl rounded-3xl border border-white/10 bg-slate-900/95 p-5 shadow-2xl shadow-slate-950/40">
-        <div className="mb-5 flex items-center justify-between gap-3">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-fade-in">
+      <div className="w-full max-w-2xl rounded-2xl bg-surface-container border border-outline-variant/30 p-6 shadow-2xl">
+        <div className="mb-5 flex items-center justify-between gap-3 pb-4 border-b border-outline-variant/15">
           <div>
-            <p className="text-xs uppercase tracking-[0.26em] text-violet-200">
+            <p className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">
               {mode === "create" ? "New task" : "Edit task"}
             </p>
-            <h3 className="mt-2 text-2xl font-semibold text-white">
+            <h3 className="text-lg font-bold text-on-surface font-headline-sm">
               {mode === "create" ? "Create a task" : "Update task details"}
             </h3>
           </div>
-          <span className="rounded-full border border-violet-500/30 bg-violet-500/10 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-violet-200">
+          <span className="rounded-md bg-surface-container-high px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider text-primary">
             Draft
           </span>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
           <div className="md:col-span-2">
-            <label className="mb-2 block text-sm text-slate-300">Title</label>
+            <label className="mb-1.5 block text-xs font-mono text-on-surface-variant">Title</label>
             <input
               value={draft.title}
               onChange={(event) => onFieldChange("title", event.target.value)}
               placeholder="Task title"
-              className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-violet-400/50 focus:outline-none"
+              className="w-full rounded-lg bg-surface-lowest border border-outline-variant/25 px-3.5 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 focus:outline-none transition-all"
             />
           </div>
 
           <div className="md:col-span-2">
-            <label className="mb-2 block text-sm text-slate-300">Description</label>
+            <label className="mb-1.5 block text-xs font-mono text-on-surface-variant">Description</label>
             <textarea
+              rows={3}
               value={draft.description}
               onChange={(event) => onFieldChange("description", event.target.value)}
-              rows={3}
               placeholder="Add context, blockers, or notes"
-              className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-violet-400/50 focus:outline-none"
+              className="w-full rounded-lg bg-surface-lowest border border-outline-variant/25 px-3.5 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 focus:outline-none transition-all"
             />
           </div>
 
           <div>
-            <label className="mb-2 block text-sm text-slate-300">Assignee</label>
+            <label className="mb-1.5 block text-xs font-mono text-on-surface-variant">Assignee</label>
             <select
               value={draft.assignee}
               onChange={(event) => onFieldChange("assignee", event.target.value)}
-              className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2.5 text-sm text-white focus:border-violet-400/50 focus:outline-none"
+              className="w-full rounded-lg bg-surface-lowest border border-outline-variant/25 px-3.5 py-2 text-xs text-on-surface focus:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 focus:outline-none transition-all"
             >
               {assigneeOptions.map((option) => (
-                <option key={option} value={option}>
+                <option key={option} value={option} className="bg-surface-container-high text-on-surface">
                   {option}
                 </option>
               ))}
@@ -92,49 +105,39 @@ export function TaskForm({
           </div>
 
           <div>
-            <label className="mb-2 block text-sm text-slate-300">Project</label>
-            {projectOptions && projectOptions.length > 0 ? (
-              <select
-                value={draft.projectId || ""}
-                onChange={(event) => {
-                  const val = event.target.value;
-                  const match = projectOptions.find((p) => p.id === val);
-                  if (match) {
-                    onFieldChange("project", match.name);
-                    onFieldChange("projectId", match.id);
-                  } else {
-                    onFieldChange("project", "General");
-                    onFieldChange("projectId", "");
-                  }
-                }}
-                className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2.5 text-sm text-white focus:border-violet-400/50 focus:outline-none"
-              >
-                <option value="">General (No project)</option>
-                {projectOptions.map((proj) => (
-                  <option key={proj.id} value={proj.id}>
-                    {proj.name}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <input
-                value={draft.project}
-                onChange={(event) => onFieldChange("project", event.target.value)}
-                placeholder="Project"
-                className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-violet-400/50 focus:outline-none"
-              />
-            )}
+            <label className="mb-1.5 block text-xs font-mono text-on-surface-variant">Project</label>
+            <select
+              value={draft.projectId || draft.project}
+              onChange={(event) => {
+                const selectedVal = event.target.value;
+                const matched = projectOptions.find((p) => p.id === selectedVal || p.name === selectedVal);
+                if (matched) {
+                  onFieldChange("project", matched.name);
+                  onFieldChange("projectId", matched.id);
+                } else {
+                  onFieldChange("project", selectedVal);
+                }
+              }}
+              className="w-full rounded-lg bg-surface-lowest border border-outline-variant/25 px-3.5 py-2 text-xs text-on-surface focus:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 focus:outline-none transition-all"
+            >
+              <option value="General" className="bg-surface-container-high text-on-surface">General</option>
+              {projectOptions.map((option) => (
+                <option key={option.id} value={option.id} className="bg-surface-container-high text-on-surface">
+                  {option.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
-            <label className="mb-2 block text-sm text-slate-300">Priority</label>
+            <label className="mb-1.5 block text-xs font-mono text-on-surface-variant">Priority</label>
             <select
               value={draft.priority}
               onChange={(event) => onFieldChange("priority", event.target.value)}
-              className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2.5 text-sm text-white focus:border-violet-400/50 focus:outline-none"
+              className="w-full rounded-lg bg-surface-lowest border border-outline-variant/25 px-3.5 py-2 text-xs text-on-surface focus:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 focus:outline-none font-mono transition-all"
             >
               {priorityOptions.map((option) => (
-                <option key={option} value={option}>
+                <option key={option} value={option} className="bg-surface-container-high text-on-surface">
                   {option}
                 </option>
               ))}
@@ -142,14 +145,14 @@ export function TaskForm({
           </div>
 
           <div>
-            <label className="mb-2 block text-sm text-slate-300">Status</label>
+            <label className="mb-1.5 block text-xs font-mono text-on-surface-variant">Status</label>
             <select
               value={draft.status}
               onChange={(event) => onFieldChange("status", event.target.value)}
-              className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2.5 text-sm text-white focus:border-violet-400/50 focus:outline-none"
+              className="w-full rounded-lg bg-surface-lowest border border-outline-variant/25 px-3.5 py-2 text-xs text-on-surface focus:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 focus:outline-none font-mono transition-all"
             >
               {statusOptions.map((option) => (
-                <option key={option} value={option}>
+                <option key={option} value={option} className="bg-surface-container-high text-on-surface">
                   {option}
                 </option>
               ))}
@@ -157,21 +160,21 @@ export function TaskForm({
           </div>
 
           <div className="md:col-span-2">
-            <label className="mb-2 block text-sm text-slate-300">Due date</label>
+            <label className="mb-1.5 block text-xs font-mono text-on-surface-variant">Due date</label>
             <input
               type="date"
               value={draft.due}
               onChange={(event) => onFieldChange("due", event.target.value)}
-              className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2.5 text-sm text-white focus:border-violet-400/50 focus:outline-none"
+              className="w-full rounded-lg bg-surface-lowest border border-outline-variant/25 px-3.5 py-2 text-xs text-on-surface focus:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 focus:outline-none font-mono transition-all"
             />
           </div>
         </div>
 
-        <div className="mt-6 flex justify-end gap-3">
+        <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-outline-variant/15">
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-2 text-sm text-slate-200 transition hover:border-violet-500/40 hover:text-white"
+            className="rounded-lg bg-surface-high hover:bg-surface-highest px-4 py-2 text-xs font-medium text-on-surface transition-colors"
           >
             Cancel
           </button>
@@ -179,7 +182,7 @@ export function TaskForm({
             type="button"
             disabled={isSaving}
             onClick={onSave}
-            className="rounded-2xl bg-violet-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-violet-400 disabled:opacity-50"
+            className="rounded-lg bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-5 py-2 text-xs font-medium transition-all shadow-sm disabled:opacity-50"
           >
             {isSaving ? "Saving..." : mode === "create" ? "Create task" : "Save changes"}
           </button>

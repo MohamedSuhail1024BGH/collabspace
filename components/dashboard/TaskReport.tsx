@@ -8,32 +8,34 @@ export function TaskReport({ statusBreakdown, totalTasks = 1, visible = true }: 
   const total = totalTasks || 1;
 
   return (
-    <section className="rounded-3xl border border-white/10 bg-slate-900/80 p-5 shadow-xl shadow-slate-950/20">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-white">Task analytics</h3>
-        <p className="text-sm text-slate-300">Status breakdown and counts</p>
+    <section className="rounded-xl border border-outline-variant/20 bg-surface-container-low p-4 sm:p-5 shadow-xs">
+      <div className="mb-3.5 flex items-center justify-between pb-2.5 border-b border-outline-variant/15">
+        <h3 className="text-base font-semibold text-on-surface font-headline-sm">Task analytics</h3>
+        <p className="text-xs text-on-surface-variant font-body-sm">Status breakdown and counts</p>
       </div>
 
       {totalTasks > 0 ? (
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="rounded-2xl border border-white/6 bg-slate-950/50 p-4">
-            <p className="text-sm font-medium text-white">Status breakdown</p>
-            <div className="mt-3 space-y-2">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="rounded-xl border border-outline-variant/15 bg-surface-container-lowest p-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant font-label-sm">
+              Status breakdown
+            </p>
+            <div className="mt-3 space-y-2.5">
               {statusBreakdown.map((entry) => {
                 const { status, count } = entry;
                 const pct = Math.round((count / total) * 100);
                 return (
-                  <div key={status} className="flex items-center gap-3">
-                    <div className={`h-3 w-3 rounded-full ${entry.color ?? "bg-slate-700"}`} />
+                  <div key={status} className="flex items-center gap-2.5">
+                    <div className={`h-2 w-2 rounded-full ${entry.color ?? "bg-primary"}`} />
                     <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-slate-200">{status}</span>
-                        <span className="text-xs text-slate-400">
+                      <div className="flex items-center justify-between font-label-sm">
+                        <span className="text-xs text-on-surface">{status}</span>
+                        <span className="text-[11px] text-on-surface-variant">
                           {count} ({pct}%)
                         </span>
                       </div>
-                      <div className="mt-1 h-2 w-full rounded-full bg-slate-800">
-                        <div className="h-2 rounded-full bg-violet-500" style={{ width: `${pct}%` }} />
+                      <div className="mt-1 h-1.5 w-full rounded-full bg-surface-container-highest overflow-hidden">
+                        <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
                       </div>
                     </div>
                   </div>
@@ -42,28 +44,30 @@ export function TaskReport({ statusBreakdown, totalTasks = 1, visible = true }: 
             </div>
           </div>
 
-          <div className="rounded-2xl border border-white/6 bg-slate-950/50 p-4">
-            <p className="text-sm font-medium text-white">Quick totals</p>
-            <div className="mt-3 grid gap-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-slate-200">Total tasks</span>
-                <span className="text-sm font-medium text-white">{totalTasks}</span>
+          <div className="rounded-xl border border-outline-variant/15 bg-surface-container-lowest p-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant font-label-sm">
+              Quick totals
+            </p>
+            <div className="mt-3 grid gap-2 font-label-sm">
+              <div className="flex items-center justify-between py-1 border-b border-outline-variant/15">
+                <span className="text-xs text-on-surface-variant">Total tasks</span>
+                <span className="text-xs font-semibold text-on-surface">{totalTasks}</span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-slate-200">Completed</span>
-                <span className="text-sm font-medium text-white">
+              <div className="flex items-center justify-between py-1 border-b border-outline/10">
+                <span className="text-xs text-on-surface-variant">Completed</span>
+                <span className="text-xs font-semibold text-secondary">
                   {statusBreakdown.find((s) => s.status.toLowerCase() === "completed")?.count ?? 0}
                 </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-slate-200">Blocked</span>
-                <span className="text-sm font-medium text-white">
+              <div className="flex items-center justify-between py-1 border-b border-outline/10">
+                <span className="text-xs text-on-surface-variant">Blocked</span>
+                <span className="text-xs font-semibold text-error">
                   {statusBreakdown.find((s) => s.status.toLowerCase() === "blocked")?.count ?? 0}
                 </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-slate-200">Overdue</span>
-                <span className="text-sm font-medium text-white">
+              <div className="flex items-center justify-between py-1">
+                <span className="text-xs text-on-surface-variant">Overdue</span>
+                <span className="text-xs font-semibold text-tertiary">
                   {statusBreakdown.find((s) => s.status.toLowerCase() === "overdue")?.count ?? 0}
                 </span>
               </div>
@@ -73,7 +77,7 @@ export function TaskReport({ statusBreakdown, totalTasks = 1, visible = true }: 
       ) : (
         <div
           data-testid="no-task-reports"
-          className="rounded-2xl border border-dashed border-white/10 bg-slate-950/40 p-6 text-center text-sm text-slate-400"
+          className="rounded border border-dashed border-outline/20 bg-surface-container-lowest p-6 text-center text-xs text-on-surface-variant"
         >
           No Task Analytics here
         </div>

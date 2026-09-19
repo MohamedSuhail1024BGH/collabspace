@@ -28,23 +28,23 @@ export function TaskFilters({
   onClear,
 }: TaskFiltersProps) {
   return (
-    <div className="mb-5 grid gap-3 lg:grid-cols-[1.2fr_repeat(3,minmax(140px,1fr))_auto]">
+    <div className="mb-4 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-[1.5fr_repeat(3,minmax(120px,1fr))_auto]">
       <input
         value={search}
         onChange={(event) => onSearchChange(event.target.value)}
         type="search"
         placeholder="Search tasks by title or assignee"
-        className="rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-violet-400/50 focus:outline-none"
+        className="rounded bg-surface-container-lowest border border-outline/20 px-3 py-1.5 text-xs text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:outline-none"
       />
 
       <select
         value={status}
         onChange={(event) => onStatusChange(event.target.value)}
-        className="rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2.5 text-sm text-white focus:border-violet-400/50 focus:outline-none"
+        className="rounded bg-surface-container-lowest border border-outline/20 px-2.5 py-1.5 text-xs text-on-surface focus:border-primary focus:outline-none font-mono"
       >
         {statusOptions.map((option) => (
           <option key={option} value={option}>
-            {option}
+            {option === "All" ? "Status: All" : option}
           </option>
         ))}
       </select>
@@ -52,11 +52,11 @@ export function TaskFilters({
       <select
         value={priority}
         onChange={(event) => onPriorityChange(event.target.value)}
-        className="rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2.5 text-sm text-white focus:border-violet-400/50 focus:outline-none"
+        className="rounded bg-surface-container-lowest border border-outline/20 px-2.5 py-1.5 text-xs text-on-surface focus:border-primary focus:outline-none font-mono"
       >
         {priorityOptions.map((option) => (
           <option key={option} value={option}>
-            {option}
+            {option === "All" ? "Priority: All" : option}
           </option>
         ))}
       </select>
@@ -64,11 +64,11 @@ export function TaskFilters({
       <select
         value={assignee}
         onChange={(event) => onAssigneeChange(event.target.value)}
-        className="rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2.5 text-sm text-white focus:border-violet-400/50 focus:outline-none"
+        className="rounded bg-surface-container-lowest border border-outline/20 px-2.5 py-1.5 text-xs text-on-surface focus:border-primary focus:outline-none font-mono"
       >
         {assigneeOptions.map((option) => (
           <option key={option} value={option}>
-            {option}
+            {option === "All" ? "Assignee: All" : option}
           </option>
         ))}
       </select>
@@ -76,7 +76,7 @@ export function TaskFilters({
       <button
         type="button"
         onClick={onClear}
-        className="rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2.5 text-sm text-slate-200 transition hover:border-violet-500/40 hover:text-white"
+        className="rounded bg-surface-container hover:bg-surface-container-highest border border-outline/20 px-3 py-1.5 text-xs font-mono text-on-surface transition"
       >
         Clear
       </button>

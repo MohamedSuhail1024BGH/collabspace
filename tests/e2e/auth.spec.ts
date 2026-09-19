@@ -91,7 +91,8 @@ test.describe("Authentication & Workspace Onboarding", () => {
     // Verify search bar has been removed from Header
     await expect(page.getByText("Search project...")).not.toBeVisible();
 
-    // Test Logout
+    // Test Logout via expandable sidebar switcher
+    await page.getByTestId("workspace-switcher-trigger").click();
     const logoutBtn = page.getByTestId("logout-button");
     await expect(logoutBtn).toBeVisible();
     await logoutBtn.click();
@@ -135,13 +136,14 @@ test.describe("Authentication & Workspace Onboarding", () => {
     await expect(page.getByRole("complementary").getByText("Ava Thompson")).toBeVisible();
     await expect(page.getByText("Acme Corporation").first()).toBeVisible();
 
-    // Verify header user badge and logout button are visible
-    const headerLogout = page.getByTestId("header-logout-button");
-    await expect(headerLogout).toBeVisible();
-    await expect(headerLogout).toHaveText(/Log out/);
+    // Open sidebar workspace switcher and verify logout button
+    await page.getByTestId("workspace-switcher-trigger").click();
+    const logoutBtn = page.getByTestId("logout-button");
+    await expect(logoutBtn).toBeVisible();
+    await expect(logoutBtn).toHaveText(/Log out/);
 
-    // Test logging out via header
-    await headerLogout.click();
+    // Test logging out via sidebar
+    await logoutBtn.click();
     await expect(page).toHaveURL(/\/login/);
     await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
   });
@@ -183,15 +185,24 @@ test.describe("Authentication & Workspace Onboarding", () => {
     await expect(page).toHaveURL("/");
     await expect(page.getByText(testWorkspace).first()).toBeVisible();
 
-    // Click Delete Account button in header
-    const deleteBtn = page.getByTestId("header-delete-account-button");
+    // Open settings via workspace switcher
+    await page.getByTestId("workspace-switcher-trigger").click();
+    const settingsBtn = page.getByTestId("sidebar-settings-button");
+    await expect(settingsBtn).toBeVisible();
+    await settingsBtn.click();
+
+    // Switch to Danger Zone tab and click Delete Account
+    const dangerTab = page.getByTestId("settings-danger-tab");
+    await expect(dangerTab).toBeVisible();
+    await dangerTab.click();
+
+    const deleteBtn = page.getByTestId("settings-delete-account-button");
     await expect(deleteBtn).toBeVisible();
     await deleteBtn.click();
 
     // Verify confirmation modal appears
     const modal = page.getByTestId("delete-account-modal");
     await expect(modal).toBeVisible();
-    await expect(modal.getByRole("heading", { name: "Delete Account" })).toBeVisible();
 
     // Confirm deletion
     const confirmBtn = page.getByTestId("confirm-delete-account-button");

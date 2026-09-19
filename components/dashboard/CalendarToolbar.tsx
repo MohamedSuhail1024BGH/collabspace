@@ -38,11 +38,11 @@ export default function CalendarToolbar({
 }: Props) {
   return (
     <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5">
         <button
           type="button"
           onClick={onPrev}
-          className="rounded-2xl border border-white/5 bg-slate-900/60 px-3 py-2 text-xs font-medium text-slate-200 transition hover:bg-slate-800 hover:border-white/10"
+          className="rounded bg-surface-container hover:bg-surface-container-highest border border-outline/20 px-2.5 py-1 text-xs font-mono text-on-surface transition"
         >
           Prev
         </button>
@@ -50,7 +50,7 @@ export default function CalendarToolbar({
         <button
           type="button"
           onClick={onToday}
-          className="rounded-2xl border border-white/5 bg-slate-900/60 px-3.5 py-2 text-xs font-semibold text-violet-300 transition hover:bg-slate-800 hover:border-white/10"
+          className="rounded bg-surface-container hover:bg-surface-container-highest border border-outline/20 px-3 py-1 text-xs font-mono text-primary transition"
         >
           Today
         </button>
@@ -58,38 +58,57 @@ export default function CalendarToolbar({
         <button
           type="button"
           onClick={onNext}
-          className="rounded-2xl border border-white/5 bg-slate-900/60 px-3 py-2 text-xs font-medium text-slate-200 transition hover:bg-slate-800 hover:border-white/10"
+          className="rounded bg-surface-container hover:bg-surface-container-highest border border-outline/20 px-2.5 py-1 text-xs font-mono text-on-surface transition"
         >
           Next
         </button>
 
-        <div className="ml-3 text-lg font-bold tracking-tight text-white">
-          {monthNames[month]} <span className="text-violet-400 font-normal">{year}</span>
-        </div>
+        <h3 className="ml-2 font-mono text-xs font-semibold uppercase tracking-wider text-on-surface">
+          {monthNames[month]} {year}
+        </h3>
       </div>
 
-      <div className="flex items-center gap-2">
-        <div className="flex items-center rounded-2xl border border-white/10 bg-slate-950/70 p-1 shadow-inner">
-          {(["month", "week", "agenda"] as CalendarViewMode[]).map((mode) => {
-            const isActive = viewMode === mode;
-            return (
-              <button
-                key={mode}
-                type="button"
-                data-testid={`calendar-view-${mode}-btn`}
-                onClick={() => onViewModeChange?.(mode)}
-                className={`rounded-xl px-3.5 py-1.5 text-xs font-semibold capitalize transition ${
-                  isActive
-                    ? "bg-violet-600 text-white shadow-md shadow-violet-600/30"
-                    : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
-                }`}
-              >
-                {mode === "month" ? "Month" : mode === "week" ? "Week" : "Agenda"}
-              </button>
-            );
-          })}
+      {/* View Mode Switching Controls */}
+      {onViewModeChange && (
+        <div className="flex items-center rounded bg-surface-container-lowest border border-outline/20 p-0.5">
+          <button
+            type="button"
+            data-testid="calendar-view-month-btn"
+            onClick={() => onViewModeChange("month")}
+            className={`rounded px-2.5 py-1 text-xs font-mono transition ${
+              viewMode === "month"
+                ? "bg-surface-container-highest text-on-surface font-semibold shadow-xs"
+                : "text-on-surface-variant hover:text-on-surface"
+            }`}
+          >
+            Month
+          </button>
+          <button
+            type="button"
+            data-testid="calendar-view-week-btn"
+            onClick={() => onViewModeChange("week")}
+            className={`rounded px-2.5 py-1 text-xs font-mono transition ${
+              viewMode === "week"
+                ? "bg-surface-container-highest text-on-surface font-semibold shadow-xs"
+                : "text-on-surface-variant hover:text-on-surface"
+            }`}
+          >
+            Week
+          </button>
+          <button
+            type="button"
+            data-testid="calendar-view-agenda-btn"
+            onClick={() => onViewModeChange("agenda")}
+            className={`rounded px-2.5 py-1 text-xs font-mono transition ${
+              viewMode === "agenda"
+                ? "bg-surface-container-highest text-on-surface font-semibold shadow-xs"
+                : "text-on-surface-variant hover:text-on-surface"
+            }`}
+          >
+            Agenda
+          </button>
         </div>
-      </div>
+      )}
     </div>
   );
 }

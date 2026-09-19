@@ -4,11 +4,16 @@ import { useState, useTransition, useRef, useEffect, useOptimistic } from "react
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { switchWorkspaceAction, createWorkspaceAction } from "@/app/actions";
-import type { DbWorkspace } from "@/lib/db/schema";
+import type { DbWorkspace, DbUser } from "@/lib/db/schema";
+import { FloatingSettingsModal } from "./FloatingSettingsModal";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 type WorkspaceSwitcherProps = {
   activeWorkspace: DbWorkspace;
   workspaces: DbWorkspace[];
+  user?: Omit<DbUser, "passwordHash"> | null;
+  onLogout?: () => Promise<void>;
+  onNavigate?: () => void;
 };
 
 function setActiveWorkspaceCookie(workspaceId: string) {
@@ -17,13 +22,20 @@ function setActiveWorkspaceCookie(workspaceId: string) {
   }
 }
 
-export function WorkspaceSwitcher({ activeWorkspace, workspaces }: WorkspaceSwitcherProps) {
+export function WorkspaceSwitcher({
+  activeWorkspace,
+  workspaces,
+  user,
+  onLogout,
+  onNavigate,
+}: WorkspaceSwitcherProps) {
   const [currentWorkspace, setOptimisticWorkspace] = useOptimistic(
     activeWorkspace,
     (_state, newWs: DbWorkspace) => newWs
   );
   const [isOpen, setIsOpen] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
@@ -76,46 +88,18 @@ export function WorkspaceSwitcher({ activeWorkspace, workspaces }: WorkspaceSwit
   };
 
   return (
-    <div className="relative mb-6" ref={dropdownRef}>
-      <button
-        type="button"
-        data-testid="workspace-switcher-trigger"
-        onClick={() => setIsOpen(!isOpen)}
-        disabled={isPending}
-        className="flex w-full items-center justify-between gap-3 rounded-2xl border border-white/10 bg-slate-950/60 p-2.5 text-left transition hover:border-violet-400/40 hover:bg-slate-950/80 focus:outline-none"
-      >
-        <div className="flex items-center gap-3 overflow-hidden">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-cyan-400 text-base font-bold text-white shadow-lg shadow-violet-950/30">
-            {currentWorkspace.name.charAt(0).toUpperCase()}
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="truncate text-sm font-semibold text-white">
-                {currentWorkspace.name}
-              </span>
-            </div>
-            <p className="truncate text-xs text-slate-400">collabspace.app/{currentWorkspace.slug}</p>
-          </div>
-        </div>
-
-        <svg
-          className={`h-4 w-4 shrink-0 text-slate-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-
-      {/* Dropdown Menu */}
+    <div className="relative flex flex-col gap-1.5" ref={dropdownRef}>
+      {/* Upward Expandable Options Menu */}
       {isOpen && (
-        <div className="absolute left-0 top-full z-50 mt-2 w-full rounded-2xl border border-white/15 bg-slate-900/95 p-2 shadow-2xl shadow-slate-950/80 backdrop-blur-md animate-in fade-in zoom-in-95 duration-100">
-          <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-            Workspaces ({workspaces.length})
+        <div className="absolute bottom-full left-0 right-0 mb-2 z-50 rounded bg-surface-container-high border border-outline/20 p-2 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-bottom-2 duration-150 select-none">
+          {/* Header */}
+          <div className="px-2 py-1 text-[10px] font-mono font-medium uppercase tracking-wider text-on-surface-variant flex items-center justify-between">
+            <span>Workspaces ({workspaces.length})</span>
+            <span className="text-secondary">Active</span>
           </div>
 
-          <div className="mt-1 space-y-1">
+          {/* Workspaces list */}
+          <div className="mt-1 space-y-0.5 max-h-48 overflow-y-auto custom-scrollbar">
             {workspaces.map((ws) => {
               const isActive = ws.id === currentWorkspace.id;
               return (
@@ -124,42 +108,41 @@ export function WorkspaceSwitcher({ activeWorkspace, workspaces }: WorkspaceSwit
                   type="button"
                   data-testid={`workspace-option-${ws.slug}`}
                   onClick={() => handleSelectWorkspace(ws.id)}
-                  className={`flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-left text-sm transition ${
+                  className={`flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-xs transition-colors ${
                     isActive
-                      ? "bg-violet-500/20 text-violet-100 ring-1 ring-inset ring-violet-400/40"
-                      : "text-slate-300 hover:bg-white/5 hover:text-white"
+                      ? "bg-surface-container-highest text-primary font-medium border border-primary/30"
+                      : "text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
                   }`}
                 >
-                  <div className="flex items-center gap-2.5 overflow-hidden">
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-xs font-semibold text-slate-200">
+                  <div className="flex items-center gap-2 overflow-hidden min-w-0">
+                    <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-surface-container-lowest text-[10px] font-mono font-semibold text-on-surface">
                       {ws.name.charAt(0).toUpperCase()}
                     </div>
-                    <div className="truncate">
-                      <p className="truncate text-sm font-medium">{ws.name}</p>
-                      <p className="text-[10px] text-slate-400">collabspace.app/{ws.slug}</p>
+                    <div className="truncate min-w-0">
+                      <p className="truncate text-xs font-medium text-on-surface">{ws.name}</p>
+                      <p className="text-[9px] font-mono text-on-surface-variant">collabspace.app/{ws.slug}</p>
                     </div>
                   </div>
 
                   {isActive && (
-                    <svg className="h-4 w-4 shrink-0 text-violet-400" fill="currentColor" viewBox="0 0 20 20">
-                      <path
-                        fillRule="evenodd"
-                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
                   )}
                 </button>
               );
             })}
           </div>
 
-          <div className="mt-2 border-t border-white/10 pt-2 space-y-1">
+          {/* Additional bottom options shifted from top & settings */}
+          <div className="mt-2 border-t border-outline/15 pt-1.5 space-y-0.5">
             <Link
               href="/start"
-              className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-xs font-medium text-slate-300 hover:bg-white/5 hover:text-white"
+              onClick={() => {
+                setIsOpen(false);
+                onNavigate?.();
+              }}
+              className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors font-body-sm"
             >
-              <svg className="h-4 w-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="h-3.5 w-3.5 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
               </svg>
               <span>Start Hub & Discovery</span>
@@ -171,45 +154,128 @@ export function WorkspaceSwitcher({ activeWorkspace, workspaces }: WorkspaceSwit
                 setShowCreateModal(true);
                 setIsOpen(false);
               }}
-              className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-xs font-medium text-violet-300 hover:bg-violet-500/10 hover:text-violet-200"
+              className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs text-secondary hover:bg-secondary/10 transition-colors font-body-sm"
             >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
               <span>Create new workspace</span>
             </button>
+
+            <button
+              type="button"
+              data-testid="sidebar-settings-button"
+              onClick={() => {
+                setIsOpen(false);
+                setShowSettingsModal(true);
+              }}
+              className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors font-body-sm"
+            >
+              <svg className="h-3.5 w-3.5 text-on-surface-variant shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span>Settings</span>
+            </button>
+
+            {onLogout && (
+              <button
+                type="button"
+                data-testid="logout-button"
+                onClick={() => {
+                  setIsOpen(false);
+                  onLogout();
+                }}
+                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs text-error/90 hover:bg-error/10 hover:text-error transition-colors font-body-sm"
+              >
+                <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                <span>Log out</span>
+              </button>
+            )}
           </div>
         </div>
       )}
 
+      {/* Active Workspace Header Indicator */}
+      <div className="px-1 flex items-center justify-between text-[11px] font-mono text-on-surface-variant">
+        <span className="truncate max-w-[150px] font-medium text-on-surface">
+          {currentWorkspace.name}
+        </span>
+        <span className="text-[10px] text-secondary bg-surface-container-high px-1 py-0.2 rounded shrink-0">
+          {currentWorkspace.plan || "Pro"}
+        </span>
+      </div>
+
+      {/* Expandable Bottom Trigger Card */}
+      <div className="p-1 rounded bg-surface-container-low hover:bg-surface-container border border-outline/10 transition-colors">
+        <button
+          type="button"
+          data-testid="workspace-switcher-trigger"
+          onClick={() => setIsOpen(!isOpen)}
+          disabled={isPending}
+          className="flex w-full items-center justify-between gap-2.5 p-1.5 text-left overflow-hidden min-w-0 group focus:outline-none rounded hover:bg-surface-container-high/40 transition-colors"
+        >
+          <div className="flex items-center gap-2.5 overflow-hidden min-w-0 flex-1">
+            {/* User Avatar */}
+            <UserAvatar avatar={user?.avatar} name={user?.name} size="sm" showStatus />
+
+            {/* User Profile Info Stack */}
+            <div className="flex flex-col min-w-0 flex-1">
+              <span className="text-xs font-medium text-on-surface truncate group-hover:text-primary transition-colors block">
+                {user?.name || "Member"}
+              </span>
+              <span className="text-[10px] font-mono text-on-surface-variant truncate block">
+                {user?.email || "active"}
+              </span>
+            </div>
+          </div>
+
+          {/* Chevron / Unfold icon */}
+          <svg
+            className={`h-4 w-4 shrink-0 text-on-surface-variant group-hover:text-on-surface transition-transform duration-200 ${
+              isOpen ? "rotate-180" : ""
+            }`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+      </div>
+
       {/* Create Workspace Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-2xl">
-            <h3 className="text-xl font-semibold text-white">Create New Workspace</h3>
-            <p className="mt-1 text-sm text-slate-400">
-              Set up a collaborative workspace for your team or client.
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-md rounded bg-surface-container-high border border-outline/20 p-5 shadow-2xl">
+            <h3 className="text-base font-semibold text-on-surface font-headline-sm">Create New Workspace</h3>
+            <p className="mt-1 text-xs text-on-surface-variant font-body-sm">
+              Set up a collaborative workspace for your team or organization.
             </p>
 
-            <div className="mt-4 space-y-4">
+            <div className="mt-4 space-y-3">
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-300">Workspace Name</label>
+                <label className="mb-1 block text-xs font-mono text-on-surface-variant uppercase">
+                  Workspace Name
+                </label>
                 <input
                   type="text"
                   value={newWorkspaceName}
                   onChange={(e) => setNewWorkspaceName(e.target.value)}
                   placeholder="e.g. Apex Innovations"
-                  className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:border-violet-400 focus:outline-none"
+                  className="w-full rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:outline-none font-body-sm"
                   autoFocus
                 />
               </div>
             </div>
 
-            <div className="mt-6 flex justify-end gap-3">
+            <div className="mt-5 flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setShowCreateModal(false)}
-                className="rounded-xl border border-white/10 bg-slate-950/60 px-4 py-2 text-sm text-slate-300 hover:text-white"
+                className="rounded border border-outline/20 bg-surface-container px-3 py-1.5 text-xs text-on-surface-variant hover:text-on-surface transition-colors"
               >
                 Cancel
               </button>
@@ -217,7 +283,7 @@ export function WorkspaceSwitcher({ activeWorkspace, workspaces }: WorkspaceSwit
                 type="button"
                 onClick={handleCreateWorkspace}
                 disabled={!newWorkspaceName.trim() || isPending}
-                className="rounded-xl bg-violet-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-violet-400 disabled:opacity-50"
+                className="rounded bg-primary px-3 py-1.5 text-xs font-medium text-on-primary hover:bg-primary-container hover:text-on-primary-container transition-colors disabled:opacity-50"
               >
                 {isPending ? "Creating..." : "Create Workspace"}
               </button>
@@ -225,7 +291,13 @@ export function WorkspaceSwitcher({ activeWorkspace, workspaces }: WorkspaceSwit
           </div>
         </div>
       )}
+
+      {/* Floating Settings Modal */}
+      <FloatingSettingsModal
+        isOpen={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+        user={user}
+      />
     </div>
   );
 }
-

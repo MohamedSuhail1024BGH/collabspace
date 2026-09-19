@@ -2,6 +2,7 @@
 
 import type { Conversation } from "@/data/mock-data";
 import { formatTimeShort } from "@/lib/format-time";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 type Props = {
   conversation: Conversation;
@@ -19,45 +20,71 @@ export default function ConversationItem({ conversation, selected, onSelect }: P
         conversation.id.startsWith("conv-ops") ||
         conversation.name.startsWith("#")));
 
+  // Format channel name cleanly (ensure single #)
+  const displayName = isChannel
+    ? conversation.name.startsWith("#")
+      ? conversation.name.slice(1)
+      : conversation.name
+    : conversation.name;
+
   return (
     <button
       type="button"
       data-testid={`conversation-item-${conversation.id}`}
       onClick={() => onSelect?.(conversation.id)}
-      className={`group flex w-full items-start gap-3 rounded-2xl p-3 text-left transition ${
+      className={`group flex w-full items-center justify-between gap-2.5 rounded px-2.5 py-2 text-left transition-colors select-none ${
         selected
-          ? "border border-white/15 bg-slate-900/90 shadow-md ring-1 ring-white/10"
-          : "border border-transparent bg-transparent hover:border-white/5 hover:bg-slate-900/40"
+          ? "bg-surface-container-highest text-on-surface font-medium border-l-2 border-primary shadow-xs"
+          : "border-l-2 border-transparent text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
       }`}
     >
-      <div className="relative shrink-0">
-        <div
-          className={`flex h-10 w-10 items-center justify-center rounded-2xl text-xs font-bold text-white shadow ${conversation.color}`}
-        >
-          {isChannel ? "#" : conversation.initials}
-        </div>
-        {conversation.online && (
-          <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-slate-950 bg-emerald-500" />
+      <div className="flex items-center gap-2.5 min-w-0 flex-1 overflow-hidden">
+        {isChannel ? (
+          <div
+            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded font-mono text-xs font-bold transition-colors ${
+              selected
+                ? "bg-primary/20 text-primary border border-primary/30"
+                : "bg-surface-container-high text-on-surface-variant/80 border border-outline/10 group-hover:text-on-surface"
+            }`}
+          >
+            #
+          </div>
+        ) : (
+          <UserAvatar
+            avatar={conversation.avatar}
+            name={conversation.name}
+            size="sm"
+            showStatus={conversation.online}
+            statusColor={conversation.online ? "bg-secondary" : "bg-outline/50"}
+          />
         )}
-      </div>
 
-      <div className="flex-1 overflow-hidden">
-        <div className="flex items-center justify-between gap-1">
-          <p className="font-semibold text-sm text-white truncate">{conversation.name}</p>
-          <span className="text-[10px] text-slate-400 shrink-0">
-            {conversation.lastTimestamp ? formatTimeShort(conversation.lastTimestamp) : ""}
-          </span>
-        </div>
-
-        <div className="flex items-center justify-between gap-2 mt-0.5">
-          <p className="text-xs text-slate-400 truncate line-clamp-1">
-            {conversation.lastMessage || "No messages yet"}
-          </p>
-          {conversation.unread > 0 && (
-            <span className="theme-btn-primary flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold text-white shadow">
-              {conversation.unread}
+        <div className="flex flex-col min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-1">
+            <span
+              className={`truncate text-xs ${
+                selected ? "font-semibold text-on-surface" : "font-medium text-on-surface group-hover:text-primary transition-colors"
+              }`}
+            >
+              {displayName}
             </span>
-          )}
+            {conversation.lastTimestamp && (
+              <span className="text-[10px] font-mono text-on-surface-variant/60 shrink-0">
+                {formatTimeShort(conversation.lastTimestamp)}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between gap-2 mt-0.5">
+            <p className="text-[11px] font-mono text-on-surface-variant truncate line-clamp-1">
+              {conversation.lastMessage || (isChannel ? "Channel ready" : "Direct thread")}
+            </p>
+            {conversation.unread > 0 && (
+              <span className="shrink-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1.5 text-[9px] font-mono font-bold text-on-primary shadow-xs">
+                {conversation.unread}
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </button>

@@ -114,13 +114,4 @@ export async function getUserWorkspaces(userId: string): Promise<DbWorkspace[]> 
   return memberships.map((m) => m.workspace);
 }
 
-export async function getUserRoleInWorkspace(userId: string, workspaceId: string): Promise<UserRole | null> {
-  const rows = await db
-    .select({ role: workspaceMembers.role })
-    .from(workspaceMembers)
-    .where(and(eq(workspaceMembers.userId, userId), eq(workspaceMembers.workspaceId, workspaceId)))
-    .limit(1);
-
-  return (rows[0]?.role as UserRole) ?? null;
-}
 

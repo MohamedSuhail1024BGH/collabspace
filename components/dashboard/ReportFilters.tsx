@@ -16,19 +16,19 @@ export function ReportFilters({
   onExport,
 }: Props) {
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex flex-wrap items-center gap-3">
-        <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between py-1">
+      <div className="flex flex-wrap items-center gap-2.5">
+        <span className="font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
           Period:
         </span>
-        <div className="flex items-center gap-1.5 rounded-2xl border border-white/10 bg-slate-950/60 p-1">
+        <div className="flex items-center p-0.5 bg-surface-container-lowest rounded border border-outline/20">
           <button
             type="button"
             onClick={() => onPeriodChange("week")}
-            className={`rounded-xl px-3 py-1.5 text-xs font-medium transition ${
+            className={`font-label-sm text-xs px-3 py-1 rounded transition-colors ${
               period === "week"
-                ? "bg-violet-600 text-white shadow-md shadow-violet-600/30"
-                : "text-slate-300 hover:text-white"
+                ? "bg-surface-container text-on-surface font-medium shadow-sm"
+                : "text-on-surface-variant hover:text-on-surface"
             }`}
           >
             This week
@@ -36,10 +36,10 @@ export function ReportFilters({
           <button
             type="button"
             onClick={() => onPeriodChange("month")}
-            className={`rounded-xl px-3 py-1.5 text-xs font-medium transition ${
+            className={`font-label-sm text-xs px-3 py-1 rounded transition-colors ${
               period === "month"
-                ? "bg-violet-600 text-white shadow-md shadow-violet-600/30"
-                : "text-slate-300 hover:text-white"
+                ? "bg-surface-container text-on-surface font-medium shadow-sm"
+                : "text-on-surface-variant hover:text-on-surface"
             }`}
           >
             This month
@@ -47,10 +47,10 @@ export function ReportFilters({
           <button
             type="button"
             onClick={() => onPeriodChange("quarter")}
-            className={`rounded-xl px-3 py-1.5 text-xs font-medium transition ${
+            className={`font-label-sm text-xs px-3 py-1 rounded transition-colors ${
               period === "quarter"
-                ? "bg-violet-600 text-white shadow-md shadow-violet-600/30"
-                : "text-slate-300 hover:text-white"
+                ? "bg-surface-container text-on-surface font-medium shadow-sm"
+                : "text-on-surface-variant hover:text-on-surface"
             }`}
           >
             This quarter
@@ -58,9 +58,9 @@ export function ReportFilters({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2.5">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+          <span className="font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
             View:
           </span>
           <select
@@ -68,7 +68,7 @@ export function ReportFilters({
             onChange={(e) =>
               onCategoryChange(e.target.value as "Overview" | "Projects" | "Tasks" | "Team")
             }
-            className="rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-1.5 text-xs text-white focus:border-violet-400/50 focus:outline-none"
+            className="rounded border border-outline/20 bg-surface-container-lowest px-3 py-1 text-xs text-on-surface focus:border-primary focus:outline-none"
           >
             <option value="Overview">Overview</option>
             <option value="Projects">Projects</option>
@@ -82,10 +82,10 @@ export function ReportFilters({
             type="button"
             data-testid="export-report-btn"
             onClick={onExport}
-            className="inline-flex items-center gap-1.5 rounded-2xl border border-white/10 bg-slate-900 px-3.5 py-1.5 text-xs font-medium text-slate-200 transition hover:bg-slate-800 hover:text-white"
+            className="inline-flex items-center gap-1.5 rounded border border-outline/20 bg-surface-container px-3 py-1 text-xs font-medium text-on-surface transition hover:bg-surface-container-high shadow-sm"
           >
             <svg
-              className="h-3.5 w-3.5 text-violet-400"
+              className="h-3.5 w-3.5 text-primary"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"

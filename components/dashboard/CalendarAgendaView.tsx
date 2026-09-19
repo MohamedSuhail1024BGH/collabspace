@@ -13,13 +13,13 @@ type Props = {
 };
 
 const categoryBadgeStyles: Record<string, string> = {
-  Meeting: "border-cyan-500/30 bg-cyan-500/10 text-cyan-300",
-  Planning: "border-blue-500/30 bg-blue-500/10 text-blue-300",
-  Design: "border-violet-500/30 bg-violet-500/10 text-violet-300",
-  Engineering: "border-amber-500/30 bg-amber-500/10 text-amber-300",
-  Deadline: "border-rose-500/30 bg-rose-500/10 text-rose-300",
-  Client: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
-  Other: "border-slate-500/30 bg-slate-500/10 text-slate-300",
+  Meeting: "border-secondary/30 bg-secondary-container/20 text-secondary",
+  Planning: "border-primary/30 bg-primary-container/20 text-primary",
+  Design: "border-outline/30 bg-surface-container-high text-on-surface",
+  Engineering: "border-tertiary/30 bg-tertiary-container/20 text-tertiary",
+  Deadline: "border-error/30 bg-error-container/20 text-error",
+  Client: "border-secondary/30 bg-secondary-container/20 text-secondary",
+  Other: "border-outline/30 bg-surface-container text-on-surface-variant",
 };
 
 function formatDateHeading(dateStr: string): { label: string; tag?: string } {
@@ -58,15 +58,15 @@ export default function CalendarAgendaView({
 }: Props) {
   const filteredEvents = useMemo(() => {
     return events
-      .filter((ev) => !category || category === "All" || ev.category === category)
+      .filter((e) => !category || category === "All" || e.category === category)
       .sort((a, b) => {
-        if (a.date !== b.date) {
-          return a.date.localeCompare(b.date);
-        }
-        return a.startTime.localeCompare(b.startTime);
+        const timeA = `${a.date}T${a.startTime}`;
+        const timeB = `${b.date}T${b.startTime}`;
+        return timeA.localeCompare(timeB);
       });
   }, [events, category]);
 
+  // Group events by date string
   const groupedByDate = useMemo(() => {
     const map = new Map<string, CalendarEvent[]>();
     for (const ev of filteredEvents) {
@@ -74,19 +74,17 @@ export default function CalendarAgendaView({
       arr.push(ev);
       map.set(ev.date, arr);
     }
-    return Array.from(map.entries());
+    return Array.from(map.entries()).sort(([dA], [dB]) => dA.localeCompare(dB));
   }, [filteredEvents]);
 
   if (groupedByDate.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-slate-950/40 p-12 text-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-500/10 text-violet-400 mb-3">
-          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-        </div>
-        <h4 className="text-base font-semibold text-white">No scheduled events</h4>
-        <p className="mt-1 text-xs text-slate-400 max-w-sm">
+      <div
+        data-testid="calendar-agenda-view"
+        className="rounded border border-dashed border-outline/20 bg-surface-container-lowest p-8 text-center"
+      >
+        <h4 className="text-base font-semibold text-on-surface">No events found</h4>
+        <p className="mt-1 text-xs font-mono text-on-surface-variant max-w-sm mx-auto">
           {category && category !== "All"
             ? `There are no scheduled events categorized under "${category}".`
             : "No events are currently scheduled in this workspace. Click \"+ Add event\" to create one."}
@@ -96,7 +94,7 @@ export default function CalendarAgendaView({
   }
 
   return (
-    <div className="space-y-5" data-testid="calendar-agenda-view">
+    <div className="space-y-4" data-testid="calendar-agenda-view">
       {groupedByDate.map(([dateStr, dayEvents]) => {
         const { label, tag } = formatDateHeading(dateStr);
         const isSelected = selectedDate === dateStr;
@@ -104,32 +102,32 @@ export default function CalendarAgendaView({
         return (
           <div
             key={dateStr}
-            className={`rounded-2xl border transition-all ${
+            className={`rounded border transition-all overflow-hidden ${
               isSelected
-                ? "border-violet-500/50 bg-slate-900/60 shadow-lg shadow-violet-500/5"
-                : "border-white/5 bg-slate-950/40 hover:border-white/10"
+                ? "border-primary bg-surface-container shadow-xs"
+                : "border-outline/20 bg-surface-container-low hover:bg-surface-container"
             }`}
           >
             <div
               onClick={() => onSelectDate(dateStr)}
-              className="flex cursor-pointer items-center justify-between border-b border-white/5 px-4 py-3 bg-white/[0.02]"
+              className="flex cursor-pointer items-center justify-between border-b border-outline/10 px-3.5 py-2 bg-surface-container-lowest/50"
             >
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
+                <span className="text-xs font-semibold uppercase tracking-wider text-on-surface font-mono">
                   {label}
                 </span>
                 {tag && (
-                  <span className="rounded-full bg-violet-500/20 px-2 py-0.5 text-[10px] font-semibold text-violet-300">
+                  <span className="rounded bg-primary/20 px-2 py-0.2 text-[10px] font-mono text-primary">
                     {tag}
                   </span>
                 )}
               </div>
-              <span className="text-xs text-slate-400">
+              <span className="text-xs font-mono text-on-surface-variant">
                 {dayEvents.length} event{dayEvents.length > 1 ? "s" : ""}
               </span>
             </div>
 
-            <div className="divide-y divide-white/5">
+            <div className="divide-y divide-outline/10">
               {dayEvents.map((ev) => {
                 const badgeStyle = categoryBadgeStyles[ev.category] || categoryBadgeStyles.Other;
                 return (
@@ -139,61 +137,31 @@ export default function CalendarAgendaView({
                       onSelectDate(ev.date);
                       onSelectEvent(ev);
                     }}
-                    className="flex cursor-pointer flex-col gap-3 p-4 transition sm:flex-row sm:items-center sm:justify-between hover:bg-white/[0.02]"
+                    className="flex cursor-pointer flex-col gap-2 p-3 transition sm:flex-row sm:items-center sm:justify-between hover:bg-surface-container-high/40"
                   >
                     <div className="flex items-start gap-3">
-                      <div className="min-w-[84px] text-xs font-semibold text-violet-300">
+                      <div className="min-w-[80px] text-xs font-mono font-medium text-primary">
                         {formatTimeShort(`${ev.date}T${ev.startTime}`)}
                         {ev.endTime && (
-                          <span className="block text-[11px] font-normal text-slate-500">
+                          <span className="block text-[10px] text-on-surface-variant">
                             to {formatTimeShort(`${ev.date}T${ev.endTime}`)}
                           </span>
                         )}
                       </div>
                       <div>
-                        <div className="flex items-center gap-2">
-                          <h5 className="text-sm font-medium text-white hover:text-violet-300 transition">
-                            {ev.title}
-                          </h5>
-                          <span
-                            className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${badgeStyle}`}
-                          >
-                            {ev.category}
-                          </span>
-                        </div>
+                        <p className="text-xs font-medium text-on-surface">{ev.title}</p>
                         {ev.description && (
-                          <p className="mt-1 text-xs text-slate-400 line-clamp-1">
+                          <p className="text-[11px] text-on-surface-variant line-clamp-1 mt-0.5">
                             {ev.description}
                           </p>
                         )}
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 self-end sm:self-center">
-                      {ev.attendees && ev.attendees.length > 0 && (
-                        <div className="flex -space-x-1.5 overflow-hidden">
-                          {ev.attendees.slice(0, 3).map((attendee, idx) => (
-                            <span
-                              key={idx}
-                              title={attendee}
-                              className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-800 text-[10px] font-bold text-slate-200 ring-2 ring-slate-900"
-                            >
-                              {attendee.slice(0, 1).toUpperCase()}
-                            </span>
-                          ))}
-                          {ev.attendees.length > 3 && (
-                            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-700 text-[9px] font-medium text-slate-300 ring-2 ring-slate-900">
-                              +{ev.attendees.length - 3}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                      <button
-                        type="button"
-                        className="rounded-xl border border-white/10 bg-slate-900/60 px-2.5 py-1 text-xs font-medium text-slate-300 transition hover:bg-slate-800 hover:text-white"
-                      >
-                        Details →
-                      </button>
+                    <div className="flex items-center gap-2 self-start sm:self-auto">
+                      <span className={`rounded border px-2 py-0.5 text-[10px] font-mono ${badgeStyle}`}>
+                        {ev.category}
+                      </span>
                     </div>
                   </div>
                 );
@@ -205,4 +173,3 @@ export default function CalendarAgendaView({
     </div>
   );
 }
-

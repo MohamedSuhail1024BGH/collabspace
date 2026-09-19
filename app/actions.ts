@@ -339,6 +339,7 @@ export async function addWorkspaceMemberAction(data: {
   safeRevalidatePath("/");
   safeRevalidatePath("/start");
   safeRevalidatePath("/settings");
+  safeRevalidatePath("/preferences");
   return { success: true };
 }
 
@@ -1275,6 +1276,7 @@ export async function updateWorkspaceAction(data: {
     safeRevalidatePath("/");
     safeRevalidatePath("/start");
     safeRevalidatePath("/settings");
+    safeRevalidatePath("/preferences");
     return { success: true };
   } catch (error) {
     console.error("Failed to update workspace:", error);

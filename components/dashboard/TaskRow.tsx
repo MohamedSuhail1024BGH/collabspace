@@ -1,18 +1,18 @@
 import type { DashboardTask } from "@/data/mock-data";
 
 const priorityStyles = {
-  High: "border-rose-500/30 bg-rose-500/10 text-rose-200",
-  Medium: "border-amber-500/30 bg-amber-500/10 text-amber-200",
-  Low: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
+  High: "border-error/30 bg-error-container/20 text-error",
+  Medium: "border-tertiary/30 bg-tertiary-container/20 text-tertiary",
+  Low: "border-secondary/30 bg-secondary-container/20 text-secondary",
 } as const;
 
 const statusStyles: Record<string, string> = {
-  "Not started": "border-slate-500/30 bg-slate-500/10 text-slate-200",
-  "In progress": "border-cyan-500/30 bg-cyan-500/10 text-cyan-200",
-  Pending: "border-amber-500/30 bg-amber-500/10 text-amber-200",
-  Review: "border-violet-500/30 bg-violet-500/10 text-violet-200",
-  Blocked: "border-rose-500/30 bg-rose-500/10 text-rose-200",
-  Completed: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
+  "Not started": "border-outline/30 bg-surface-container text-on-surface-variant",
+  "In progress": "border-primary/30 bg-primary/10 text-primary",
+  Pending: "border-tertiary/30 bg-tertiary-container/20 text-tertiary",
+  Review: "border-primary/30 bg-primary-container/20 text-on-surface",
+  Blocked: "border-error/30 bg-error-container/20 text-error",
+  Completed: "border-secondary/30 bg-secondary-container/20 text-secondary",
 };
 
 const statusOptions = ["Not started", "In progress", "Pending", "Review", "Blocked", "Completed"];
@@ -56,55 +56,78 @@ export function TaskRow({ task, onEdit, onDelete, onStatusChange }: TaskRowProps
   const taskId = isTaskDetail ? task.id : `${title}-${assignee}`;
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-slate-950/50 p-4">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-        <div className="flex-1">
-          <div className="flex items-start gap-3">
-            <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-violet-400" aria-hidden="true" />
-            <div>
-              <p className="text-base font-medium text-white">{title}</p>
-              {description ? <p className="mt-1 text-sm text-slate-400">{description}</p> : null}
+    <div
+      className={`rounded-xl bg-surface-container border p-4 hover:border-primary/40 hover:bg-surface-high transition-all duration-150 group shadow-xs ${
+        priority === "High"
+          ? "border-outline-variant/20 border-l-4 border-l-error"
+          : "border-outline-variant/20"
+      }`}
+    >
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start gap-2.5">
+            <span
+              className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
+                priority === "High" ? "bg-error animate-pulse" : "bg-primary"
+              }`}
+              aria-hidden="true"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-on-surface group-hover:text-primary transition-colors truncate font-headline-sm">
+                {title}
+              </p>
+              {description ? (
+                <p className="mt-0.5 text-xs text-on-surface-variant line-clamp-2 leading-relaxed">{description}</p>
+              ) : null}
             </div>
           </div>
 
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <span className={`rounded-full border px-2 py-1 text-[10px] font-medium uppercase tracking-[0.18em] ${priorityStyles[priority] ?? "border-slate-500/30 bg-slate-500/10 text-slate-200"}`}>
-              {priority}
+          <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+            <span
+              className={`rounded-md border px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider font-medium ${
+                priorityStyles[priority] ?? "border-outline/30 bg-surface-container text-on-surface-variant"
+              }`}
+            >
+              {priority === "High" ? "P0 • High" : priority}
             </span>
-            <span className={`rounded-full border px-2 py-1 text-[10px] font-medium uppercase tracking-[0.18em] ${statusStyles[status] ?? "border-slate-500/30 bg-slate-500/10 text-slate-200"}`}>
+            <span
+              className={`rounded-md border px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider font-medium ${
+                statusStyles[status] ?? "border-outline/30 bg-surface-container text-on-surface-variant"
+              }`}
+            >
               {status}
             </span>
             {project ? (
-              <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-cyan-200">
+              <span className="rounded-md border border-outline-variant/25 bg-surface-lowest px-2 py-0.5 text-[10px] font-mono text-on-surface-variant">
                 {project}
               </span>
             ) : null}
           </div>
         </div>
 
-        <div className="flex flex-col gap-2 sm:flex-row xl:flex-col">
-          <div className="rounded-xl border border-white/10 bg-slate-900/80 px-3 py-2">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Assignee</p>
-            <p className="mt-1 text-sm font-medium text-white">{assignee}</p>
+        <div className="flex flex-wrap gap-2 shrink-0 text-xs">
+          <div className="rounded-lg bg-surface-lowest border border-outline-variant/20 px-2.5 py-1">
+            <p className="text-[10px] font-mono uppercase text-on-surface-variant/70">Assignee</p>
+            <p className="font-medium text-on-surface">{assignee}</p>
           </div>
-          <div className="rounded-xl border border-white/10 bg-slate-900/80 px-3 py-2">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Due</p>
-            <p className="mt-1 text-sm font-medium text-white">{formatDate(dueValue)}</p>
+          <div className="rounded-lg bg-surface-lowest border border-outline-variant/20 px-2.5 py-1">
+            <p className="text-[10px] font-mono uppercase text-on-surface-variant/70">Due</p>
+            <p className="font-mono text-on-surface">{formatDate(dueValue)}</p>
           </div>
         </div>
       </div>
 
       {onEdit || onDelete || onStatusChange ? (
-        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <label className="flex items-center gap-2 text-sm text-slate-300">
-            <span>Status</span>
+        <div className="mt-3 pt-2.5 border-t border-outline-variant/15 flex flex-wrap items-center justify-between gap-2">
+          <label className="flex items-center gap-2 text-xs text-on-surface-variant">
+            <span className="font-mono text-[11px]">Status</span>
             <select
               value={status}
               onChange={(event) => onStatusChange?.(taskId, event.target.value)}
-              className="rounded-xl border border-white/10 bg-slate-900/80 px-2.5 py-1.5 text-sm text-white focus:border-violet-400/50 focus:outline-none"
+              className="rounded-lg bg-surface-lowest border border-outline-variant/25 px-2.5 py-1 text-xs text-on-surface focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none cursor-pointer transition-all"
             >
               {statusOptions.map((option) => (
-                <option key={option} value={option}>
+                <option key={option} value={option} className="bg-surface-container-high text-on-surface">
                   {option}
                 </option>
               ))}
@@ -112,20 +135,24 @@ export function TaskRow({ task, onEdit, onDelete, onStatusChange }: TaskRowProps
           </label>
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => onEdit?.(task as DashboardTask)}
-              className="rounded-xl border border-white/10 bg-slate-900/80 px-3 py-1.5 text-sm text-slate-200 transition hover:border-violet-500/40 hover:text-white"
-            >
-              Edit
-            </button>
-            <button
-              type="button"
-              onClick={() => onDelete?.(taskId)}
-              className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-3 py-1.5 text-sm text-rose-200 transition hover:bg-rose-500/20"
-            >
-              Delete
-            </button>
+            {onEdit && (
+              <button
+                type="button"
+                onClick={() => onEdit?.(task as DashboardTask)}
+                className="rounded bg-surface-container-high hover:bg-surface-container-highest px-2.5 py-1 text-xs font-medium text-on-surface transition"
+              >
+                Edit
+              </button>
+            )}
+            {onDelete && (
+              <button
+                type="button"
+                onClick={() => onDelete?.(taskId)}
+                className="rounded bg-error-container/20 hover:bg-error-container/30 px-2.5 py-1 text-xs font-medium text-error transition"
+              >
+                Delete
+              </button>
+            )}
           </div>
         </div>
       ) : null}

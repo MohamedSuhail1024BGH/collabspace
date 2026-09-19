@@ -12,6 +12,8 @@ type SidebarProps = {
   activeWorkspace?: DbWorkspace;
   workspaces?: DbWorkspace[];
   user?: Omit<DbUser, "passwordHash"> | null;
+  isMobileOpen?: boolean;
+  onMobileClose?: () => void;
 };
 
 const hrefLookup: Record<string, string> = {
@@ -21,7 +23,58 @@ const hrefLookup: Record<string, string> = {
   Messages: "/messages",
   Calendar: "/calendar",
   Reports: "/reports",
+  "Workspace Preferences": "/preferences",
+  Preferences: "/preferences",
   Settings: "/settings",
+};
+
+const navIcons: Record<string, React.ReactNode> = {
+  Overview: (
+    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h4a1 1 0 011 1v5a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v2a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 13a1 1 0 011-1h4a1 1 0 011 1v6a1 1 0 01-1 1h-4a1 1 0 01-1-1v-6z" />
+    </svg>
+  ),
+  Projects: (
+    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+    </svg>
+  ),
+  Tasks: (
+    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+    </svg>
+  ),
+  Messages: (
+    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+    </svg>
+  ),
+  Calendar: (
+    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+    </svg>
+  ),
+  Reports: (
+    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+    </svg>
+  ),
+  "Workspace Preferences": (
+    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+    </svg>
+  ),
+  Preferences: (
+    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+    </svg>
+  ),
+  Settings: (
+    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  ),
 };
 
 const defaultWorkspace: DbWorkspace = {
@@ -40,6 +93,8 @@ export function Sidebar({
   activeWorkspace = defaultWorkspace,
   workspaces = [defaultWorkspace],
   user,
+  isMobileOpen = false,
+  onMobileClose,
 }: SidebarProps) {
   const router = useRouter();
 
@@ -49,80 +104,112 @@ export function Sidebar({
     router.refresh();
   };
 
-  return (
-    <aside className="sidebar-container hidden w-72 shrink-0 rounded-3xl border border-white/10 bg-slate-900/80 p-5 shadow-2xl shadow-slate-950/30 lg:flex lg:flex-col transition-all duration-200">
-      <WorkspaceSwitcher activeWorkspace={activeWorkspace} workspaces={workspaces} />
-
-      <div className="mb-4">
-        <Link
-          href="/start"
-          data-testid="sidebar-start-hub-btn"
-          className="theme-accent-badge flex items-center justify-between rounded-2xl border px-3.5 py-2.5 text-xs font-semibold transition hover:opacity-90"
-        >
-          <div className="flex items-center gap-2">
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+  const sidebarContent = (
+    <aside
+      data-testid="primary-sidebar"
+      className="h-full w-60 bg-surface-container-low border-r border-outline/20 flex flex-col justify-between select-none text-on-surface"
+    >
+      <div className="flex flex-col">
+        {/* Top: CollabSpace Brand Header (Condition 1: workspace section removed from top) */}
+        <div className="h-14 px-4 flex items-center justify-between border-b border-outline/20 bg-surface-container-low">
+          <div className="flex items-center gap-2.5">
+            <svg className="h-6 w-6 shrink-0" viewBox="0 0 32 32" fill="none">
+              <rect width="32" height="32" rx="8" fill="#6366F1" />
+              <path d="M10 16L14 20L22 12" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              <circle cx="10" cy="10" r="2.5" fill="white" fillOpacity="0.8" />
+              <circle cx="22" cy="22" r="2.5" fill="white" fillOpacity="0.8" />
             </svg>
-            <span>Start Hub</span>
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-semibold text-sm tracking-tight text-on-surface font-headline-sm">CollabSpace</span>
+              <span className="font-mono text-[9px] text-secondary bg-surface-container-high px-1 py-0.2 rounded">v2</span>
+            </div>
           </div>
-          <span className="text-[10px] uppercase tracking-wider opacity-80">All Workspaces</span>
-        </Link>
-      </div>
-
-      <nav className="space-y-2">
-        {navItems.map((item) => {
-          const href = hrefLookup[item];
-          const isActive = pathname === href;
-
-          return (
-            <Link
-              key={item}
-              href={href}
-              className={[
-                "flex w-full items-center justify-between rounded-2xl px-3 py-2.5 text-left text-sm transition font-medium",
-                isActive
-                  ? "theme-nav-active font-semibold"
-                  : "text-slate-300 hover:bg-white/5 hover:text-white",
-              ].join(" ")}
+          {onMobileClose && (
+            <button
+              type="button"
+              onClick={onMobileClose}
+              className="p-1 rounded text-on-surface-variant hover:text-on-surface md:hidden"
+              aria-label="Close sidebar"
             >
-              <span>{item}</span>
-              {isActive ? <span className="text-xs opacity-90">Live</span> : null}
-            </Link>
-          );
-        })}
-      </nav>
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
 
-      <div className="theme-focus-card mt-auto rounded-2xl border p-4 transition-all">
-        <p className="text-xs uppercase tracking-[0.22em] text-slate-300">Focus sprint</p>
-        <p className="mt-3 text-xl font-semibold text-white">Launch readiness</p>
-        <p className="mt-2 text-sm text-slate-300">12 milestones left before the next release.</p>
+        {/* Workspace Navigation Section */}
+        <div className="px-3 pt-3">
+          <span className="font-mono text-[11px] font-medium uppercase tracking-wider text-on-surface-variant block mb-2 px-1">
+            Workspace
+          </span>
+          <nav className="flex flex-col gap-1">
+            {navItems
+              .filter((item) => item !== "Settings")
+              .map((item) => {
+                const href = hrefLookup[item] || "/";
+                const isActive =
+                  item === "Overview"
+                    ? pathname === "/"
+                    : pathname === href || pathname.startsWith(`${href}/`);
+
+                return (
+                  <Link
+                    key={item}
+                    href={href}
+                    onClick={onMobileClose}
+                    className={`flex items-center gap-2.5 px-2.5 py-2 rounded text-xs transition-colors font-medium ${
+                      isActive
+                        ? "bg-surface-container-highest text-primary font-semibold shadow-xs"
+                        : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
+                    }`}
+                  >
+                    <span className={isActive ? "text-primary" : "text-on-surface-variant"}>
+                      {navIcons[item] || null}
+                    </span>
+                    <span>{item}</span>
+                    {isActive && (
+                      <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />
+                    )}
+                  </Link>
+                );
+              })}
+          </nav>
+        </div>
       </div>
 
-      {/* Logged In User Profile & Logout */}
-      {user && (
-        <div className="mt-4 flex items-center justify-between gap-3 border-t border-white/10 pt-4">
-          <div className="flex items-center gap-2.5 overflow-hidden">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-cyan-400 text-xs font-bold text-white shadow">
-              {user.name.charAt(0).toUpperCase()}
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-xs font-medium text-white">{user.name}</p>
-              <p className="truncate text-[10px] text-slate-400">{user.email}</p>
-            </div>
+      {/* Bottom Section: Expandable Workspace & Account Switcher */}
+      <div className="p-2.5 bg-surface-container-lowest border-t border-outline/20">
+        <WorkspaceSwitcher
+          activeWorkspace={activeWorkspace}
+          workspaces={workspaces}
+          user={user}
+          onLogout={handleLogout}
+          onNavigate={onMobileClose}
+        />
+      </div>
+    </aside>
+  );
+
+  return (
+    <>
+      {/* Desktop Fixed Sidebar */}
+      <div className="hidden md:block fixed left-0 top-0 h-full w-60 z-30">
+        {sidebarContent}
+      </div>
+
+      {/* Mobile Off-canvas Drawer */}
+      {isMobileOpen && (
+        <div className="fixed inset-0 z-50 md:hidden flex animate-in fade-in duration-150">
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+            onClick={onMobileClose}
+          />
+          <div className="relative z-10 w-60 h-full shadow-2xl animate-in slide-in-from-left duration-200">
+            {sidebarContent}
           </div>
-          <button
-            type="button"
-            data-testid="logout-button"
-            onClick={handleLogout}
-            title="Log out"
-            className="shrink-0 rounded-lg p-1.5 text-slate-400 transition hover:bg-white/5 hover:text-rose-400"
-          >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-          </button>
         </div>
       )}
-    </aside>
+    </>
   );
 }

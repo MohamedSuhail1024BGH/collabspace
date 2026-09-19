@@ -15,6 +15,7 @@ import {
   removeWorkspaceMemberAction,
   searchUsersAction,
 } from "@/app/actions";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 export type WorkspaceMemberItem = {
   membershipId: string;
@@ -108,56 +109,58 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  // Synchronize state when props update after router.refresh()
-  useEffect(() => {
-    if (initialMembers) {
-      setMembers(initialMembers);
-    }
-  }, [initialMembers]);
+  // Synchronize state when props update
+  const [prevInitialMembers, setPrevInitialMembers] = useState(initialMembers);
+  if (initialMembers && initialMembers !== prevInitialMembers) {
+    setPrevInitialMembers(initialMembers);
+    setMembers(initialMembers);
+  }
 
-  useEffect(() => {
-    if (workspace) {
-      setWorkspaceName(workspace.name);
-      setWorkspaceDescription(workspace.description ?? "");
-      setWorkspaceIsPublic(workspace.isPublic ?? true);
-    }
-  }, [workspace]);
+  const [prevWorkspaceId, setPrevWorkspaceId] = useState(workspace?.id);
+  if (workspace && workspace.id !== prevWorkspaceId) {
+    setPrevWorkspaceId(workspace.id);
+    setWorkspaceName(workspace.name);
+    setWorkspaceDescription(workspace.description ?? "");
+    setWorkspaceIsPublic(workspace.isPublic ?? true);
+  }
 
-  useEffect(() => {
-    if (user) {
-      setUserName(user.name);
-      setUserUsername(user.username ?? "");
-      setUserBio(user.bio ?? "");
-      setAvatarColor(user.avatar ?? "from-violet-500 to-cyan-400");
-    }
-  }, [user]);
+  const [prevUserId, setPrevUserId] = useState(user?.id);
+  if (user && user.id !== prevUserId) {
+    setPrevUserId(user.id);
+    setUserName(user.name);
+    setUserUsername(user.username ?? "");
+    setUserBio(user.bio ?? "");
+    setAvatarColor(user.avatar ?? "from-violet-500 to-cyan-400");
+  }
 
   // Load saved preferences from localStorage
   useEffect(() => {
-    try {
-      const savedTheme = localStorage.getItem("collabspace_accent_theme");
-      if (savedTheme) {
-        setAccentTheme(savedTheme);
-        document.documentElement.setAttribute("data-accent", savedTheme.toLowerCase());
+    queueMicrotask(() => {
+      try {
+        const savedTheme = localStorage.getItem("collabspace_accent_theme");
+        if (savedTheme) {
+          setAccentTheme(savedTheme);
+          document.documentElement.setAttribute("data-accent", savedTheme.toLowerCase());
+        }
+
+        const savedDensity = localStorage.getItem("collabspace_density");
+        if (savedDensity === "comfortable" || savedDensity === "compact") {
+          setDensity(savedDensity);
+          document.documentElement.setAttribute("data-density", savedDensity.toLowerCase());
+        }
+
+        const savedEmailAlerts = localStorage.getItem("collabspace_email_alerts");
+        if (savedEmailAlerts !== null) setEmailAlerts(savedEmailAlerts === "true");
+
+        const savedTaskAlerts = localStorage.getItem("collabspace_task_alerts");
+        if (savedTaskAlerts !== null) setTaskAlerts(savedTaskAlerts === "true");
+
+        const savedWeeklyDigest = localStorage.getItem("collabspace_weekly_digest");
+        if (savedWeeklyDigest !== null) setWeeklyDigest(savedWeeklyDigest === "true");
+      } catch {
+        // Ignore localStorage read errors in SSR/sandboxes
       }
-
-      const savedDensity = localStorage.getItem("collabspace_density");
-      if (savedDensity === "comfortable" || savedDensity === "compact") {
-        setDensity(savedDensity);
-        document.documentElement.setAttribute("data-density", savedDensity.toLowerCase());
-      }
-
-      const savedEmailAlerts = localStorage.getItem("collabspace_email_alerts");
-      if (savedEmailAlerts !== null) setEmailAlerts(savedEmailAlerts === "true");
-
-      const savedTaskAlerts = localStorage.getItem("collabspace_task_alerts");
-      if (savedTaskAlerts !== null) setTaskAlerts(savedTaskAlerts === "true");
-
-      const savedWeeklyDigest = localStorage.getItem("collabspace_weekly_digest");
-      if (savedWeeklyDigest !== null) setWeeklyDigest(savedWeeklyDigest === "true");
-    } catch {
-      // Ignore localStorage read errors in SSR/sandboxes
-    }
+    });
   }, []);
 
   const handleAccentChange = (themeName: string) => {
@@ -236,9 +239,9 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
     // Optimistic addition
     if (targetUser) {
       const optimisticMember: WorkspaceMemberItem = {
-        membershipId: `temp-${Date.now()}`,
+        membershipId: `temp-${targetUser.id}-${members.length}`,
         role: selectedRoleForNewMember,
-        joinedAt: new Date().toISOString(),
+        joinedAt: "Just now",
         user: {
           id: targetUser.id,
           name: targetUser.name,
@@ -358,6 +361,25 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
     });
   };
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      setFeedback({ type: "error", message: "Image size must be under 2MB." });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setAvatarColor(reader.result);
+        setFeedback({ type: "success", message: "Custom profile picture selected. Click 'Save Profile' to apply." });
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   // User Profile Form Handler
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
@@ -470,7 +492,7 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
   return (
     <div className="space-y-6">
       {/* Tab Navigation */}
-      <div className="flex border-b border-white/10 pb-4 gap-2 overflow-x-auto">
+      <div className="flex items-center border-b border-outline/20 pb-3 gap-2 overflow-x-auto">
         <button
           type="button"
           data-testid="settings-workspace-tab"
@@ -478,16 +500,16 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
             setActiveTab("workspace");
             setFeedback(null);
           }}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition shrink-0 ${
+          className={`flex items-center gap-2 rounded px-3.5 py-1.5 text-xs font-medium transition shrink-0 ${
             activeTab === "workspace"
-              ? "theme-btn-primary text-white shadow-lg font-semibold"
-              : "text-slate-400 hover:bg-white/5 hover:text-white"
+              ? "bg-surface-container-highest text-on-surface font-semibold shadow-sm"
+              : "text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
           }`}
         >
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
           </svg>
-          Workspace
+          <span>Workspace</span>
         </button>
 
         <button
@@ -497,16 +519,16 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
             setActiveTab("members");
             setFeedback(null);
           }}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition shrink-0 ${
+          className={`flex items-center gap-2 rounded px-3.5 py-1.5 text-xs font-medium transition shrink-0 ${
             activeTab === "members"
-              ? "theme-btn-primary text-white shadow-lg font-semibold"
-              : "text-slate-400 hover:bg-white/5 hover:text-white"
+              ? "bg-surface-container-highest text-on-surface font-semibold shadow-sm"
+              : "text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
           }`}
         >
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
           </svg>
-          Members & Roles
+          <span>Members & Roles</span>
         </button>
 
         <button
@@ -516,16 +538,16 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
             setActiveTab("account");
             setFeedback(null);
           }}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition shrink-0 ${
+          className={`flex items-center gap-2 rounded px-3.5 py-1.5 text-xs font-medium transition shrink-0 ${
             activeTab === "account"
-              ? "theme-btn-primary text-white shadow-lg font-semibold"
-              : "text-slate-400 hover:bg-white/5 hover:text-white"
+              ? "bg-surface-container-highest text-on-surface font-semibold shadow-sm"
+              : "text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
           }`}
         >
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
           </svg>
-          Account
+          <span>Account</span>
         </button>
 
         <button
@@ -535,16 +557,16 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
             setActiveTab("ui");
             setFeedback(null);
           }}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition shrink-0 ${
+          className={`flex items-center gap-2 rounded px-3.5 py-1.5 text-xs font-medium transition shrink-0 ${
             activeTab === "ui"
-              ? "theme-btn-primary text-white shadow-lg font-semibold"
-              : "text-slate-400 hover:bg-white/5 hover:text-white"
+              ? "bg-surface-container-highest text-on-surface font-semibold shadow-sm"
+              : "text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
           }`}
         >
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
           </svg>
-          UI & Preferences
+          <span>UI & Preferences</span>
         </button>
       </div>
 
@@ -552,10 +574,10 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
       {feedback && (
         <div
           data-testid="settings-feedback-banner"
-          className={`flex items-center gap-2 rounded-2xl border p-4 text-sm ${
+          className={`flex items-center gap-2 rounded border p-3 text-xs font-body-sm ${
             feedback.type === "success"
-              ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-300"
-              : "border-rose-500/20 bg-rose-500/10 text-rose-300"
+              ? "border-secondary/30 bg-secondary/10 text-secondary"
+              : "border-error/30 bg-error/10 text-error"
           }`}
         >
           <span>{feedback.message}</span>
@@ -567,22 +589,22 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
       {/* ------------------------------------------------------------- */}
       {activeTab === "workspace" && (
         <div className="space-y-6">
-          <section className="rounded-3xl border border-white/10 bg-slate-900/80 p-6 shadow-xl shadow-slate-950/20">
-            <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <section className="rounded border border-outline/20 bg-surface-container-low p-4 sm:p-5">
+            <div className="mb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div>
-                <h3 className="text-lg font-semibold text-white">Workspace Information</h3>
-                <p className="text-sm text-slate-400">
+                <h3 className="text-base font-semibold text-on-surface">Workspace Information</h3>
+                <p className="text-xs text-on-surface-variant font-body-sm mt-0.5">
                   Manage your organization identity, description, and team URL identifiers.
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-400">Your Role:</span>
-                <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${
+                <span className="text-xs text-on-surface-variant font-label-sm">Your Role:</span>
+                <span className={`rounded px-2 py-0.5 text-xs font-semibold capitalize font-label-sm ${
                   isOwner
-                    ? "bg-amber-500/15 text-amber-300 border border-amber-500/30"
+                    ? "bg-tertiary/15 text-tertiary border border-tertiary/30"
                     : isAdmin
-                    ? "theme-accent-badge border"
-                    : "bg-slate-800 text-slate-300 border border-white/10"
+                    ? "bg-primary/15 text-primary border border-primary/30"
+                    : "bg-surface-container-high text-on-surface-variant border border-outline/20"
                 }`}>
                   {currentUserRole}
                 </span>
@@ -590,17 +612,17 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
             </div>
 
             {!isAdmin && (
-              <div className="mb-6 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-300 flex items-center gap-3">
-                <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="mb-4 rounded border border-tertiary/30 bg-tertiary/10 p-3 text-xs text-tertiary flex items-center gap-2 font-body-sm">
+                <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <span>You have <strong>{currentUserRole}</strong> access. Only workspace owners and admins can update organization settings.</span>
               </div>
             )}
 
-            <form onSubmit={handleSaveWorkspace} className="space-y-5 max-w-xl">
+            <form onSubmit={handleSaveWorkspace} className="space-y-4 max-w-xl">
               <div>
-                <label htmlFor="ws-name" className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                <label htmlFor="ws-name" className="block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1">
                   Workspace Name
                 </label>
                 <input
@@ -611,18 +633,18 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
                   value={workspaceName}
                   onChange={(e) => setWorkspaceName(e.target.value)}
                   placeholder="e.g. Acme Corporation"
-                  className="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-2.5 text-sm text-white placeholder-slate-500 theme-input-focus disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="w-full rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:border-primary focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
                   required
                 />
               </div>
 
               <div>
-                <label htmlFor="ws-slug" className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                <label htmlFor="ws-slug" className="block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1">
                   Workspace Identifier & URL
                 </label>
-                <div className="flex items-center rounded-xl border border-white/10 bg-slate-950/60 px-4 py-2 text-sm text-slate-400">
-                  <span className="text-slate-500 mr-1">collabspace.app/</span>
-                  <span className="font-mono text-white">{workspace?.slug ?? "workspace"}</span>
+                <div className="flex items-center rounded border border-outline/20 bg-surface-container-lowest px-3 py-1.5 text-xs text-on-surface-variant font-mono">
+                  <span className="text-on-surface-variant/60 mr-1">collabspace.app/</span>
+                  <span className="text-on-surface font-semibold">{workspace?.slug ?? "workspace"}</span>
                   <button
                     type="button"
                     data-testid="copy-workspace-slug-btn"
@@ -634,18 +656,32 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
                         setTimeout(() => setCopiedLink(false), 2000);
                       }
                     }}
-                    className="ml-auto rounded-lg border border-white/10 bg-slate-900 px-2.5 py-1 text-xs text-slate-300 hover:bg-slate-800 hover:text-white transition"
+                    className="ml-auto inline-flex items-center gap-1.5 rounded border border-outline/20 bg-surface-container px-2.5 py-1 text-xs text-on-surface hover:bg-surface-container-high transition font-sans font-medium"
                   >
-                    {copiedLink ? "✓ Copied!" : "Copy Link"}
+                    {copiedLink ? (
+                      <>
+                        <svg className="w-3.5 h-3.5 text-primary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span>Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-3.5 h-3.5 text-on-surface-variant shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        <span>Copy Link</span>
+                      </>
+                    )}
                   </button>
                 </div>
-                <p className="mt-1.5 text-xs text-slate-500">
+                <p className="mt-1 text-[11px] text-on-surface-variant font-body-sm">
                   Share this identifier with prospective team members to let them request access.
                 </p>
               </div>
 
               <div>
-                <label htmlFor="ws-desc" className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                <label htmlFor="ws-desc" className="block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1">
                   Workspace Description
                 </label>
                 <textarea
@@ -656,23 +692,23 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
                   value={workspaceDescription}
                   onChange={(e) => setWorkspaceDescription(e.target.value)}
                   placeholder="Describe your organization mission or team objective..."
-                  className="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-2.5 text-sm text-white placeholder-slate-500 theme-input-focus disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="w-full rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:border-primary focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
                 />
               </div>
 
-              <div className="pt-2">
-                <label className="flex items-center gap-3 cursor-pointer">
+              <div className="pt-1">
+                <label className="flex items-center gap-2.5 cursor-pointer">
                   <input
                     type="checkbox"
                     data-testid="workspace-public-toggle"
                     disabled={!isAdmin || isPending}
                     checked={workspaceIsPublic}
                     onChange={(e) => setWorkspaceIsPublic(e.target.checked)}
-                    className="h-4 w-4 rounded border-white/20 bg-slate-950/60 theme-checkbox disabled:opacity-60"
+                    className="h-4 w-4 rounded border-outline/30 bg-surface-container-lowest accent-primary disabled:opacity-60"
                   />
                   <div>
-                    <span className="text-sm font-medium text-white">Public & Discoverable</span>
-                    <p className="text-xs text-slate-400">Allow other CollabSpace members to discover and request access to this workspace.</p>
+                    <span className="text-xs font-medium text-on-surface">Public & Discoverable</span>
+                    <p className="text-[11px] text-on-surface-variant font-body-sm">Allow other CollabSpace members to discover and request access to this workspace.</p>
                   </div>
                 </label>
               </div>
@@ -683,7 +719,7 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
                     type="submit"
                     data-testid="save-workspace-button"
                     disabled={isPending}
-                    className="theme-btn-primary rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:opacity-90 disabled:opacity-50"
+                    className="rounded bg-primary px-4 py-1.5 text-xs font-semibold text-on-primary shadow-sm transition hover:bg-primary-container hover:text-on-primary-container disabled:opacity-50"
                   >
                     {isPending ? "Saving..." : "Save Workspace"}
                   </button>
@@ -693,21 +729,21 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
           </section>
 
           {/* Workspace Danger Zone */}
-          <section className="rounded-3xl border border-rose-500/20 bg-rose-950/10 p-6 shadow-xl shadow-slate-950/20">
-            <h4 className="text-base font-semibold text-rose-400">Workspace Management & Danger Zone</h4>
-            <p className="mt-1 text-sm text-slate-400">
+          <section className="rounded border border-error/30 bg-error/5 p-4 sm:p-5">
+            <h4 className="text-sm font-semibold text-error">Workspace Management & Danger Zone</h4>
+            <p className="mt-1 text-xs text-on-surface-variant font-body-sm">
               {isOwner
                 ? "Permanently delete this workspace and all associated projects, tasks, events, and memberships. Or transfer ownership to another member in the Members tab."
                 : "Leave this workspace. You will lose access to all internal projects and documents."}
             </p>
 
-            <div className="mt-4 flex flex-wrap gap-3">
+            <div className="mt-3.5 flex flex-wrap gap-2.5">
               {isOwner ? (
                 <button
                   type="button"
                   data-testid="workspace-delete-button"
                   onClick={() => setShowDeleteWorkspaceModal(true)}
-                  className="rounded-xl border border-rose-500/30 bg-rose-500/20 px-4 py-2 text-sm font-medium text-rose-300 transition hover:bg-rose-500/30 hover:text-white"
+                  className="rounded border border-error/30 bg-error/15 px-3 py-1.5 text-xs font-medium text-error transition hover:bg-error/25"
                 >
                   Delete Workspace
                 </button>
@@ -716,7 +752,7 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
                   type="button"
                   data-testid="workspace-leave-button"
                   onClick={() => setShowLeaveWorkspaceModal(true)}
-                  className="rounded-xl border border-amber-500/30 bg-amber-500/20 px-4 py-2 text-sm font-medium text-amber-300 transition hover:bg-amber-500/30 hover:text-white"
+                  className="rounded border border-tertiary/30 bg-tertiary/15 px-3 py-1.5 text-xs font-medium text-tertiary transition hover:bg-tertiary/25"
                 >
                   Leave Workspace
                 </button>
@@ -733,24 +769,24 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
         <div className="space-y-6">
           {/* Add Members Section (Only for Owners & Admins) */}
           {isAdmin ? (
-            <section className="rounded-3xl border border-white/10 bg-slate-900/80 p-6 shadow-xl shadow-slate-950/20">
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-white">Invite & Add Members</h3>
-                <p className="text-sm text-slate-400">
+            <section className="rounded border border-outline/20 bg-surface-container-low p-4 sm:p-5">
+              <div className="mb-4">
+                <h3 className="text-base font-semibold text-on-surface">Invite & Add Members</h3>
+                <p className="text-xs text-on-surface-variant font-body-sm mt-0.5">
                   Search registered users by @username or full name to add them to this workspace.
                 </p>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex flex-col sm:flex-row gap-2.5">
                 <div className="relative flex-1">
-                  <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-sm text-slate-500">@</span>
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-xs text-on-surface-variant">@</span>
                   <input
                     type="text"
                     data-testid="invite-user-search-input"
                     value={memberSearchQuery}
                     onChange={(e) => handleSearchUsersForInvite(e.target.value)}
                     placeholder="Search by username (e.g. useradm1, usermem1) or name..."
-                    className="w-full rounded-2xl border border-white/10 bg-slate-950/60 pl-8 pr-4 py-2.5 text-sm text-white placeholder:text-slate-500 theme-input-focus"
+                    className="w-full rounded border border-outline/20 bg-surface-container-lowest pl-7 pr-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:border-primary focus:outline-none"
                   />
                 </div>
 
@@ -758,32 +794,32 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
                   data-testid="invite-role-select"
                   value={selectedRoleForNewMember}
                   onChange={(e) => setSelectedRoleForNewMember(e.target.value as "admin" | "member" | "viewer")}
-                  className="rounded-2xl border border-white/10 bg-slate-950/60 px-3.5 py-2.5 text-sm text-white theme-input-focus"
+                  className="rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface focus:border-primary focus:outline-none"
                 >
-                  <option value="member" className="bg-slate-900 text-white">Member (Standard)</option>
-                  {isOwner && <option value="admin" className="bg-slate-900 text-white">Admin (Management)</option>}
-                  <option value="viewer" className="bg-slate-900 text-white">Viewer (Read-only)</option>
+                  <option value="member">Member (Standard)</option>
+                  {isOwner && <option value="admin">Admin (Management)</option>}
+                  <option value="viewer">Viewer (Read-only)</option>
                 </select>
               </div>
 
               {/* Search Results for Member Invitation */}
               {memberSearchResults.length > 0 && (
-                <div className="mt-4 space-y-2 rounded-2xl border border-white/10 bg-slate-950/40 p-3">
-                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Available Users</p>
+                <div className="mt-3.5 space-y-2 rounded border border-outline/20 bg-surface-container-lowest p-3">
+                  <p className="font-label-sm text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-2">Available Users</p>
                   {memberSearchResults.map((u) => (
                     <div
                       key={u.id}
                       data-testid={`invite-user-row-${u.username || u.id}`}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-slate-900/60 p-2.5"
+                      className="flex items-center justify-between gap-3 rounded border border-outline/10 bg-surface-container-low p-2.5"
                     >
                       <div className="flex items-center gap-2.5 overflow-hidden">
-                        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${u.avatar || "from-violet-500 to-cyan-400"} text-xs font-bold text-white`}>
+                        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded bg-gradient-to-br ${u.avatar || "from-violet-500 to-cyan-400"} text-xs font-bold text-white`}>
                           {u.name.charAt(0).toUpperCase()}
                         </div>
                         <div className="truncate">
-                          <span className="text-xs font-semibold text-white">{u.name}</span>
-                          <span className="ml-2 text-[11px] theme-accent-text">@{u.username || "user"}</span>
-                          <span className="ml-2 text-[10px] text-slate-500 hidden sm:inline">({u.email})</span>
+                          <span className="text-xs font-semibold text-on-surface">{u.name}</span>
+                          <span className="ml-2 font-label-sm text-[11px] text-primary">@{u.username || "user"}</span>
+                          <span className="ml-2 text-[10px] text-on-surface-variant hidden sm:inline">({u.email})</span>
                         </div>
                       </div>
 
@@ -792,7 +828,7 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
                         data-testid={`add-member-btn-${u.username || u.id}`}
                         disabled={isPending}
                         onClick={() => handleAddMember(u.id)}
-                        className="theme-btn-primary shrink-0 rounded-xl px-3 py-1.5 text-xs font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                        className="shrink-0 rounded bg-primary px-3 py-1 text-xs font-semibold text-on-primary transition hover:bg-primary-container hover:text-on-primary-container disabled:opacity-50 shadow-sm"
                       >
                         Add as {selectedRoleForNewMember}
                       </button>
@@ -802,27 +838,27 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
               )}
 
               {memberSearchQuery.trim() !== "" && !isSearchingMembers && memberSearchResults.length === 0 && (
-                <div className="mt-3 rounded-2xl border border-white/5 bg-slate-950/40 p-4 text-center text-xs text-slate-400">
+                <div className="mt-3 rounded border border-outline/10 bg-surface-container-lowest p-3 text-center text-xs text-on-surface-variant">
                   No matching users found for &quot;{memberSearchQuery}&quot;.
                 </div>
               )}
             </section>
           ) : (
-            <div className="rounded-2xl border border-white/10 bg-slate-900/50 p-4 text-xs text-slate-400">
+            <div className="rounded border border-outline/20 bg-surface-container-low p-3.5 text-xs text-on-surface-variant">
               Only workspace owners and admins can invite new members or change team privileges.
             </div>
           )}
 
           {/* Current Workspace Members Listing */}
-          <section className="rounded-3xl border border-white/10 bg-slate-900/80 p-6 shadow-xl shadow-slate-950/20">
-            <div className="mb-6 flex items-center justify-between">
+          <section className="rounded border border-outline/20 bg-surface-container-low p-4 sm:p-5">
+            <div className="mb-4 flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-white">Workspace Members ({members.length})</h3>
-                <p className="text-sm text-slate-400">Manage member privileges under organization guidelines.</p>
+                <h3 className="text-base font-semibold text-on-surface">Workspace Members ({members.length})</h3>
+                <p className="text-xs text-on-surface-variant font-body-sm mt-0.5">Manage member privileges under organization guidelines.</p>
               </div>
             </div>
 
-            <div className="divide-y divide-white/10">
+            <div className="divide-y divide-outline/10">
               {members.map((m) => {
                 const isTargetOwner = m.role === "owner";
                 const isTargetAdmin = m.role === "admin";
@@ -838,27 +874,27 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
                   <div
                     key={m.membershipId}
                     data-testid={`workspace-member-${m.user.username || m.user.id}`}
-                    className="flex items-center justify-between gap-4 py-3.5"
+                    className="flex items-center justify-between gap-3 py-3"
                   >
-                    <div className="flex items-center gap-3 overflow-hidden">
-                      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${m.user.avatar || "from-violet-500 to-cyan-400"} font-bold text-white shadow`}>
+                    <div className="flex items-center gap-2.5 overflow-hidden">
+                      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded bg-gradient-to-br ${m.user.avatar || "from-violet-500 to-cyan-400"} font-bold text-white text-xs`}>
                         {m.user.name.charAt(0).toUpperCase()}
                       </div>
                       <div className="truncate">
                         <div className="flex items-center gap-2">
-                          <p className="text-sm font-semibold text-white truncate">{m.user.name}</p>
+                          <p className="text-xs font-semibold text-on-surface truncate">{m.user.name}</p>
                           {isSelf && (
-                            <span className="rounded-full theme-accent-bg-subtle theme-accent-text px-2 py-0.5 text-[10px] font-semibold">
+                            <span className="rounded bg-primary/15 text-primary border border-primary/30 px-1.5 py-0.2 font-label-sm text-[10px] font-semibold">
                               You
                             </span>
                           )}
-                          <span className="text-xs theme-accent-text">@{m.user.username || "user"}</span>
+                          <span className="font-label-sm text-[11px] text-primary">@{m.user.username || "user"}</span>
                         </div>
-                        <p className="text-xs text-slate-400 truncate">{m.user.email}</p>
+                        <p className="text-[11px] text-on-surface-variant truncate font-body-sm">{m.user.email}</p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex items-center gap-2">
                       {canModifyRole ? (
                         <select
                           data-testid={`change-role-${m.user.username || m.user.id}`}
@@ -870,19 +906,19 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
                               e.target.value as "admin" | "member" | "viewer"
                             )
                           }
-                          className="rounded-xl border border-white/10 bg-slate-950/70 px-2.5 py-1 text-xs font-medium text-white theme-input-focus"
+                          className="rounded border border-outline/20 bg-surface-container-lowest px-2 py-1 text-xs font-medium text-on-surface focus:border-primary focus:outline-none"
                         >
                           {isOwner && <option value="admin">Admin</option>}
                           <option value="member">Member</option>
                           <option value="viewer">Viewer</option>
                         </select>
                       ) : (
-                        <span className={`rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${
+                        <span className={`rounded px-2 py-0.5 text-xs font-semibold capitalize font-label-sm ${
                           isTargetOwner
-                            ? "bg-amber-500/15 text-amber-300 border border-amber-500/30"
+                            ? "bg-tertiary/15 text-tertiary border border-tertiary/30"
                             : isTargetAdmin
-                            ? "theme-accent-badge border"
-                            : "bg-slate-800 text-slate-300 border border-white/10"
+                            ? "bg-primary/15 text-primary border border-primary/30"
+                            : "bg-surface-container-high text-on-surface-variant border border-outline/20"
                         }`}>
                           {m.role}
                         </span>
@@ -895,7 +931,7 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
                           disabled={isPending}
                           onClick={() => setMemberToTransfer(m)}
                           title="Transfer workspace ownership"
-                          className="rounded-lg p-1.5 text-amber-400 hover:bg-amber-500/10 transition"
+                          className="rounded p-1 text-tertiary hover:bg-tertiary/10 transition"
                         >
                           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
@@ -910,7 +946,7 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
                           disabled={isPending}
                           onClick={() => setMemberToRemove(m)}
                           title="Remove from workspace"
-                          className="rounded-lg p-1.5 text-slate-500 hover:bg-rose-500/10 hover:text-rose-400 transition"
+                          className="rounded p-1 text-on-surface-variant hover:bg-error/10 hover:text-error transition"
                         >
                           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -931,46 +967,65 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
       {/* ------------------------------------------------------------- */}
       {activeTab === "account" && (
         <div className="space-y-6">
-          <section className="rounded-3xl border border-white/10 bg-slate-900/80 p-6 shadow-xl shadow-slate-950/20">
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-white">Personal Profile</h3>
-              <p className="text-sm text-slate-400">
+          <section className="rounded border border-outline/20 bg-surface-container-low p-4 sm:p-5">
+            <div className="mb-4">
+              <h3 className="text-base font-semibold text-on-surface">Personal Profile</h3>
+              <p className="text-xs text-on-surface-variant font-body-sm mt-0.5">
                 Update your account identity, handle, and avatar style across CollabSpace.
               </p>
             </div>
 
-            <form onSubmit={handleSaveProfile} className="space-y-5 max-w-xl">
-              <div className="flex items-center gap-4">
-                <div className={`flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${avatarColor} text-lg font-bold text-white shadow-lg`}>
-                  {userName.charAt(0).toUpperCase()}
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-white">{userName || "Your Name"}</p>
-                  <p className="text-xs text-slate-400">{user.email}</p>
-                </div>
-              </div>
+            <form onSubmit={handleSaveProfile} className="space-y-4 max-w-xl">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-3.5 rounded-lg bg-surface-container border border-outline/20">
+                <UserAvatar avatar={avatarColor} name={userName} size="xl" />
 
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
-                  Avatar Accent Style
-                </label>
-                <div className="flex flex-wrap gap-2.5">
-                  {COLOR_THEMES.map((theme) => (
-                    <button
-                      key={theme.name}
-                      type="button"
-                      onClick={() => setAvatarColor(theme.class)}
-                      className={`h-8 w-8 rounded-xl bg-gradient-to-br ${theme.class} transition hover:scale-105 ${
-                        avatarColor === theme.class ? "ring-2 ring-white ring-offset-2 ring-offset-slate-900" : "opacity-80"
-                      }`}
-                      title={theme.name}
+                <div className="flex-1 space-y-2 w-full">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-surface-container-high hover:bg-surface-container-highest border border-outline/20 text-xs font-mono text-on-surface transition-colors shadow-xs">
+                      <svg className="w-3.5 h-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                      </svg>
+                      <span>Upload Photo</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileUpload}
+                        className="hidden"
+                      />
+                    </label>
+
+                    {avatarColor && (
+                      <button
+                        type="button"
+                        onClick={() => setAvatarColor("")}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded bg-surface-container-high text-xs font-mono text-error hover:bg-error/10 border border-outline/20 transition-colors"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        <span>Remove Photo</span>
+                      </button>
+                    )}
+                  </div>
+
+                  <div>
+                    <input
+                      type="text"
+                      value={avatarColor.startsWith("data:image/") ? "" : avatarColor}
+                      onChange={(e) => setAvatarColor(e.target.value)}
+                      placeholder={avatarColor.startsWith("data:image/") ? "Custom uploaded image active" : "Or enter remote image URL (https://...)"}
+                      className="w-full rounded border border-outline/20 bg-surface-container-lowest px-2.5 py-1.5 text-xs text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:outline-none font-mono"
                     />
-                  ))}
+                  </div>
+
+                  <p className="text-[10px] text-on-surface-variant font-mono">
+                    JPEG, PNG, WebP or SVG under 2MB. If no image is provided, your monogram initials or User icon will be shown as default.
+                  </p>
                 </div>
               </div>
 
               <div>
-                <label htmlFor="user-name" className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                <label htmlFor="user-name" className="block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1">
                   Full Display Name
                 </label>
                 <input
@@ -980,17 +1035,17 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
                   value={userName}
                   onChange={(e) => setUserName(e.target.value)}
                   placeholder="e.g. Alex Morgan"
-                  className="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-2.5 text-sm text-white placeholder-slate-500 theme-input-focus"
+                  className="w-full rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:border-primary focus:outline-none"
                   required
                 />
               </div>
 
               <div>
-                <label htmlFor="user-username" className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                <label htmlFor="user-username" className="block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1">
                   Username Handle
                 </label>
                 <div className="relative">
-                  <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-sm text-slate-500">@</span>
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-xs text-on-surface-variant">@</span>
                   <input
                     id="user-username"
                     data-testid="user-username-input"
@@ -998,14 +1053,14 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
                     value={userUsername}
                     onChange={(e) => setUserUsername(e.target.value)}
                     placeholder="username"
-                    className="w-full rounded-xl border border-white/10 bg-slate-950 pl-8 pr-4 py-2.5 text-sm text-white placeholder-slate-500 theme-input-focus"
+                    className="w-full rounded border border-outline/20 bg-surface-container-lowest pl-7 pr-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:border-primary focus:outline-none font-label-sm"
                   />
                 </div>
-                <p className="mt-1.5 text-xs text-slate-500">Used for mentions and team directory lookups.</p>
+                <p className="mt-1 text-[11px] text-on-surface-variant font-body-sm">Used for mentions and team directory lookups.</p>
               </div>
 
               <div>
-                <label htmlFor="user-bio" className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                <label htmlFor="user-bio" className="block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1">
                   Bio / Role Title
                 </label>
                 <textarea
@@ -1015,12 +1070,12 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
                   value={userBio}
                   onChange={(e) => setUserBio(e.target.value)}
                   placeholder="e.g. Senior Frontend Architect & Design Systems Lead"
-                  className="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-2.5 text-sm text-white placeholder-slate-500 theme-input-focus"
+                  className="w-full rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:border-primary focus:outline-none"
                 />
               </div>
 
               <div>
-                <label htmlFor="user-email" className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                <label htmlFor="user-email" className="block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1">
                   Email Address
                 </label>
                 <input
@@ -1028,9 +1083,9 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
                   type="email"
                   value={user.email}
                   disabled
-                  className="w-full rounded-xl border border-white/5 bg-slate-950/60 px-4 py-2.5 text-sm text-slate-400 cursor-not-allowed"
+                  className="w-full rounded border border-outline/10 bg-surface-container-lowest/60 px-3 py-2 text-xs text-on-surface-variant cursor-not-allowed"
                 />
-                <p className="mt-1.5 text-xs text-slate-500">Email address cannot be changed directly.</p>
+                <p className="mt-1 text-[11px] text-on-surface-variant font-body-sm">Email address cannot be changed directly.</p>
               </div>
 
               <div>
@@ -1038,7 +1093,7 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
                   type="submit"
                   data-testid="save-profile-button"
                   disabled={isPending}
-                  className="theme-btn-primary rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:opacity-90 disabled:opacity-50"
+                  className="rounded bg-primary px-4 py-1.5 text-xs font-semibold text-on-primary shadow-sm transition hover:bg-primary-container hover:text-on-primary-container disabled:opacity-50"
                 >
                   {isPending ? "Saving..." : "Save Profile"}
                 </button>
@@ -1047,10 +1102,10 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
           </section>
 
           {/* Security & Password Change */}
-          <section className="rounded-3xl border border-white/10 bg-slate-900/80 p-6 shadow-xl shadow-slate-950/20">
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-white">Security & Password</h3>
-              <p className="text-sm text-slate-400">
+          <section className="rounded border border-outline/20 bg-surface-container-low p-4 sm:p-5">
+            <div className="mb-4">
+              <h3 className="text-base font-semibold text-on-surface">Security & Password</h3>
+              <p className="text-xs text-on-surface-variant font-body-sm mt-0.5">
                 Update your account password to maintain security across devices.
               </p>
             </div>
@@ -1058,19 +1113,19 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
             {passwordFeedback && (
               <div
                 data-testid="password-feedback-banner"
-                className={`mb-5 flex items-center gap-2 rounded-2xl border p-3.5 text-sm ${
+                className={`mb-4 flex items-center gap-2 rounded border p-3 text-xs font-body-sm ${
                   passwordFeedback.type === "success"
-                    ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-300"
-                    : "border-rose-500/20 bg-rose-500/10 text-rose-300"
+                    ? "border-secondary/30 bg-secondary/10 text-secondary"
+                    : "border-error/30 bg-error/10 text-error"
                 }`}
               >
                 <span>{passwordFeedback.message}</span>
               </div>
             )}
 
-            <form onSubmit={handleChangePassword} className="space-y-4 max-w-xl">
+            <form onSubmit={handleChangePassword} className="space-y-3.5 max-w-xl">
               <div>
-                <label htmlFor="curr-password" className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                <label htmlFor="curr-password" className="block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1">
                   Current Password
                 </label>
                 <input
@@ -1080,13 +1135,13 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-2.5 text-sm text-white placeholder-slate-500 theme-input-focus"
+                  className="w-full rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:border-primary focus:outline-none"
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label htmlFor="new-password" className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                  <label htmlFor="new-password" className="block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1">
                     New Password
                   </label>
                   <input
@@ -1096,12 +1151,12 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="Min 6 characters"
-                    className="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-2.5 text-sm text-white placeholder-slate-500 theme-input-focus"
+                    className="w-full rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:border-primary focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="confirm-password" className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                  <label htmlFor="confirm-password" className="block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1">
                     Confirm Password
                   </label>
                   <input
@@ -1111,17 +1166,17 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Repeat new password"
-                    className="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-2.5 text-sm text-white placeholder-slate-500 theme-input-focus"
+                    className="w-full rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:border-primary focus:outline-none"
                   />
                 </div>
               </div>
 
-              <div className="pt-2">
+              <div className="pt-1">
                 <button
                   type="submit"
                   data-testid="change-password-button"
                   disabled={isChangingPassword}
-                  className="theme-btn-primary rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:opacity-90 disabled:opacity-50"
+                  className="rounded bg-primary px-4 py-1.5 text-xs font-semibold text-on-primary shadow-sm transition hover:bg-primary-container hover:text-on-primary-container disabled:opacity-50"
                 >
                   {isChangingPassword ? "Updating..." : "Update Password"}
                 </button>
@@ -1130,12 +1185,12 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
           </section>
 
           {/* Account Danger Zone */}
-          <section className="rounded-3xl border border-rose-500/20 bg-rose-950/10 p-6 shadow-xl shadow-slate-950/20">
-            <h3 className="text-lg font-semibold text-rose-400">Account Danger Zone</h3>
-            <p className="mt-1 text-sm text-slate-400">
+          <section className="rounded border border-error/30 bg-error/5 p-4 sm:p-5">
+            <h3 className="text-sm font-semibold text-error">Account Danger Zone</h3>
+            <p className="mt-1 text-xs text-on-surface-variant font-body-sm">
               Permanently remove your personal account and all associated memberships. This action cannot be undone.
             </p>
-            <div className="mt-4">
+            <div className="mt-3.5">
               <button
                 type="button"
                 data-testid="settings-delete-account-button"
@@ -1143,7 +1198,7 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
                   setDeleteAccountError(null);
                   setShowDeleteAccountModal(true);
                 }}
-                className="rounded-xl border border-rose-500/30 bg-rose-500/20 px-4 py-2 text-sm font-medium text-rose-300 transition hover:bg-rose-500/30 hover:text-white"
+                className="rounded border border-error/30 bg-error/15 px-3 py-1.5 text-xs font-medium text-error transition hover:bg-error/25"
               >
                 Delete Account
               </button>
@@ -1157,20 +1212,20 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
       {/* ------------------------------------------------------------- */}
       {activeTab === "ui" && (
         <div className="space-y-6">
-          <section className="rounded-3xl border border-white/10 bg-slate-900/80 p-6 shadow-xl shadow-slate-950/20">
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-white">Appearance & Theme</h3>
-              <p className="text-sm text-slate-400">
+          <section className="rounded border border-outline/20 bg-surface-container-low p-4 sm:p-5">
+            <div className="mb-4">
+              <h3 className="text-base font-semibold text-on-surface">Appearance & Theme</h3>
+              <p className="text-xs text-on-surface-variant font-body-sm mt-0.5">
                 Personalize visual accents and interface density for your account.
               </p>
             </div>
 
-            <div className="space-y-6 max-w-xl">
+            <div className="space-y-4 max-w-xl">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
+                <label className="block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-2">
                   Theme Accent Color
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                   {COLOR_THEMES.map((theme) => {
                     const isSelected = accentTheme.toLowerCase() === theme.name.toLowerCase();
                     return (
@@ -1178,14 +1233,14 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
                         key={theme.name}
                         type="button"
                         onClick={() => handleAccentChange(theme.name)}
-                        className={`flex items-center gap-2.5 rounded-xl border p-3 text-left transition ${
+                        className={`flex items-center gap-2 rounded border p-2.5 text-left transition ${
                           isSelected
-                            ? "theme-accent-border bg-white/10 ring-2 ring-white/50 text-white font-semibold"
-                            : "border-white/10 bg-slate-950/50 text-slate-300 hover:bg-white/5"
+                            ? "border-primary bg-primary/10 text-on-surface font-semibold"
+                            : "border-outline/20 bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
                         }`}
                       >
-                        <div className={`h-4 w-4 rounded-full bg-gradient-to-br ${theme.class}`} />
-                        <span className="text-sm">{theme.name}</span>
+                        <div className={`h-3.5 w-3.5 rounded-full bg-gradient-to-br ${theme.class}`} />
+                        <span className="text-xs">{theme.name}</span>
                       </button>
                     );
                   })}
@@ -1193,88 +1248,88 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
+                <label className="block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-2">
                   Interface Layout Density
                 </label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-2.5">
                   <button
                     type="button"
                     onClick={() => handleDensityChange("comfortable")}
-                    className={`rounded-xl border p-3.5 text-left transition ${
+                    className={`rounded border p-3 text-left transition ${
                       density === "comfortable"
-                        ? "theme-accent-border bg-white/10 ring-2 ring-white/50 text-white font-semibold"
-                        : "border-white/10 bg-slate-950/50 text-slate-300 hover:bg-white/5"
+                        ? "border-primary bg-primary/10 text-on-surface font-semibold"
+                        : "border-outline/20 bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
                     }`}
                   >
-                    <p className="text-sm font-semibold">Comfortable</p>
-                    <p className="mt-1 text-xs text-slate-400">Generous padding and card spacing</p>
+                    <p className="text-xs font-semibold text-on-surface">Comfortable</p>
+                    <p className="mt-0.5 text-[11px] text-on-surface-variant font-body-sm">Generous padding and card spacing</p>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => handleDensityChange("compact")}
-                    className={`rounded-xl border p-3.5 text-left transition ${
+                    className={`rounded border p-3 text-left transition ${
                       density === "compact"
-                        ? "theme-accent-border bg-white/10 ring-2 ring-white/50 text-white font-semibold"
-                        : "border-white/10 bg-slate-950/50 text-slate-300 hover:bg-white/5"
+                        ? "border-primary bg-primary/10 text-on-surface font-semibold"
+                        : "border-outline/20 bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
                     }`}
                   >
-                    <p className="text-sm font-semibold">Compact</p>
-                    <p className="mt-1 text-xs text-slate-400">High information density for larger screens</p>
+                    <p className="text-xs font-semibold text-on-surface">Compact</p>
+                    <p className="mt-0.5 text-[11px] text-on-surface-variant font-body-sm">High information density for larger screens</p>
                   </button>
                 </div>
               </div>
             </div>
           </section>
 
-          <section className="rounded-3xl border border-white/10 bg-slate-900/80 p-6 shadow-xl shadow-slate-950/20">
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-white">Notification Preferences</h3>
-              <p className="text-sm text-slate-400">
+          <section className="rounded border border-outline/20 bg-surface-container-low p-4 sm:p-5">
+            <div className="mb-4">
+              <h3 className="text-base font-semibold text-on-surface">Notification Preferences</h3>
+              <p className="text-xs text-on-surface-variant font-body-sm mt-0.5">
                 Choose how and when you receive workspace updates (saved to local preferences).
               </p>
             </div>
 
-            <div className="space-y-4 max-w-xl">
-              <label className="flex items-center justify-between p-3 rounded-2xl border border-white/6 bg-slate-950/50 cursor-pointer">
+            <div className="space-y-3 max-w-xl">
+              <label className="flex items-center justify-between p-3 rounded border border-outline/10 bg-surface-container-lowest cursor-pointer">
                 <div>
-                  <p className="text-sm font-medium text-white">Email Notifications</p>
-                  <p className="text-xs text-slate-400">Receive email alerts for important workspace events</p>
+                  <p className="text-xs font-medium text-on-surface">Email Notifications</p>
+                  <p className="text-[11px] text-on-surface-variant font-body-sm">Receive email alerts for important workspace events</p>
                 </div>
                 <input
                   type="checkbox"
                   data-testid="email-alerts-toggle"
                   checked={emailAlerts}
                   onChange={(e) => handleToggleNotification("email", e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-700 bg-slate-900 theme-checkbox"
+                  className="h-4 w-4 rounded border-outline/30 bg-surface-container accent-primary"
                 />
               </label>
 
-              <label className="flex items-center justify-between p-3 rounded-2xl border border-white/6 bg-slate-950/50 cursor-pointer">
+              <label className="flex items-center justify-between p-3 rounded border border-outline/10 bg-surface-container-lowest cursor-pointer">
                 <div>
-                  <p className="text-sm font-medium text-white">Task Assignment Alerts</p>
-                  <p className="text-xs text-slate-400">Notify when someone assigns or mentions you in a task</p>
+                  <p className="text-xs font-medium text-on-surface">Task Assignment Alerts</p>
+                  <p className="text-[11px] text-on-surface-variant font-body-sm">Notify when someone assigns or mentions you in a task</p>
                 </div>
                 <input
                   type="checkbox"
                   data-testid="task-alerts-toggle"
                   checked={taskAlerts}
                   onChange={(e) => handleToggleNotification("task", e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-700 bg-slate-900 theme-checkbox"
+                  className="h-4 w-4 rounded border-outline/30 bg-surface-container accent-primary"
                 />
               </label>
 
-              <label className="flex items-center justify-between p-3 rounded-2xl border border-white/6 bg-slate-950/50 cursor-pointer">
+              <label className="flex items-center justify-between p-3 rounded border border-outline/10 bg-surface-container-lowest cursor-pointer">
                 <div>
-                  <p className="text-sm font-medium text-white">Weekly Performance Digest</p>
-                  <p className="text-xs text-slate-400">Summary of project completion rates sent every Monday</p>
+                  <p className="text-xs font-medium text-on-surface">Weekly Performance Digest</p>
+                  <p className="text-[11px] text-on-surface-variant font-body-sm">Summary of project completion rates sent every Monday</p>
                 </div>
                 <input
                   type="checkbox"
                   data-testid="weekly-digest-toggle"
                   checked={weeklyDigest}
                   onChange={(e) => handleToggleNotification("digest", e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-700 bg-slate-900 theme-checkbox"
+                  className="h-4 w-4 rounded border-outline/30 bg-surface-container accent-primary"
                 />
               </label>
             </div>
@@ -1290,33 +1345,33 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
       {showDeleteAccountModal && (
         <div
           data-testid="settings-delete-modal"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-surface-container-lowest/80 p-4 backdrop-blur-sm"
         >
-          <div className="w-full max-w-md rounded-3xl border border-rose-500/30 bg-slate-900 p-6 shadow-2xl">
-            <div className="flex items-center gap-3 text-rose-400">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-500/10">
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="w-full max-w-md rounded border border-error/30 bg-surface-container-low p-5 shadow-2xl">
+            <div className="flex items-center gap-2.5 text-error">
+              <div className="flex h-9 w-9 items-center justify-center rounded bg-error/15">
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
               </div>
-              <h3 className="text-lg font-bold text-white">Delete Account</h3>
+              <h3 className="text-base font-bold text-on-surface">Delete Account</h3>
             </div>
-            <p className="mt-3 text-sm text-slate-300">
+            <p className="mt-3 text-xs text-on-surface-variant font-body-sm leading-relaxed">
               Are you sure you want to delete your account? All your workspace memberships and data will be permanently removed.
             </p>
 
             {deleteAccountError && (
-              <div className="mt-3 rounded-xl border border-rose-500/30 bg-rose-500/10 p-2.5 text-xs text-rose-300">
+              <div className="mt-3 rounded border border-error/30 bg-error/10 p-2.5 text-xs text-error font-body-sm">
                 {deleteAccountError}
               </div>
             )}
 
-            <div className="mt-6 flex justify-end gap-3">
+            <div className="mt-5 flex justify-end gap-2.5">
               <button
                 type="button"
                 onClick={() => setShowDeleteAccountModal(false)}
                 disabled={isDeletingAccount}
-                className="rounded-xl px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5"
+                className="rounded px-3 py-1.5 text-xs font-medium text-on-surface-variant transition hover:bg-surface-container hover:text-on-surface"
               >
                 Cancel
               </button>
@@ -1325,7 +1380,7 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
                 data-testid="confirm-delete-account-button"
                 onClick={handleDeleteAccount}
                 disabled={isDeletingAccount}
-                className="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-rose-600/30 transition hover:bg-rose-500 disabled:opacity-50"
+                className="rounded bg-error px-3.5 py-1.5 text-xs font-semibold text-on-error shadow transition hover:bg-error/90 disabled:opacity-50"
               >
                 {isDeletingAccount ? "Deleting..." : "Yes, Delete Account"}
               </button>
@@ -1338,26 +1393,26 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
       {showDeleteWorkspaceModal && (
         <div
           data-testid="delete-workspace-modal"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-surface-container-lowest/80 p-4 backdrop-blur-sm"
         >
-          <div className="w-full max-w-md rounded-3xl border border-rose-500/30 bg-slate-900 p-6 shadow-2xl">
-            <div className="flex items-center gap-3 text-rose-400">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-500/10">
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="w-full max-w-md rounded border border-error/30 bg-surface-container-low p-5 shadow-2xl">
+            <div className="flex items-center gap-2.5 text-error">
+              <div className="flex h-9 w-9 items-center justify-center rounded bg-error/15">
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
               </div>
-              <h3 className="text-lg font-bold text-white">Delete Workspace</h3>
+              <h3 className="text-base font-bold text-on-surface">Delete Workspace</h3>
             </div>
-            <p className="mt-3 text-sm text-slate-300">
-              Are you sure you want to permanently delete <strong>{workspace?.name}</strong>? All projects, tasks, and member access will be permanently destroyed.
+            <p className="mt-3 text-xs text-on-surface-variant font-body-sm leading-relaxed">
+              Are you sure you want to permanently delete <strong className="text-on-surface">{workspace?.name}</strong>? All projects, tasks, and member access will be permanently destroyed.
             </p>
-            <div className="mt-6 flex justify-end gap-3">
+            <div className="mt-5 flex justify-end gap-2.5">
               <button
                 type="button"
                 onClick={() => setShowDeleteWorkspaceModal(false)}
                 disabled={isDeletingWorkspace}
-                className="rounded-xl px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5"
+                className="rounded px-3 py-1.5 text-xs font-medium text-on-surface-variant transition hover:bg-surface-container hover:text-on-surface"
               >
                 Cancel
               </button>
@@ -1366,7 +1421,7 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
                 data-testid="confirm-delete-workspace-button"
                 onClick={handleDeleteWorkspace}
                 disabled={isDeletingWorkspace}
-                className="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-rose-600/30 transition hover:bg-rose-500 disabled:opacity-50"
+                className="rounded bg-error px-3.5 py-1.5 text-xs font-semibold text-on-error shadow transition hover:bg-error/90 disabled:opacity-50"
               >
                 {isDeletingWorkspace ? "Deleting..." : "Yes, Delete Workspace"}
               </button>
@@ -1379,26 +1434,26 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
       {showLeaveWorkspaceModal && (
         <div
           data-testid="leave-workspace-modal"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-surface-container-lowest/80 p-4 backdrop-blur-sm"
         >
-          <div className="w-full max-w-md rounded-3xl border border-amber-500/30 bg-slate-900 p-6 shadow-2xl">
-            <div className="flex items-center gap-3 text-amber-400">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10">
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="w-full max-w-md rounded border border-tertiary/30 bg-surface-container-low p-5 shadow-2xl">
+            <div className="flex items-center gap-2.5 text-tertiary">
+              <div className="flex h-9 w-9 items-center justify-center rounded bg-tertiary/15">
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
               </div>
-              <h3 className="text-lg font-bold text-white">Leave Workspace</h3>
+              <h3 className="text-base font-bold text-on-surface">Leave Workspace</h3>
             </div>
-            <p className="mt-3 text-sm text-slate-300">
-              Are you sure you want to leave <strong>{workspace?.name}</strong>? You will need an invitation to regain access.
+            <p className="mt-3 text-xs text-on-surface-variant font-body-sm leading-relaxed">
+              Are you sure you want to leave <strong className="text-on-surface">{workspace?.name}</strong>? You will need an invitation to regain access.
             </p>
-            <div className="mt-6 flex justify-end gap-3">
+            <div className="mt-5 flex justify-end gap-2.5">
               <button
                 type="button"
                 onClick={() => setShowLeaveWorkspaceModal(false)}
                 disabled={isLeavingWorkspace}
-                className="rounded-xl px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5"
+                className="rounded px-3 py-1.5 text-xs font-medium text-on-surface-variant transition hover:bg-surface-container hover:text-on-surface"
               >
                 Cancel
               </button>
@@ -1407,7 +1462,7 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
                 data-testid="confirm-leave-workspace-button"
                 onClick={handleLeaveWorkspace}
                 disabled={isLeavingWorkspace}
-                className="rounded-xl bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-amber-600/30 transition hover:bg-amber-500 disabled:opacity-50"
+                className="rounded bg-tertiary px-3.5 py-1.5 text-xs font-semibold text-on-tertiary shadow transition hover:bg-tertiary/90 disabled:opacity-50"
               >
                 {isLeavingWorkspace ? "Leaving..." : "Leave Workspace"}
               </button>
@@ -1420,26 +1475,26 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
       {memberToRemove && (
         <div
           data-testid="confirm-remove-member-modal"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-surface-container-lowest/80 p-4 backdrop-blur-sm"
         >
-          <div className="w-full max-w-md rounded-3xl border border-rose-500/30 bg-slate-900 p-6 shadow-2xl">
-            <div className="flex items-center gap-3 text-rose-400">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-500/10">
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="w-full max-w-md rounded border border-error/30 bg-surface-container-low p-5 shadow-2xl">
+            <div className="flex items-center gap-2.5 text-error">
+              <div className="flex h-9 w-9 items-center justify-center rounded bg-error/15">
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
               </div>
-              <h3 className="text-lg font-bold text-white">Remove Member</h3>
+              <h3 className="text-base font-bold text-on-surface">Remove Member</h3>
             </div>
-            <p className="mt-3 text-sm text-slate-300">
-              Are you sure you want to remove <strong>{memberToRemove.user.name}</strong> from this workspace?
+            <p className="mt-3 text-xs text-on-surface-variant font-body-sm leading-relaxed">
+              Are you sure you want to remove <strong className="text-on-surface">{memberToRemove.user.name}</strong> from this workspace?
             </p>
-            <div className="mt-6 flex justify-end gap-3">
+            <div className="mt-5 flex justify-end gap-2.5">
               <button
                 type="button"
                 onClick={() => setMemberToRemove(null)}
                 disabled={isPending}
-                className="rounded-xl px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5"
+                className="rounded px-3 py-1.5 text-xs font-medium text-on-surface-variant transition hover:bg-surface-container hover:text-on-surface"
               >
                 Cancel
               </button>
@@ -1448,7 +1503,7 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
                 data-testid="confirm-remove-member-btn"
                 onClick={handleRemoveMember}
                 disabled={isPending}
-                className="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-rose-600/30 transition hover:bg-rose-500 disabled:opacity-50"
+                className="rounded bg-error px-3.5 py-1.5 text-xs font-semibold text-on-error shadow transition hover:bg-error/90 disabled:opacity-50"
               >
                 {isPending ? "Removing..." : "Remove Member"}
               </button>
@@ -1461,29 +1516,29 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
       {memberToTransfer && (
         <div
           data-testid="transfer-ownership-modal"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-surface-container-lowest/80 p-4 backdrop-blur-sm"
         >
-          <div className="w-full max-w-md rounded-3xl border border-amber-500/30 bg-slate-900 p-6 shadow-2xl">
-            <div className="flex items-center gap-3 text-amber-400">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10">
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="w-full max-w-md rounded border border-tertiary/30 bg-surface-container-low p-5 shadow-2xl">
+            <div className="flex items-center gap-2.5 text-tertiary">
+              <div className="flex h-9 w-9 items-center justify-center rounded bg-tertiary/15">
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                 </svg>
               </div>
-              <h3 className="text-lg font-bold text-white">Transfer Ownership</h3>
+              <h3 className="text-base font-bold text-on-surface">Transfer Ownership</h3>
             </div>
-            <p className="mt-3 text-sm text-slate-300">
-              Are you sure you want to transfer ownership of <strong>{workspace?.name}</strong> to <strong>{memberToTransfer.user.name}</strong>?
+            <p className="mt-3 text-xs text-on-surface-variant font-body-sm leading-relaxed">
+              Are you sure you want to transfer ownership of <strong className="text-on-surface">{workspace?.name}</strong> to <strong className="text-on-surface">{memberToTransfer.user.name}</strong>?
             </p>
-            <p className="mt-2 text-xs text-amber-300/90">
-              You will remain an Admin of the workspace, but <strong>{memberToTransfer.user.name}</strong> will become the primary Owner.
+            <p className="mt-1.5 text-[11px] text-tertiary font-body-sm">
+              You will remain an Admin of the workspace, but <strong className="text-on-surface">{memberToTransfer.user.name}</strong> will become the primary Owner.
             </p>
-            <div className="mt-6 flex justify-end gap-3">
+            <div className="mt-5 flex justify-end gap-2.5">
               <button
                 type="button"
                 onClick={() => setMemberToTransfer(null)}
                 disabled={isTransferringOwnership}
-                className="rounded-xl px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5"
+                className="rounded px-3 py-1.5 text-xs font-medium text-on-surface-variant transition hover:bg-surface-container hover:text-on-surface"
               >
                 Cancel
               </button>
@@ -1492,7 +1547,7 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
                 data-testid="confirm-transfer-ownership-btn"
                 onClick={handleTransferOwnership}
                 disabled={isTransferringOwnership}
-                className="rounded-xl bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-amber-600/30 transition hover:bg-amber-500 disabled:opacity-50"
+                className="rounded bg-tertiary px-3.5 py-1.5 text-xs font-semibold text-on-tertiary shadow transition hover:bg-tertiary/90 disabled:opacity-50"
               >
                 {isTransferringOwnership ? "Transferring..." : "Yes, Transfer Ownership"}
               </button>

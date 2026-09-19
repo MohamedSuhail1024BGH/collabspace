@@ -14,11 +14,11 @@ export function ActivityChart({
   const max = Math.max(...points.map((p) => p.value), 1);
 
   return (
-    <section className="rounded-3xl border border-white/10 bg-slate-900/80 p-5 shadow-xl shadow-slate-950/20">
-      <div className="mb-6 flex items-center justify-between">
+    <section className="rounded-xl border border-outline-variant/20 bg-surface-container p-4 sm:p-5 shadow-xs">
+      <div className="mb-4 flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-white">Activity trend</h3>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <h3 className="text-base font-semibold text-on-surface font-headline-sm">Activity trend</h3>
+          <p className="text-xs text-on-surface-variant mt-0.5 font-mono text-[11px]">
             {period === "week"
               ? "Completed task velocity (Last 7 days)"
               : period === "month"
@@ -26,24 +26,33 @@ export function ActivityChart({
               : "Quarterly task throughput (Last 3 months)"}
           </p>
         </div>
+        <div className="flex items-center gap-1.5 font-mono text-[11px] text-secondary bg-surface-lowest px-2 py-0.5 rounded-md border border-outline-variant/20">
+          <span className="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+          <span>Peak: {max} tasks</span>
+        </div>
       </div>
 
-      <div className="flex items-end justify-between gap-2 overflow-x-auto pt-4 pb-2 px-2">
+      <div className="relative flex items-end justify-between gap-2 overflow-x-auto pt-6 pb-2 px-3 bg-surface-lowest rounded-xl border border-outline-variant/20">
         {points.map((p) => {
           const heightPct = Math.round((p.value / max) * 100);
           return (
-            <div key={p.label} className="flex flex-1 flex-col items-center group min-w-[2.5rem]">
-              <span className="mb-1 text-[11px] font-semibold text-slate-400 transition group-hover:text-violet-300">
+            <div key={p.label} className="relative flex flex-1 flex-col items-center group min-w-[2.5rem]">
+              {/* Stitch Tooltip */}
+              <div className="opacity-0 group-hover:opacity-100 pointer-events-none absolute -top-7 z-20 rounded-md bg-surface-highest text-[11px] font-mono border border-outline/30 px-2 py-0.5 text-on-surface shadow-2xl transition-all whitespace-nowrap">
+                {p.label}: <span className="text-secondary font-bold">{p.value}</span> tasks
+              </div>
+
+              <span className="mb-1 text-[11px] font-mono text-on-surface-variant transition group-hover:text-primary">
                 {p.value}
               </span>
-              <div className="h-32 w-8 sm:w-10 rounded-xl bg-slate-950/60 p-1 flex items-end">
+              <div className="h-28 w-7 sm:w-9 rounded-lg bg-surface-container p-0.5 flex items-end">
                 <div
-                  className="w-full rounded-lg bg-gradient-to-t from-violet-600 to-indigo-400 transition-all duration-300 group-hover:brightness-125"
+                  className="w-full rounded-xs bg-primary transition-all duration-300 group-hover:bg-primary-container"
                   style={{ height: `${Math.max(heightPct, 6)}%` }}
                   title={`${p.label}: ${p.value} tasks`}
                 />
               </div>
-              <span className="mt-2 text-xs font-medium text-slate-300 group-hover:text-white">
+              <span className="mt-2 text-xs font-mono text-[11px] text-on-surface-variant group-hover:text-on-surface">
                 {p.label}
               </span>
             </div>

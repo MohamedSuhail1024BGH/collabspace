@@ -1,0 +1,778 @@
+"use client";
+
+import { useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import type { DbWorkspace, DbUser } from "@/lib/db/schema";
+import {
+  updateWorkspaceAction,
+  deleteWorkspaceAction,
+  leaveWorkspaceAction,
+  transferWorkspaceOwnershipAction,
+  addWorkspaceMemberAction,
+  removeWorkspaceMemberAction,
+  searchUsersAction,
+} from "@/app/actions";
+
+export type WorkspaceMemberItem = {
+  membershipId: string;
+  role: string;
+  joinedAt: string;
+  user: {
+    id: string;
+    name: string;
+    username: string | null;
+    email: string;
+    avatar: string | null;
+  };
+};
+
+type WorkspacePreferencesClientProps = {
+  user: Omit<DbUser, "passwordHash">;
+  workspace: DbWorkspace | null;
+  initialMembers?: WorkspaceMemberItem[];
+};
+
+export function WorkspacePreferencesClient({
+  user,
+  workspace,
+  initialMembers,
+}: WorkspacePreferencesClientProps) {
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<"details" | "members">("details");
+
+  // Compute Current User's Workspace Role
+  const [members, setMembers] = useState<WorkspaceMemberItem[]>(initialMembers ?? []);
+  const currentMember = members.find((m) => m.user.id === user.id);
+  const currentUserRole = (currentMember?.role as "owner" | "admin" | "member" | "viewer") || "member";
+  const isOwner = currentUserRole === "owner";
+  const isAdmin = isOwner || currentUserRole === "admin";
+
+  // Workspace Form State
+  const [workspaceName, setWorkspaceName] = useState(workspace?.name ?? "");
+  const [workspaceDescription, setWorkspaceDescription] = useState(workspace?.description ?? "");
+  const [workspaceIsPublic, setWorkspaceIsPublic] = useState(workspace?.isPublic ?? true);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  // Workspace Members Search State
+  const [memberSearchQuery, setMemberSearchQuery] = useState("");
+  const [memberSearchResults, setMemberSearchResults] = useState<
+    { id: string; name: string; username: string | null; email: string; avatar: string | null }[]
+  >([]);
+  const [isSearchingMembers, setIsSearchingMembers] = useState(false);
+  const [selectedRoleForNewMember, setSelectedRoleForNewMember] = useState<"admin" | "member" | "viewer">("member");
+  const latestSearchQueryRef = useRef("");
+
+  // Modals & Action States
+  const [showDeleteWorkspaceModal, setShowDeleteWorkspaceModal] = useState(false);
+  const [isDeletingWorkspace, setIsDeletingWorkspace] = useState(false);
+  const [showLeaveWorkspaceModal, setShowLeaveWorkspaceModal] = useState(false);
+  const [isLeavingWorkspace, setIsLeavingWorkspace] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState<WorkspaceMemberItem | null>(null);
+  const [memberToTransfer, setMemberToTransfer] = useState<WorkspaceMemberItem | null>(null);
+  const [isTransferringOwnership, setIsTransferringOwnership] = useState(false);
+
+  // Status & Feedback Banner
+  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  // Sync state with props when workspace or initialMembers changes
+  const [prevWorkspaceId, setPrevWorkspaceId] = useState(workspace?.id);
+  if (workspace && workspace.id !== prevWorkspaceId) {
+    setPrevWorkspaceId(workspace.id);
+    setWorkspaceName(workspace.name);
+    setWorkspaceDescription(workspace.description ?? "");
+    setWorkspaceIsPublic(workspace.isPublic ?? true);
+  }
+
+  const [prevInitialMembers, setPrevInitialMembers] = useState(initialMembers);
+  if (initialMembers && initialMembers !== prevInitialMembers) {
+    setPrevInitialMembers(initialMembers);
+    setMembers(initialMembers);
+  }
+
+  // Copy Workspace URL slug
+  const handleCopySlug = () => {
+    if (!workspace) return;
+    const url = `${window.location.origin}/w/${workspace.slug}`;
+    navigator.clipboard.writeText(url);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
+  };
+
+  // Workspace Form Handler
+  const handleSaveWorkspace = (e: React.FormEvent) => {
+    e.preventDefault();
+    setFeedback(null);
+
+    startTransition(async () => {
+      const res = await updateWorkspaceAction({
+        name: workspaceName,
+        description: workspaceDescription,
+        isPublic: workspaceIsPublic,
+      });
+
+      if (res.success) {
+        setFeedback({ type: "success", message: "Workspace settings updated successfully." });
+        router.refresh();
+      } else {
+        setFeedback({ type: "error", message: res.error || "Failed to update workspace." });
+      }
+    });
+  };
+
+  // Member Management Handlers
+  const handleSearchUsersForInvite = async (q: string) => {
+    setMemberSearchQuery(q);
+    latestSearchQueryRef.current = q;
+
+    if (!q.trim()) {
+      setMemberSearchResults([]);
+      setIsSearchingMembers(false);
+      return;
+    }
+
+    setIsSearchingMembers(true);
+    const results = await searchUsersAction(q);
+
+    if (latestSearchQueryRef.current === q) {
+      const existingUserIds = new Set(members.map((m) => m.user.id));
+      setMemberSearchResults(results.filter((u) => !existingUserIds.has(u.id)));
+      setIsSearchingMembers(false);
+    }
+  };
+
+  const handleAddMember = async (targetUserId: string) => {
+    if (!workspace) return;
+    const targetUser = memberSearchResults.find((u) => u.id === targetUserId);
+
+    if (targetUser) {
+      const optimisticMember: WorkspaceMemberItem = {
+        membershipId: `temp-${targetUserId}-${members.length}`,
+        role: selectedRoleForNewMember,
+        joinedAt: "Just now",
+        user: {
+          id: targetUser.id,
+          name: targetUser.name,
+          username: targetUser.username,
+          email: targetUser.email,
+          avatar: targetUser.avatar,
+        },
+      };
+      setMembers((prev) => [...prev, optimisticMember]);
+    }
+
+    setMemberSearchQuery("");
+    setMemberSearchResults([]);
+
+    const res = await addWorkspaceMemberAction({
+      workspaceId: workspace.id,
+      userId: targetUserId,
+      role: selectedRoleForNewMember,
+    });
+    if (res.success) {
+      setFeedback({ type: "success", message: "Member added successfully." });
+      router.refresh();
+    } else {
+      setFeedback({ type: "error", message: res.error || "Failed to add member." });
+      router.refresh();
+    }
+  };
+
+  const handleRemoveMemberConfirm = async () => {
+    if (!workspace || !memberToRemove) return;
+    const targetId = memberToRemove.user.id;
+    setMembers((prev) => prev.filter((m) => m.user.id !== targetId));
+    setMemberToRemove(null);
+
+    const res = await removeWorkspaceMemberAction(workspace.id, targetId);
+    if (res.success) {
+      setFeedback({ type: "success", message: "Member removed from workspace." });
+      router.refresh();
+    } else {
+      setFeedback({ type: "error", message: res.error || "Failed to remove member." });
+      router.refresh();
+    }
+  };
+
+  const handleTransferOwnership = async () => {
+    if (!workspace || !memberToTransfer) return;
+    setIsTransferringOwnership(true);
+    const res = await transferWorkspaceOwnershipAction(workspace.id, memberToTransfer.user.id);
+    setIsTransferringOwnership(false);
+    setMemberToTransfer(null);
+
+    if (res.success) {
+      setFeedback({ type: "success", message: `Ownership transferred to ${memberToTransfer.user.name}.` });
+      router.refresh();
+    } else {
+      setFeedback({ type: "error", message: res.error || "Failed to transfer ownership." });
+    }
+  };
+
+  const handleDeleteWorkspace = async () => {
+    if (!workspace) return;
+    setIsDeletingWorkspace(true);
+    const res = await deleteWorkspaceAction(workspace.id);
+    setIsDeletingWorkspace(false);
+    setShowDeleteWorkspaceModal(false);
+
+    if (res.success) {
+      if ((res.remainingCount ?? 0) > 0) {
+        router.push("/");
+      } else {
+        router.push("/start");
+      }
+      router.refresh();
+    } else {
+      setFeedback({ type: "error", message: res.error || "Failed to delete workspace." });
+    }
+  };
+
+  const handleLeaveWorkspace = async () => {
+    if (!workspace) return;
+    setIsLeavingWorkspace(true);
+    const res = await leaveWorkspaceAction(workspace.id);
+    setIsLeavingWorkspace(false);
+    setShowLeaveWorkspaceModal(false);
+
+    if (res.success) {
+      router.push("/start");
+      router.refresh();
+    } else {
+      setFeedback({ type: "error", message: res.error || "Failed to leave workspace." });
+    }
+  };
+
+  if (!workspace) {
+    return (
+      <div className="p-8 text-center text-on-surface-variant font-body-md">
+        No active workspace selected. Please switch or create a workspace.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Top Utility Context Bar (Stitch Design Inspired) */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-2 border-b border-outline/10">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-1.5 text-on-surface-variant font-mono text-[11px] uppercase tracking-wider">
+            <span>Workspace</span>
+            <span className="text-outline/60">/</span>
+            <span className="text-primary font-medium">{workspace.name}</span>
+            <span className="text-outline/60">/</span>
+            <span className="text-on-surface">Preferences</span>
+          </div>
+          <h1 className="text-xl font-bold text-on-surface font-headline-lg tracking-tight">
+            Workspace Preferences
+          </h1>
+          <p className="text-xs text-on-surface-variant font-body-sm">
+            Configure tenant namespace, public accessibility, and team permissions.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-surface-container-low rounded border border-outline/15 font-mono text-[11px] text-on-surface-variant">
+            <span className="w-2 h-2 rounded-full bg-secondary" />
+            <span>Plan: {workspace.plan || "Pro"}</span>
+          </div>
+          <button
+            type="button"
+            data-testid="copy-workspace-slug-btn"
+            onClick={handleCopySlug}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-container hover:bg-surface-container-high text-on-surface rounded text-xs font-mono transition-colors border border-outline/20"
+          >
+            <svg className="h-3.5 w-3.5 text-on-surface-variant" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            <span>{copiedLink ? "Copied URL!" : "Share Link"}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Feedback Alert Banner */}
+      {feedback && (
+        <div
+          data-testid="settings-feedback-banner"
+          className={`flex items-center justify-between p-3 rounded text-xs border animate-in fade-in duration-200 ${
+            feedback.type === "success"
+              ? "bg-secondary/10 border-secondary/30 text-secondary"
+              : "bg-error/10 border-error/30 text-error"
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            {feedback.type === "success" ? (
+              <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            ) : (
+              <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            )}
+            <span className="font-medium">{feedback.message}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setFeedback(null)}
+            className="text-on-surface-variant hover:text-on-surface ml-4"
+          >
+            &times;
+          </button>
+        </div>
+      )}
+
+      {/* Tabs Switcher */}
+      <div className="flex items-center border-b border-outline/20 pb-2 gap-2 overflow-x-auto">
+        <button
+          type="button"
+          onClick={() => {
+            setActiveTab("details");
+            setFeedback(null);
+          }}
+          className={`flex items-center gap-2 rounded px-3.5 py-1.5 text-xs font-medium transition shrink-0 ${
+            activeTab === "details"
+              ? "bg-surface-container-highest text-on-surface font-semibold shadow-xs"
+              : "text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
+          }`}
+        >
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+          </svg>
+          <span>Workspace Details</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setActiveTab("members");
+            setFeedback(null);
+          }}
+          className={`flex items-center gap-2 rounded px-3.5 py-1.5 text-xs font-medium transition shrink-0 ${
+            activeTab === "members"
+              ? "bg-surface-container-highest text-on-surface font-semibold shadow-xs"
+              : "text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
+          }`}
+        >
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+          <span>Members & Roles</span>
+          <span className="font-mono text-[10px] bg-surface-container px-1.5 py-0.2 rounded text-on-surface-variant">
+            {members.length}
+          </span>
+        </button>
+      </div>
+
+      {/* Tab 1: Workspace Details */}
+      {activeTab === "details" && (
+        <div className="space-y-6">
+          <section className="bg-surface-container-low border border-outline/20 p-5 rounded-xl space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-outline/10 gap-2">
+              <div>
+                <h2 className="text-sm font-semibold text-on-surface font-headline-sm">Workspace Attributes</h2>
+                <p className="text-xs text-on-surface-variant font-body-sm">
+                  Global tenant namespace, endpoint identifier, and branding.
+                </p>
+              </div>
+              <span className="font-mono text-[10px] px-2 py-0.5 bg-surface-container-high rounded text-on-surface-variant">
+                ID: #{workspace.id}
+              </span>
+            </div>
+
+            <form onSubmit={handleSaveWorkspace} className="space-y-4">
+              <div>
+                <label className="mb-1 block text-xs font-mono text-on-surface-variant uppercase">
+                  Workspace Name
+                </label>
+                <input
+                  type="text"
+                  data-testid="workspace-name-input"
+                  value={workspaceName}
+                  onChange={(e) => setWorkspaceName(e.target.value)}
+                  disabled={!isAdmin || isPending}
+                  className="w-full rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:outline-none font-body-sm disabled:opacity-50"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-mono text-on-surface-variant uppercase">
+                  Workspace Description
+                </label>
+                <textarea
+                  data-testid="workspace-description-input"
+                  rows={3}
+                  value={workspaceDescription}
+                  onChange={(e) => setWorkspaceDescription(e.target.value)}
+                  disabled={!isAdmin || isPending}
+                  placeholder="Describe your workspace mission and focus..."
+                  className="w-full rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:outline-none font-body-sm disabled:opacity-50"
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-2">
+                <div>
+                  <p className="text-xs font-medium text-on-surface font-headline-sm">Public Workspace</p>
+                  <p className="text-[11px] text-on-surface-variant font-body-sm">
+                    Allow other authenticated members to discover and request access.
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    data-testid="workspace-public-toggle"
+                    checked={workspaceIsPublic}
+                    onChange={(e) => setWorkspaceIsPublic(e.target.checked)}
+                    disabled={!isAdmin || isPending}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-surface-container-high peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                </label>
+              </div>
+
+              {isAdmin && (
+                <div className="pt-3 border-t border-outline/10 flex justify-end">
+                  <button
+                    type="submit"
+                    data-testid="save-workspace-button"
+                    disabled={isPending}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-primary text-on-primary font-medium text-xs rounded hover:bg-primary-container hover:text-on-primary-container transition-colors disabled:opacity-50"
+                  >
+                    {isPending ? "Saving changes..." : "Save Workspace Settings"}
+                  </button>
+                </div>
+              )}
+            </form>
+          </section>
+
+          {/* Danger Zone */}
+          <section className="bg-surface-container-low border border-error/20 p-5 rounded-xl space-y-4">
+            <div className="pb-3 border-b border-outline/10">
+              <h2 className="text-sm font-semibold text-error font-headline-sm">Danger Zone</h2>
+              <p className="text-xs text-on-surface-variant font-body-sm">
+                Destructive workspace lifecycle actions. Please proceed with caution.
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-medium text-on-surface font-headline-sm">
+                  {isOwner ? "Delete Workspace" : "Leave Workspace"}
+                </p>
+                <p className="text-[11px] text-on-surface-variant font-body-sm">
+                  {isOwner
+                    ? "Permanently delete this workspace, including all projects, tasks, and messages."
+                    : "Remove yourself from this workspace. You will lose access to all resources."}
+                </p>
+              </div>
+
+              {isOwner ? (
+                <button
+                  type="button"
+                  data-testid="workspace-delete-button"
+                  onClick={() => setShowDeleteWorkspaceModal(true)}
+                  className="px-3 py-1.5 bg-error/10 hover:bg-error/20 border border-error/30 text-error rounded text-xs font-medium transition-colors self-start sm:self-auto shrink-0"
+                >
+                  Delete Workspace
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  data-testid="workspace-leave-button"
+                  onClick={() => setShowLeaveWorkspaceModal(true)}
+                  className="px-3 py-1.5 bg-error/10 hover:bg-error/20 border border-error/30 text-error rounded text-xs font-medium transition-colors self-start sm:self-auto shrink-0"
+                >
+                  Leave Workspace
+                </button>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
+
+      {/* Tab 2: Members & Roles */}
+      {activeTab === "members" && (
+        <div className="space-y-6">
+          <section className="bg-surface-container-low border border-outline/20 p-5 rounded-xl space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-outline/10 gap-2">
+              <div>
+                <h2 className="text-sm font-semibold text-on-surface font-headline-sm">Workspace Members</h2>
+                <p className="text-xs text-on-surface-variant font-body-sm">
+                  Manage collaborators, assign role-based permissions, and invite team members.
+                </p>
+              </div>
+              <span className="font-mono text-[10px] px-2 py-0.5 bg-surface-container-high rounded text-on-surface-variant">
+                Total: {members.length}
+              </span>
+            </div>
+
+            {/* Invite Form */}
+            {isAdmin && (
+              <div className="p-3 bg-surface-container-lowest rounded-lg border border-outline/10 space-y-3">
+                <p className="text-xs font-medium text-on-surface font-headline-sm">Invite Team Member</p>
+                <div className="flex flex-col sm:flex-row items-center gap-2">
+                  <div className="relative flex-1 w-full">
+                    <input
+                      type="text"
+                      data-testid="invite-user-search-input"
+                      value={memberSearchQuery}
+                      onChange={(e) => handleSearchUsersForInvite(e.target.value)}
+                      placeholder="Search users by name, username, or email..."
+                      className="w-full rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:outline-none font-body-sm"
+                    />
+                    {isSearchingMembers && (
+                      <span className="absolute right-3 top-2.5 text-[10px] font-mono text-on-surface-variant">
+                        Searching...
+                      </span>
+                    )}
+                  </div>
+
+                  <select
+                    data-testid="invite-role-select"
+                    value={selectedRoleForNewMember}
+                    onChange={(e) => setSelectedRoleForNewMember(e.target.value as "admin" | "member" | "viewer")}
+                    className="w-full sm:w-auto rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface focus:border-primary focus:outline-none font-mono"
+                  >
+                    <option value="member">Member</option>
+                    <option value="admin">Admin</option>
+                    <option value="viewer">Viewer</option>
+                  </select>
+                </div>
+
+                {/* Search Results Dropdown */}
+                {memberSearchResults.length > 0 && (
+                  <div className="mt-2 space-y-1 max-h-40 overflow-y-auto border border-outline/20 rounded p-1.5 bg-surface-container-high">
+                    {memberSearchResults.map((u) => (
+                      <div
+                        key={u.id}
+                        className="flex items-center justify-between p-2 rounded hover:bg-surface-container text-xs"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center font-mono text-[10px] font-bold">
+                            {u.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-medium text-on-surface">{u.name}</p>
+                            <p className="text-[10px] font-mono text-on-surface-variant">{u.email}</p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleAddMember(u.id)}
+                          className="px-2.5 py-1 bg-primary text-on-primary rounded text-[11px] font-medium hover:bg-primary-container hover:text-on-primary-container transition"
+                        >
+                          Add as {selectedRoleForNewMember}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Members Roster Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-outline/10 text-on-surface-variant font-mono text-[10px] uppercase">
+                    <th className="pb-2">User</th>
+                    <th className="pb-2">Role</th>
+                    <th className="pb-2">Joined</th>
+                    <th className="pb-2 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-outline/10">
+                  {members.map((m) => {
+                    const isSelf = m.user.id === user.id;
+                    const canManage = isOwner && !isSelf;
+
+                    return (
+                      <tr key={m.membershipId} className="hover:bg-surface-container/50 transition-colors">
+                        <td className="py-2.5">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-surface-container-highest text-on-surface flex items-center justify-center font-mono text-[10px] font-semibold">
+                              {m.user.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="font-medium text-on-surface flex items-center gap-1.5">
+                                <span>{m.user.name}</span>
+                                {isSelf && (
+                                  <span className="font-mono text-[9px] bg-primary/20 text-primary px-1 py-0.2 rounded">
+                                    You
+                                  </span>
+                                )}
+                              </p>
+                              <p className="text-[10px] font-mono text-on-surface-variant">{m.user.email}</p>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="py-2.5">
+                          <span
+                            className={`font-mono text-[10px] px-2 py-0.5 rounded capitalize ${
+                              m.role === "owner"
+                                ? "bg-primary/20 text-primary font-semibold"
+                                : m.role === "admin"
+                                ? "bg-secondary/20 text-secondary"
+                                : "bg-surface-container-high text-on-surface-variant"
+                            }`}
+                          >
+                            {m.role}
+                          </span>
+                        </td>
+
+                        <td className="py-2.5 font-mono text-[10px] text-on-surface-variant">
+                          {new Date(m.joinedAt).toLocaleDateString()}
+                        </td>
+
+                        <td className="py-2.5 text-right">
+                          {canManage && (
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => setMemberToTransfer(m)}
+                                title="Transfer Ownership"
+                                className="px-2 py-1 rounded bg-surface-container hover:bg-surface-container-high text-on-surface text-[10px] font-mono transition"
+                              >
+                                Transfer
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setMemberToRemove(m)}
+                                title="Remove Member"
+                                className="px-2 py-1 rounded bg-error/10 hover:bg-error/20 text-error text-[10px] font-mono transition"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {/* Delete Workspace Confirmation Modal */}
+      {showDeleteWorkspaceModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-md rounded-xl bg-surface-container-high border border-outline/20 p-5 shadow-2xl space-y-4">
+            <h3 className="text-base font-semibold text-on-surface font-headline-sm">Delete Workspace?</h3>
+            <p className="text-xs text-on-surface-variant font-body-sm">
+              Are you sure you want to delete <span className="font-semibold text-on-surface">{workspace.name}</span>?
+              This will permanently purge all tasks, projects, calendars, and conversation channels. This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowDeleteWorkspaceModal(false)}
+                className="px-3 py-1.5 rounded border border-outline/20 bg-surface-container text-xs text-on-surface-variant hover:text-on-surface transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteWorkspace}
+                disabled={isDeletingWorkspace}
+                className="px-3 py-1.5 rounded bg-error text-on-error text-xs font-medium hover:bg-error/90 transition disabled:opacity-50"
+              >
+                {isDeletingWorkspace ? "Deleting..." : "Confirm Delete Workspace"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Leave Workspace Confirmation Modal */}
+      {showLeaveWorkspaceModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-md rounded-xl bg-surface-container-high border border-outline/20 p-5 shadow-2xl space-y-4">
+            <h3 className="text-base font-semibold text-on-surface font-headline-sm">Leave Workspace?</h3>
+            <p className="text-xs text-on-surface-variant font-body-sm">
+              Are you sure you want to leave <span className="font-semibold text-on-surface">{workspace.name}</span>? You will lose access until re-invited.
+            </p>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowLeaveWorkspaceModal(false)}
+                className="px-3 py-1.5 rounded border border-outline/20 bg-surface-container text-xs text-on-surface-variant hover:text-on-surface transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleLeaveWorkspace}
+                disabled={isLeavingWorkspace}
+                className="px-3 py-1.5 rounded bg-error text-on-error text-xs font-medium hover:bg-error/90 transition disabled:opacity-50"
+              >
+                {isLeavingWorkspace ? "Leaving..." : "Confirm Leave"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Remove Member Confirmation Modal */}
+      {memberToRemove && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-md rounded-xl bg-surface-container-high border border-outline/20 p-5 shadow-2xl space-y-4">
+            <h3 className="text-base font-semibold text-on-surface font-headline-sm">Remove Member?</h3>
+            <p className="text-xs text-on-surface-variant font-body-sm">
+              Are you sure you want to revoke access for <span className="font-semibold text-on-surface">{memberToRemove.user.name}</span>?
+            </p>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setMemberToRemove(null)}
+                className="px-3 py-1.5 rounded border border-outline/20 bg-surface-container text-xs text-on-surface-variant hover:text-on-surface transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleRemoveMemberConfirm}
+                className="px-3 py-1.5 rounded bg-error text-on-error text-xs font-medium hover:bg-error/90 transition"
+              >
+                Revoke Access
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Transfer Ownership Confirmation Modal */}
+      {memberToTransfer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-md rounded-xl bg-surface-container-high border border-outline/20 p-5 shadow-2xl space-y-4">
+            <h3 className="text-base font-semibold text-on-surface font-headline-sm">Transfer Ownership?</h3>
+            <p className="text-xs text-on-surface-variant font-body-sm">
+              Transferring workspace ownership to <span className="font-semibold text-on-surface">{memberToTransfer.user.name}</span> will demote your account to Admin. Are you sure?
+            </p>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setMemberToTransfer(null)}
+                className="px-3 py-1.5 rounded border border-outline/20 bg-surface-container text-xs text-on-surface-variant hover:text-on-surface transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleTransferOwnership}
+                disabled={isTransferringOwnership}
+                className="px-3 py-1.5 rounded bg-primary text-on-primary text-xs font-medium hover:bg-primary-container hover:text-on-primary-container transition disabled:opacity-50"
+              >
+                {isTransferringOwnership ? "Transferring..." : "Confirm Transfer"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

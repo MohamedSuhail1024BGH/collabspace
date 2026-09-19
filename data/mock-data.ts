@@ -5,7 +5,7 @@ export const navItems = [
   "Messages",
   "Calendar",
   "Reports",
-  "Settings",
+  "Workspace Preferences",
 ];
 
 export const stats = [
@@ -287,6 +287,7 @@ export type Conversation = {
   participantIds?: string[];
   name: string;
   initials: string;
+  avatar?: string | null;
   color: string; // tailwind bg color class
   role: string;
   online: boolean;

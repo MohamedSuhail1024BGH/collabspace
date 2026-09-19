@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   createWorkspaceAction,
@@ -11,6 +11,8 @@ import {
   logoutAction,
 } from "@/app/actions";
 import type { DbUser } from "@/lib/db/schema";
+import { FloatingSettingsModal } from "@/components/dashboard/FloatingSettingsModal";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 type UserWorkspaceItem = {
   id: string;
@@ -49,6 +51,22 @@ export function StartClient({
 }: StartClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+
+  // Expandable User Account Menu State
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Active view tab
   const [activeTab, setActiveTab] = useState<"workspaces" | "discover_workspaces" | "discover_users">("workspaces");
@@ -100,32 +118,38 @@ export function StartClient({
       });
 
       if (res.success && res.id) {
+        await switchWorkspaceAction(res.id);
         setShowCreateModal(false);
-        setWorkspaceName("");
-        setWorkspaceDesc("");
         router.push("/");
         router.refresh();
       }
     });
   };
 
-  // Search public workspaces
-  const handleWorkspaceSearch = async (q: string) => {
-    setWsSearchQuery(q);
-    const results = await searchWorkspacesAction(q);
-    setFilteredWorkspaces(results);
-  };
-
-  // Join a public workspace
+  // Join public workspace handler
   const handleJoinWorkspace = (workspaceId: string) => {
     startTransition(async () => {
-      await joinWorkspaceAction(workspaceId);
-      router.push("/");
-      router.refresh();
+      const res = await joinWorkspaceAction(workspaceId);
+      if (res.success) {
+        await switchWorkspaceAction(workspaceId);
+        router.push("/");
+        router.refresh();
+      }
     });
   };
 
-  // Search users handler
+  // Live filter workspaces
+  const handleWorkspaceSearch = async (q: string) => {
+    setWsSearchQuery(q);
+    if (!q.trim()) {
+      setFilteredWorkspaces(initialPublicWorkspaces);
+      return;
+    }
+    const res = await searchWorkspacesAction(q);
+    setFilteredWorkspaces(res);
+  };
+
+  // Live search users
   const handleUserSearch = async (q: string) => {
     setUserSearchQuery(q);
     if (!q.trim()) {
@@ -143,59 +167,125 @@ export function StartClient({
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
-      {/* Top Header */}
-      <header className="border-b border-white/10 bg-slate-900/60 backdrop-blur-xl sticky top-0 z-30">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3.5 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-surface text-on-surface flex flex-col">
+      {/* Top Header (Stitch Precision Engineering Dark) */}
+      <header className="border-b border-outline/10 bg-surface-container-low sticky top-0 z-30">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-cyan-400 font-bold text-white shadow-lg shadow-violet-950/40">
+            <div className="flex h-9 w-9 items-center justify-center rounded bg-surface-container-high border border-outline/20 font-mono font-bold text-primary text-xs shadow-xs">
               CS
             </div>
-            <div>
-              <span className="text-lg font-bold tracking-tight text-white">CollabSpace</span>
-              <span className="ml-2 rounded-full border border-violet-400/30 bg-violet-500/10 px-2 py-0.5 text-[10px] font-semibold text-violet-300">
-                Launchpad
+            <div className="flex items-baseline gap-2">
+              <span className="text-base font-bold tracking-tight text-on-surface">CollabSpace</span>
+              <span className="rounded bg-surface-container-high border border-outline-variant/20 px-2 py-0.5 text-[10px] font-mono font-medium text-secondary">
+                LAUNCHPAD
               </span>
+            </div>
+
+            {/* Real-time SSE Network Status Chip */}
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-lowest border border-outline-variant/20 font-mono text-[11px] text-on-surface-variant select-none">
+              <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse ring-2 ring-secondary/25"></span>
+              <span className="text-secondary font-medium">SSE Connected</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2.5 rounded-2xl border border-white/10 bg-slate-950/60 px-3 py-1.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-cyan-400 text-xs font-bold text-white shadow">
-                {user.name.charAt(0).toUpperCase()}
-              </div>
-              <div className="text-left hidden sm:block">
-                <p className="text-xs font-medium text-white">{user.name}</p>
-                <p className="text-[11px] text-violet-300">@{user.username || "user"}</p>
-              </div>
-            </div>
-
+          {/* Expandable User Account Menu */}
+          <div className="relative" ref={userMenuRef}>
             <button
               type="button"
-              onClick={handleLogout}
-              className="flex items-center gap-1.5 rounded-xl border border-rose-500/20 bg-rose-500/10 px-3 py-1.5 text-xs font-medium text-rose-300 transition hover:bg-rose-500/20 hover:text-rose-200"
+              data-testid="start-user-dropdown-trigger"
+              onClick={() => setIsUserMenuOpen((prev) => !prev)}
+              className="flex items-center gap-2.5 rounded-lg bg-surface-lowest hover:bg-surface-container border border-outline-variant/20 p-1.5 pr-2.5 text-xs transition-all group focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none select-none"
             >
-              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              <UserAvatar avatar={user.avatar} name={user.name} size="sm" showStatus />
+
+              <div className="text-left hidden sm:block">
+                <p className="text-xs font-medium text-on-surface leading-tight group-hover:text-primary transition-colors">
+                  {user.name}
+                </p>
+                <p className="text-[10px] font-mono text-primary leading-tight">
+                  @{user.username || "user"}
+                </p>
+              </div>
+
+              <svg
+                className={`h-4 w-4 text-on-surface-variant group-hover:text-on-surface transition-transform duration-200 ${
+                  isUserMenuOpen ? "rotate-180" : ""
+                }`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
-              <span>Log out</span>
             </button>
+
+            {/* Downward Popover Menu */}
+            {isUserMenuOpen && (
+              <div className="absolute right-0 top-full mt-2 w-52 rounded-lg bg-surface-container-high border border-outline/20 p-1.5 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-top-2 duration-150 z-50 select-none">
+                {/* User Header Info */}
+                <div className="px-2 py-1.5 border-b border-outline/10 mb-1">
+                  <p className="text-xs font-medium text-on-surface truncate">{user.name}</p>
+                  <p className="text-[10px] font-mono text-on-surface-variant truncate">{user.email}</p>
+                </div>
+
+                <div className="space-y-0.5">
+                  {/* Option 1: Settings */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsUserMenuOpen(false);
+                      setShowSettingsModal(true);
+                    }}
+                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors font-body-sm"
+                  >
+                    <svg className="h-3.5 w-3.5 text-on-surface-variant shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span>Settings</span>
+                  </button>
+
+                  {/* Option 2: Logout */}
+                  <button
+                    type="button"
+                    data-testid="logout-button"
+                    onClick={() => {
+                      setIsUserMenuOpen(false);
+                      handleLogout();
+                    }}
+                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs text-error/90 hover:bg-error/10 hover:text-error transition-colors font-body-sm"
+                  >
+                    <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    <span>Log out</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </header>
 
       {/* Main Container */}
-      <main className="mx-auto max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8 w-full">
-        {/* Welcome Section */}
-        <div className="mb-8 rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-900 to-violet-950/50 p-6 sm:p-8 shadow-2xl shadow-slate-950/30">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+      <main className="mx-auto max-w-7xl flex-1 px-4 py-6 sm:px-6 lg:px-8 w-full">
+        {/* Welcome Command Strip */}
+        <div className="mb-6 rounded border border-outline/20 bg-surface-container-low p-5 sm:p-6 shadow-sm">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-violet-300 font-semibold">Welcome to CollabSpace</p>
-              <h1 className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-secondary font-medium">
+                  Welcome to CollabSpace
+                </span>
+                <span className="text-on-surface-variant text-[10px]">·</span>
+                <span className="text-[10px] font-mono text-on-surface-variant">SYS-ONLINE</span>
+              </div>
+              <h1 className="text-xl font-bold tracking-tight text-on-surface sm:text-2xl">
                 Ready to collaborate, {user.name}?
               </h1>
-              <p className="mt-2 max-w-2xl text-sm text-slate-300">
-                You are logged in as <span className="text-violet-300 font-semibold">@{user.username || "user"}</span>.
+              <p className="mt-1 max-w-2xl text-xs font-mono text-on-surface-variant leading-relaxed">
+                You are logged in as <span className="text-primary font-semibold">@{user.username || "user"}</span>.
                 Choose a workspace to launch into, search for public teams, or discover fellow members.
               </p>
             </div>
@@ -204,9 +294,9 @@ export function StartClient({
               type="button"
               data-testid="start-create-workspace-btn"
               onClick={() => setShowCreateModal(true)}
-              className="inline-flex items-center gap-2 self-start rounded-2xl bg-gradient-to-r from-violet-500 to-cyan-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-violet-950/40 transition hover:opacity-95"
+              className="inline-flex items-center gap-2 self-start rounded bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-3.5 py-2 text-xs font-medium shadow-sm transition"
             >
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
               <span>Create New Workspace</span>
@@ -214,19 +304,19 @@ export function StartClient({
           </div>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="mb-6 flex flex-wrap items-center gap-2 border-b border-white/10 pb-3">
+        {/* Navigation Tabs (Stitch Minimalist Segment Control) */}
+        <div className="mb-5 flex flex-wrap items-center gap-1.5 border-b border-outline/10 pb-2.5">
           <button
             type="button"
             data-testid="tab-my-workspaces"
             onClick={() => setActiveTab("workspaces")}
-            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition ${
+            className={`flex items-center gap-2 rounded px-3 py-1.5 text-xs font-mono transition ${
               activeTab === "workspaces"
-                ? "bg-violet-500/20 text-violet-200 border border-violet-500/30"
-                : "text-slate-400 hover:bg-white/5 hover:text-white"
+                ? "bg-surface-container-high text-primary border border-primary/30 font-medium"
+                : "text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
             }`}
           >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
             </svg>
             <span>My Workspaces ({initialUserWorkspaces.length})</span>
@@ -236,13 +326,13 @@ export function StartClient({
             type="button"
             data-testid="tab-discover-workspaces"
             onClick={() => setActiveTab("discover_workspaces")}
-            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition ${
+            className={`flex items-center gap-2 rounded px-3 py-1.5 text-xs font-mono transition ${
               activeTab === "discover_workspaces"
-                ? "bg-violet-500/20 text-violet-200 border border-violet-500/30"
-                : "text-slate-400 hover:bg-white/5 hover:text-white"
+                ? "bg-surface-container-high text-primary border border-primary/30 font-medium"
+                : "text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
             }`}
           >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <span>Search Workspaces</span>
@@ -252,13 +342,13 @@ export function StartClient({
             type="button"
             data-testid="tab-discover-users"
             onClick={() => setActiveTab("discover_users")}
-            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition ${
+            className={`flex items-center gap-2 rounded px-3 py-1.5 text-xs font-mono transition ${
               activeTab === "discover_users"
-                ? "bg-violet-500/20 text-violet-200 border border-violet-500/30"
-                : "text-slate-400 hover:bg-white/5 hover:text-white"
+                ? "bg-surface-container-high text-primary border border-primary/30 font-medium"
+                : "text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
             }`}
           >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
             </svg>
             <span>Find People (@User Directory)</span>
@@ -269,44 +359,48 @@ export function StartClient({
         {activeTab === "workspaces" && (
           <section>
             {initialUserWorkspaces.length > 0 ? (
-              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {initialUserWorkspaces.map((ws) => (
                   <div
                     key={ws.id}
                     data-testid={`workspace-card-${ws.slug}`}
-                    className="group relative flex flex-col justify-between rounded-3xl border border-white/10 bg-slate-900/80 p-6 shadow-xl backdrop-blur-xl transition hover:border-violet-500/40 hover:bg-slate-900"
+                    className="group relative flex flex-col justify-between rounded-xl border border-outline-variant/20 bg-surface-container p-5 shadow-xs transition-all duration-150 hover:border-primary/40 hover:bg-surface-high"
                   >
                     <div>
                       <div className="flex items-start justify-between gap-3">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-cyan-400 text-lg font-bold text-white shadow-lg shadow-violet-950/50">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-surface-lowest border border-outline-variant/20 text-sm font-mono font-bold text-primary shadow-xs">
                           {ws.name.charAt(0).toUpperCase()}
                         </div>
                         <div className="flex items-center gap-1.5">
-                          <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${
+                          <span className={`font-mono text-xs px-2 py-0.5 rounded-md bg-surface-lowest border border-outline-variant/20 uppercase tracking-wider font-medium ${
                             ws.userRole === "owner"
-                              ? "bg-amber-500/15 text-amber-300 border border-amber-500/30"
+                              ? "text-secondary border-secondary/30"
                               : ws.userRole === "admin"
-                              ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30"
-                              : "bg-slate-800 text-slate-300"
+                              ? "text-primary border-primary/30"
+                              : "text-on-surface-variant"
                           }`}>
                             {ws.userRole}
                           </span>
                         </div>
                       </div>
 
-                      <h3 className="mt-4 text-xl font-bold text-white group-hover:text-violet-200 transition">
+                      <h3 className="mt-3 text-sm font-bold text-on-surface group-hover:text-primary transition-colors font-headline-sm">
                         {ws.name}
                       </h3>
-                      <p className="text-xs text-slate-400">#{ws.slug}</p>
-                      <p className="mt-2 line-clamp-2 text-sm text-slate-300">
+                      <p className="text-[11px] font-mono text-on-surface-variant">#{ws.slug}</p>
+                      <p className="mt-1.5 line-clamp-2 text-xs text-on-surface-variant leading-relaxed font-body-sm">
                         {ws.description || "Shared collaborative workspace for high-velocity teams."}
                       </p>
                     </div>
 
-                    <div className="mt-6 border-t border-white/10 pt-4">
-                      <div className="mb-4 flex items-center justify-between text-xs text-slate-400">
-                        <span>{ws.memberCount} member{ws.memberCount === 1 ? "" : "s"}</span>
-                        <span>{ws.projectCount} project{ws.projectCount === 1 ? "" : "s"}</span>
+                    <div className="mt-5 border-t border-outline-variant/15 pt-3.5">
+                      <div className="mb-3 flex items-center justify-between text-[11px] font-mono text-on-surface-variant">
+                        <span className="px-2 py-0.5 rounded-md bg-surface-lowest border border-outline-variant/15">
+                          {ws.memberCount} member{ws.memberCount === 1 ? "" : "s"}
+                        </span>
+                        <span className="px-2 py-0.5 rounded-md bg-surface-lowest border border-outline-variant/15">
+                          {ws.projectCount} project{ws.projectCount === 1 ? "" : "s"}
+                        </span>
                       </div>
 
                       <button
@@ -314,10 +408,10 @@ export function StartClient({
                         data-testid={`launch-workspace-${ws.slug}`}
                         disabled={isPending}
                         onClick={() => handleLaunchWorkspace(ws.id)}
-                        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-600/80 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-600 focus:outline-none disabled:opacity-50"
+                        className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-3 py-2 text-xs font-medium transition-all disabled:opacity-50 shadow-xs focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
                       >
                         <span>Launch Workspace</span>
-                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                         </svg>
                       </button>
@@ -326,28 +420,28 @@ export function StartClient({
                 ))}
               </div>
             ) : (
-              <div className="rounded-3xl border border-dashed border-white/15 bg-slate-900/40 p-12 text-center">
-                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-500/10 text-violet-400">
-                  <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="rounded border border-dashed border-outline/20 bg-surface-container-lowest p-10 text-center">
+                <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded bg-surface-container-high text-primary">
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-white">No joined workspaces yet</h3>
-                <p className="mt-2 text-sm text-slate-400 max-w-md mx-auto">
+                <h3 className="text-sm font-semibold text-on-surface">No joined workspaces yet</h3>
+                <p className="mt-1 text-xs font-mono text-on-surface-variant max-w-md mx-auto">
                   You are not a member of any workspace yet. Create your first workspace or discover and join existing public workspaces.
                 </p>
-                <div className="mt-6 flex justify-center gap-4">
+                <div className="mt-5 flex justify-center gap-3">
                   <button
                     type="button"
                     onClick={() => setShowCreateModal(true)}
-                    className="rounded-2xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-violet-500 transition"
+                    className="rounded bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-3.5 py-1.5 text-xs font-medium transition"
                   >
                     Create Workspace
                   </button>
                   <button
                     type="button"
                     onClick={() => setActiveTab("discover_workspaces")}
-                    className="rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-2.5 text-sm font-semibold text-slate-200 hover:text-white hover:border-violet-500/40 transition"
+                    className="rounded bg-surface-container-high hover:bg-surface-container-highest border border-outline/20 px-3.5 py-1.5 text-xs font-medium text-on-surface transition"
                   >
                     Browse Workspaces
                   </button>
@@ -359,10 +453,10 @@ export function StartClient({
 
         {/* TAB 2: DISCOVER WORKSPACES */}
         {activeTab === "discover_workspaces" && (
-          <section className="space-y-6">
+          <section className="space-y-4">
             <div className="relative">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400">
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-on-surface-variant">
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </span>
@@ -372,41 +466,44 @@ export function StartClient({
                 value={wsSearchQuery}
                 onChange={(e) => handleWorkspaceSearch(e.target.value)}
                 placeholder="Search public workspaces by name, #slug, or description..."
-                className="w-full rounded-2xl border border-white/10 bg-slate-900/80 pl-11 pr-4 py-3.5 text-sm text-white placeholder:text-slate-500 focus:border-violet-400 focus:outline-none shadow-xl"
+                className="w-full rounded bg-surface-container-lowest border border-outline/20 pl-9 pr-4 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:outline-none transition font-mono"
               />
             </div>
 
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {filteredWorkspaces.map((ws) => {
                 const member = isMemberOf(ws.id);
                 return (
                   <div
                     key={ws.id}
-                    className="flex flex-col justify-between rounded-3xl border border-white/10 bg-slate-900/80 p-6 shadow-xl transition hover:border-violet-500/30"
+                    className="flex flex-col justify-between rounded border border-outline/20 bg-surface-container-low p-5 shadow-xs transition hover:border-outline/40"
                   >
                     <div>
                       <div className="flex items-start justify-between gap-3">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-cyan-400 text-lg font-bold text-white shadow">
+                        <div className="flex h-10 w-10 items-center justify-center rounded bg-surface-container-high border border-outline/20 text-sm font-mono font-bold text-primary">
                           {ws.name.charAt(0).toUpperCase()}
                         </div>
                       </div>
 
-                      <h3 className="mt-4 text-xl font-bold text-white">{ws.name}</h3>
-                      <p className="text-xs text-slate-400">#{ws.slug}</p>
-                      <p className="mt-2 line-clamp-2 text-sm text-slate-300">
+                      <h3 className="mt-3 text-sm font-bold text-on-surface">{ws.name}</h3>
+                      <p className="text-[11px] font-mono text-on-surface-variant">#{ws.slug}</p>
+                      <p className="mt-1.5 line-clamp-2 text-xs text-on-surface-variant leading-relaxed">
                         {ws.description || "Public collaborative space."}
                       </p>
                     </div>
 
-                    <div className="mt-6 border-t border-white/10 pt-4 flex items-center justify-between">
-                      <span className="text-xs text-slate-400">{ws.memberCount} members</span>
+                    <div className="mt-5 border-t border-outline/10 pt-3.5 flex items-center justify-between">
+                      <span className="text-[11px] font-mono text-on-surface-variant">{ws.memberCount} members</span>
                       {member ? (
                         <button
                           type="button"
                           onClick={() => handleLaunchWorkspace(ws.id)}
-                          className="rounded-xl bg-slate-800 px-3 py-1.5 text-xs font-semibold text-violet-300 hover:bg-slate-700 transition"
+                          className="inline-flex items-center gap-1 rounded bg-surface-container-high border border-outline/20 px-2.5 py-1 text-xs font-mono font-medium text-primary hover:bg-surface-container-highest transition group"
                         >
-                          Already Joined →
+                          <span>Already Joined</span>
+                          <svg className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
                         </button>
                       ) : (
                         <button
@@ -414,7 +511,7 @@ export function StartClient({
                           data-testid={`join-workspace-${ws.slug}`}
                           onClick={() => handleJoinWorkspace(ws.id)}
                           disabled={isPending}
-                          className="rounded-xl bg-violet-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-violet-500 transition"
+                          className="rounded bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-3 py-1 text-xs font-medium transition disabled:opacity-50"
                         >
                           Join Workspace
                         </button>
@@ -429,9 +526,9 @@ export function StartClient({
 
         {/* TAB 3: DISCOVER PEOPLE (@USER DIRECTORY) */}
         {activeTab === "discover_users" && (
-          <section className="space-y-6">
+          <section className="space-y-4">
             <div className="relative">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 text-base font-bold">
+              <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-primary text-xs font-mono font-bold">
                 @
               </span>
               <input
@@ -440,49 +537,47 @@ export function StartClient({
                 value={userSearchQuery}
                 onChange={(e) => handleUserSearch(e.target.value)}
                 placeholder="Search colleagues by @username, full name, or email..."
-                className="w-full rounded-2xl border border-white/10 bg-slate-900/80 pl-11 pr-4 py-3.5 text-sm text-white placeholder:text-slate-500 focus:border-violet-400 focus:outline-none shadow-xl"
+                className="w-full rounded bg-surface-container-lowest border border-outline/20 pl-8 pr-4 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:outline-none transition font-mono"
               />
             </div>
 
             {hasSearchedUsers ? (
               searchResults.length > 0 ? (
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {searchResults.map((u) => (
                     <div
                       key={u.id}
                       data-testid={`user-card-${u.username || u.id}`}
-                      className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-slate-900/80 p-4 shadow-xl backdrop-blur-xl"
+                      className="flex items-center justify-between gap-3 rounded border border-outline/20 bg-surface-container-low p-3.5 shadow-xs"
                     >
-                      <div className="flex items-center gap-3 overflow-hidden">
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-cyan-400 font-bold text-white shadow">
-                          {u.name.charAt(0).toUpperCase()}
-                        </div>
+                      <div className="flex items-center gap-2.5 overflow-hidden">
+                        <UserAvatar avatar={u.avatar} name={u.name} size="md" />
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-white">{u.name}</p>
-                          <p className="truncate text-xs text-violet-400 font-medium">@{u.username || "user"}</p>
-                          <p className="truncate text-[11px] text-slate-400">{u.email}</p>
+                          <p className="truncate text-xs font-semibold text-on-surface">{u.name}</p>
+                          <p className="truncate text-[11px] font-mono text-primary">@{u.username || "user"}</p>
+                          <p className="truncate text-[10px] font-mono text-on-surface-variant">{u.email}</p>
                         </div>
                       </div>
 
-                      <span className="shrink-0 rounded-lg border border-white/10 bg-slate-950/60 px-2 py-1 text-[11px] text-slate-400">
+                      <span className="shrink-0 rounded bg-surface-container-high border border-outline/20 px-2 py-0.5 text-[10px] font-mono text-on-surface-variant">
                         Registered
                       </span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="rounded-3xl border border-dashed border-white/10 bg-slate-900/40 p-8 text-center text-sm text-slate-400">
+                <div className="rounded border border-dashed border-outline/20 bg-surface-container-lowest p-8 text-center text-xs font-mono text-on-surface-variant">
                   No users found matching &quot;{userSearchQuery}&quot;. Try searching another handle or name!
                 </div>
               )
             ) : (
-              <div className="rounded-3xl border border-white/10 bg-slate-900/60 p-8 text-center">
-                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500/20 to-cyan-500/20 text-violet-300 font-bold text-lg">
+              <div className="rounded border border-outline/20 bg-surface-container-low p-8 text-center">
+                <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded bg-surface-container-high text-primary font-mono font-bold text-sm">
                   @
                 </div>
-                <h3 className="text-base font-semibold text-white">Search the Community</h3>
-                <p className="mt-1 text-xs text-slate-400 max-w-sm mx-auto">
-                  Type a username like <code className="text-violet-300">@useranon1</code>, <code className="text-violet-300">@useradm1</code>, or search by name to discover colleagues.
+                <h3 className="text-xs font-semibold text-on-surface">Search the Community</h3>
+                <p className="mt-1 text-[11px] font-mono text-on-surface-variant max-w-sm mx-auto">
+                  Type a username like <code className="text-primary">@useranon1</code>, <code className="text-primary">@useradm1</code>, or search by name to discover colleagues.
                 </p>
               </div>
             )}
@@ -492,30 +587,30 @@ export function StartClient({
 
       {/* CREATE WORKSPACE MODAL */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-xs animate-in fade-in duration-150">
           <div
             data-testid="create-workspace-modal"
-            className="w-full max-w-lg rounded-3xl border border-white/15 bg-slate-900 p-6 sm:p-8 shadow-2xl shadow-violet-950/50"
+            className="w-full max-w-md rounded bg-surface-container border border-outline/30 p-6 shadow-2xl"
           >
-            <div className="mb-6 flex items-center justify-between">
+            <div className="mb-4 flex items-center justify-between">
               <div>
-                <h3 className="text-xl font-bold text-white">Create a New Workspace</h3>
-                <p className="text-xs text-slate-400 mt-1">Spin up an organization hub for your team and projects.</p>
+                <h3 className="text-base font-semibold text-on-surface">Create a New Workspace</h3>
+                <p className="text-[11px] font-mono text-on-surface-variant mt-0.5">Spin up an organization hub for your team and projects.</p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowCreateModal(false)}
-                className="rounded-xl p-1.5 text-slate-400 hover:bg-white/5 hover:text-white"
+                className="rounded p-1 text-on-surface-variant hover:text-on-surface"
               >
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
 
-            <form onSubmit={handleCreateWorkspace} className="space-y-4">
+            <form onSubmit={handleCreateWorkspace} className="space-y-3.5">
               <div>
-                <label className="mb-1.5 block text-xs font-medium text-slate-300">Workspace Name</label>
+                <label className="mb-1 block text-[11px] font-mono uppercase tracking-wider text-on-surface-variant">Workspace Name</label>
                 <input
                   type="text"
                   required
@@ -523,18 +618,18 @@ export function StartClient({
                   value={workspaceName}
                   onChange={(e) => setWorkspaceName(e.target.value)}
                   placeholder="e.g. Acme Innovations, Venture Lab"
-                  className="w-full rounded-2xl border border-white/10 bg-slate-950/60 px-3.5 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-violet-400 focus:outline-none"
+                  className="w-full rounded bg-surface-container-lowest border border-outline/20 px-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:outline-none transition"
                 />
               </div>
 
               <div>
-                <label className="mb-1.5 block text-xs font-medium text-slate-300">Description</label>
+                <label className="mb-1 block text-[11px] font-mono uppercase tracking-wider text-on-surface-variant">Description</label>
                 <textarea
-                  rows={3}
+                  rows={2}
                   value={workspaceDesc}
                   onChange={(e) => setWorkspaceDesc(e.target.value)}
                   placeholder="What is this workspace focused on?"
-                  className="w-full rounded-2xl border border-white/10 bg-slate-950/60 px-3.5 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-violet-400 focus:outline-none"
+                  className="w-full rounded bg-surface-container-lowest border border-outline/20 px-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:outline-none transition"
                 />
               </div>
 
@@ -544,17 +639,17 @@ export function StartClient({
                     type="checkbox"
                     checked={isPublic}
                     onChange={(e) => setIsPublic(e.target.checked)}
-                    className="h-4 w-4 rounded border-white/20 bg-slate-950/60 text-violet-500 focus:ring-violet-400 focus:ring-offset-0"
+                    className="h-3.5 w-3.5 rounded border-outline/30 bg-surface-container-lowest text-primary focus:ring-0 focus:ring-offset-0 cursor-pointer"
                   />
-                  <span className="text-xs font-medium text-slate-300">Public & Discoverable</span>
+                  <span className="text-xs font-mono text-on-surface">Public &amp; Discoverable</span>
                 </label>
               </div>
 
-              <div className="mt-6 flex items-center justify-end gap-3 pt-4 border-t border-white/10">
+              <div className="mt-5 flex items-center justify-end gap-2.5 pt-3 border-t border-outline/10">
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="rounded-2xl border border-white/10 px-4 py-2.5 text-sm font-semibold text-slate-300 hover:bg-white/5 hover:text-white transition"
+                  className="rounded bg-surface-container-high hover:bg-surface-container-highest px-3 py-1.5 text-xs font-medium text-on-surface transition"
                 >
                   Cancel
                 </button>
@@ -562,7 +657,7 @@ export function StartClient({
                   type="submit"
                   data-testid="submit-create-workspace-btn"
                   disabled={isPending || !workspaceName.trim()}
-                  className="rounded-2xl bg-gradient-to-r from-violet-500 to-cyan-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-violet-900/40 transition hover:opacity-95 disabled:opacity-50"
+                  className="rounded bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-3.5 py-1.5 text-xs font-medium transition disabled:opacity-50 shadow-sm"
                 >
                   {isPending ? "Creating..." : "Create & Launch"}
                 </button>
@@ -571,7 +666,13 @@ export function StartClient({
           </div>
         </div>
       )}
+
+      {/* Floating Settings Modal */}
+      <FloatingSettingsModal
+        isOpen={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+        user={user}
+      />
     </div>
   );
 }
-

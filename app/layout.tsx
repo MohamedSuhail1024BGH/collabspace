@@ -3,6 +3,7 @@ import "./globals.css";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { getActiveWorkspace, getAllWorkspaces } from "@/lib/db/workspace";
 import { getCurrentUser } from "@/lib/db/auth";
+import { getProjects } from "@/lib/db/queries";
 
 export const metadata: Metadata = {
   title: "CollabSpace",
@@ -17,6 +18,9 @@ export default async function RootLayout({
   const user = await getCurrentUser();
   const activeWorkspace = await getActiveWorkspace();
   const allWorkspaces = await getAllWorkspaces();
+  const projects = activeWorkspace ? await getProjects(activeWorkspace.id) : [];
+
+
 
   return (
     <html
@@ -35,6 +39,8 @@ export default async function RootLayout({
                 if (theme) document.documentElement.setAttribute('data-accent', theme.toLowerCase());
                 var density = localStorage.getItem('collabspace_density');
                 if (density) document.documentElement.setAttribute('data-density', density.toLowerCase());
+                var mode = localStorage.getItem('collabspace_theme_mode');
+                if (mode) document.documentElement.setAttribute('data-theme', mode);
               } catch (e) {}
             `,
           }}
@@ -45,6 +51,13 @@ export default async function RootLayout({
           user={user}
           activeWorkspace={activeWorkspace ?? undefined}
           workspaces={allWorkspaces}
+          projects={projects.map((p) => ({
+            id: p.id,
+            name: p.name,
+            status: p.status,
+            progress: p.progress,
+            teamMembers: p.teamMembers,
+          }))}
         >
           {children}
         </DashboardShell>

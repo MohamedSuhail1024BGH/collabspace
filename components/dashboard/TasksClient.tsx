@@ -10,6 +10,7 @@ import {
 import { TaskFilters } from "@/components/dashboard/TaskFilters";
 import { TaskForm, type TaskDraft } from "@/components/dashboard/TaskForm";
 import { TaskList } from "@/components/dashboard/TaskList";
+import { TaskBoard } from "@/components/dashboard/TaskBoard";
 import { TaskSummary } from "@/components/dashboard/TaskSummary";
 import type { DashboardTask, TaskPriority } from "@/data/mock-data";
 import type { DbTask } from "@/lib/db/schema";
@@ -71,6 +72,7 @@ export function TasksClient({
   const [statusFilter, setStatusFilter] = useState("All");
   const [priorityFilter, setPriorityFilter] = useState("All");
   const [assigneeFilter, setAssigneeFilter] = useState("All");
+  const [viewMode, setViewMode] = useState<"list" | "board">("list");
   const [draftTask, setDraftTask] = useState<TaskDraft | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -210,12 +212,52 @@ export function TasksClient({
   };
 
   return (
-    <>
+    <div className="space-y-4 sm:space-y-6 pb-12">
       <TaskSummary tasks={tasks} />
 
-      <section className="rounded-3xl border border-white/10 bg-slate-900/80 p-5 shadow-xl shadow-slate-950/20">
-        <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <h3 className="text-lg font-semibold text-white">Task queue</h3>
+      <section className="rounded-xl bg-surface-container-low border border-outline-variant/20 p-4 sm:p-5 text-on-surface shadow-xs">
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-3 border-b border-outline-variant/15">
+          <div>
+            <h1 className="text-lg font-bold tracking-tight text-on-surface font-headline-sm">Task queue</h1>
+            <p className="text-[11px] font-mono text-on-surface-variant">Engineering tasks and execution queue</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="rounded-md bg-surface-container-high px-2 py-0.5 text-xs font-mono text-secondary">
+              {filteredTasks.length} items
+            </span>
+
+            {/* Segmented View Switcher */}
+            <div className="flex items-center gap-1 bg-surface-lowest p-0.5 rounded-lg border border-outline-variant/20">
+              <button
+                type="button"
+                onClick={() => setViewMode("list")}
+                className={`px-2.5 py-1 rounded-md font-mono text-xs flex items-center gap-1.5 transition-all ${
+                  viewMode === "list"
+                    ? "bg-surface-high text-on-surface shadow-xs font-medium"
+                    : "text-on-surface-variant hover:text-on-surface"
+                }`}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+                <span>List</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("board")}
+                className={`px-2.5 py-1 rounded-md font-mono text-xs flex items-center gap-1.5 transition-all ${
+                  viewMode === "board"
+                    ? "bg-surface-high text-on-surface shadow-xs font-medium"
+                    : "text-on-surface-variant hover:text-on-surface"
+                }`}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 4H5a1 1 0 00-1 1v14a1 1 0 001 1h4a1 1 0 001-1V5a1 1 0 00-1-1zm10 0h-4a1 1 0 00-1 1v14a1 1 0 001 1h4a1 1 0 001-1V5a1 1 0 00-1-1z" />
+                </svg>
+                <span>Board</span>
+              </button>
+            </div>
+          </div>
         </div>
 
         <TaskFilters
@@ -233,13 +275,23 @@ export function TasksClient({
           onClear={handleResetFilters}
         />
 
-        <TaskList
-          tasks={filteredTasks}
-          onEdit={!isViewer ? openEditTask : undefined}
-          onDelete={!isViewer ? handleDeleteTask : undefined}
-          onStatusChange={!isViewer ? handleStatusChange : undefined}
-          onResetFilters={handleResetFilters}
-        />
+        {viewMode === "list" ? (
+          <TaskList
+            tasks={filteredTasks}
+            onEdit={!isViewer ? openEditTask : undefined}
+            onDelete={!isViewer ? handleDeleteTask : undefined}
+            onStatusChange={!isViewer ? handleStatusChange : undefined}
+            onResetFilters={handleResetFilters}
+          />
+        ) : (
+          <TaskBoard
+            tasks={filteredTasks}
+            onEdit={!isViewer ? openEditTask : undefined}
+            onDelete={!isViewer ? handleDeleteTask : undefined}
+            onStatusChange={!isViewer ? handleStatusChange : undefined}
+            onResetFilters={handleResetFilters}
+          />
+        )}
       </section>
 
       {isFormOpen && draftTask ? (
@@ -256,7 +308,6 @@ export function TasksClient({
           onSave={handleSaveTask}
         />
       ) : null}
-    </>
+    </div>
   );
 }
-

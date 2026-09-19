@@ -5,10 +5,8 @@ test.describe("Settings Panel", () => {
   test("navigates to settings and manages workspace, members, account, and UI preferences", async ({ page }) => {
     await loginAs(page);
 
-    // Navigate to Settings via sidebar
-    const settingsLink = page.getByRole("link", { name: "Settings" });
-    await expect(settingsLink).toBeVisible();
-    await settingsLink.click();
+    // Navigate to Settings
+    await page.goto("/settings");
 
     await expect(page).toHaveURL(/\/settings/);
     await expect(page.getByRole("heading", { name: "Settings & Preferences" })).toBeVisible();

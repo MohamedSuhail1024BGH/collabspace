@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   sendMessageAction,
@@ -11,6 +12,7 @@ import ChatHeader from "@/components/dashboard/ChatHeader";
 import ConversationItem from "@/components/dashboard/ConversationItem";
 import MessageComposer from "@/components/dashboard/MessageComposer";
 import MessageList from "@/components/dashboard/MessageList";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import type { Conversation, Message } from "@/data/mock-data";
 import type { FullConversation } from "@/lib/db/queries";
 import type { WorkspaceMemberItem } from "@/components/dashboard/EventForm";
@@ -29,6 +31,7 @@ function toConversation(c: FullConversation): Conversation {
     participantIds: parsedParticipantIds,
     name: c.name,
     initials: c.initials,
+    avatar: (c as unknown as { avatar?: string | null }).avatar || null,
     color: c.color,
     role: c.role,
     online: c.online,
@@ -44,6 +47,8 @@ function toConversation(c: FullConversation): Conversation {
   };
 }
 
+const emptySubscribe = () => () => {};
+
 export function MessagesClient({
   initialConversations,
   currentUser,
@@ -56,6 +61,7 @@ export function MessagesClient({
   workspaceId?: string;
 }) {
   const router = useRouter();
+  const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
   const [conversations, setConversations] = useState<Conversation[]>(() =>
     initialConversations.map(toConversation),
   );
@@ -73,23 +79,48 @@ export function MessagesClient({
   const [isCreatingChat, setIsCreatingChat] = useState(false);
   const [, startTransition] = useTransition();
 
-  // Keep activeIdRef in sync to avoid tearing down EventSource on conversation selection changes
   const activeIdRef = useRef(activeId);
   useEffect(() => {
     activeIdRef.current = activeId;
   }, [activeId]);
 
-  // Sync state when initialConversations changes
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const isTyping =
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable ||
+          target.getAttribute("role") === "textbox");
+
+      if (!isTyping && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        if (e.key.toLowerCase() === "f") {
+          e.preventDefault();
+          searchInputRef.current?.focus();
+          searchInputRef.current?.select();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  const [prevInitialConversations, setPrevInitialConversations] = useState(initialConversations);
+  if (initialConversations !== prevInitialConversations) {
+    setPrevInitialConversations(initialConversations);
     setConversations(initialConversations.map(toConversation));
-  }, [initialConversations]);
+  }
 
   // Real-time message streaming via Server-Sent Events (SSE) + fallback polling heartbeat
   useEffect(() => {
     if (!workspaceId) return;
     let isMounted = true;
 
-    // Helper to fetch live conversations
     const syncLiveConversations = async () => {
       try {
         const res = await getLiveConversationsAction(workspaceId);
@@ -97,106 +128,87 @@ export function MessagesClient({
           setConversations((prev) => {
             return res.conversations.map((liveConv) => {
               const mapped = toConversation(liveConv);
-              // Preserve unread status = 0 if it's currently active in the UI
               if (mapped.id === activeIdRef.current) {
                 return { ...mapped, unread: 0 };
+              }
+              const existing = prev.find((p) => p.id === mapped.id);
+              if (existing && existing.unread > mapped.unread) {
+                return { ...mapped, unread: existing.unread };
               }
               return mapped;
             });
           });
         }
       } catch {
-        // Ignore background sync errors
+        // Soft fallback
       }
     };
 
-    // 1. Establish Server-Sent Events (SSE) stream
     let eventSource: EventSource | null = null;
     try {
-      eventSource = new EventSource(
-        `/api/messages/events?workspaceId=${encodeURIComponent(workspaceId)}`
-      );
-
+      eventSource = new EventSource(`/api/messages/events?workspaceId=${workspaceId}`);
       eventSource.onmessage = (event) => {
-        if (!isMounted) return;
         try {
           const data = JSON.parse(event.data);
-          if (data.type === "new_message" && data.message) {
-            const incomingMsg: Message = data.message;
-            const targetConvId: string = data.conversationId;
-
+          if (data.type === "new_message" && data.conversationId && data.message) {
             setConversations((prev) =>
               prev.map((c) => {
-                if (c.id !== targetConvId) return c;
-                // Avoid duplicates if message was already added optimistically
-                if (c.messages.some((m) => m.id === incomingMsg.id)) {
-                  return c;
-                }
-                const isCurrentlyActive = c.id === activeIdRef.current;
+                if (c.id !== data.conversationId) return c;
+                const alreadyExists = c.messages.some((m) => m.id === data.message.id);
+                if (alreadyExists) return c;
+                const isCurrentActive = activeIdRef.current === c.id;
                 return {
                   ...c,
-                  messages: [...c.messages, incomingMsg],
-                  lastMessage: incomingMsg.content,
-                  lastTimestamp: incomingMsg.timestamp,
-                  unread: isCurrentlyActive ? 0 : c.unread + 1,
+                  messages: [...c.messages, data.message],
+                  lastMessage: data.message.content,
+                  lastTimestamp: data.message.timestamp,
+                  unread: isCurrentActive ? 0 : c.unread + 1,
                 };
-              })
+              }),
             );
-          } else if (data.type === "refresh") {
-            syncLiveConversations();
+          } else if (data.type === "new_conversation" && data.conversation) {
+            const mapped = toConversation(data.conversation);
+            setConversations((prev) => {
+              if (prev.some((c) => c.id === mapped.id)) return prev;
+              return [mapped, ...prev];
+            });
           }
         } catch {
-          // Ignore keepalive comments or non-JSON payloads
+          // ignore malformed SSE frames
         }
       };
-
       eventSource.onerror = () => {
-        // If SSE disconnects or errors, fallback polling guarantees delivery
+        // SSE disconnected, fallback polling active
       };
     } catch {
-      // If EventSource is not supported, fallback polling handles it
+      // EventSource unsupported
     }
 
-    // 2. Heartbeat background poll every 2.5 seconds when tab is visible
-    const pollTimer = setInterval(() => {
-      if (document.visibilityState === "visible") {
-        syncLiveConversations();
-      }
-    }, 2500);
-
-    // 3. Instant sync on window focus and tab visibility change
-    const onFocusOrVisible = () => {
-      if (document.visibilityState === "visible" && isMounted) {
-        syncLiveConversations();
-      }
-    };
-    window.addEventListener("focus", onFocusOrVisible);
-    window.addEventListener("visibilitychange", onFocusOrVisible);
+    const interval = setInterval(syncLiveConversations, 4000);
 
     return () => {
       isMounted = false;
-      eventSource?.close();
-      clearInterval(pollTimer);
-      window.removeEventListener("focus", onFocusOrVisible);
-      window.removeEventListener("visibilitychange", onFocusOrVisible);
+      clearInterval(interval);
+      if (eventSource) {
+        eventSource.close();
+      }
     };
   }, [workspaceId]);
 
   const activeConversation = useMemo(
-    () => conversations.find((c) => c.id === activeId) ?? conversations[0],
+    () => conversations.find((c) => c.id === activeId) ?? conversations[0] ?? null,
     [conversations, activeId],
   );
 
   const isChannel = (c: Conversation) => {
-    if (c.type === "channel") return true;
-    if (c.type === "direct") return false;
     return (
-      c.id.startsWith("conv-design") ||
-      c.id.startsWith("conv-product") ||
-      c.id.startsWith("conv-eng") ||
-      c.id.startsWith("conv-ops") ||
-      c.name.startsWith("#") ||
-      c.role.toLowerCase().includes("channel")
+      c.type === "channel" ||
+      (c.type !== "direct" &&
+        (c.id.startsWith("conv-design") ||
+          c.id.startsWith("conv-product") ||
+          c.id.startsWith("conv-eng") ||
+          c.id.startsWith("conv-ops") ||
+          c.name.startsWith("#")))
     );
   };
 
@@ -219,6 +231,9 @@ export function MessagesClient({
         c.role.toLowerCase().includes(q),
     );
   }, [conversations, filterType, search]);
+
+  const channelsList = useMemo(() => filtered.filter(isChannel), [filtered]);
+  const directList = useMemo(() => filtered.filter((c) => !isChannel(c)), [filtered]);
 
   function selectConversation(id: string) {
     setActiveId(id);
@@ -258,11 +273,9 @@ export function MessagesClient({
     });
   }
 
-  // Start Direct Message with selected workspace member
   const handleStartDirectMessage = async (member: WorkspaceMemberItem) => {
     setIsCreatingChat(true);
 
-    // Check if DM conversation with this user already exists in state
     const existing = conversations.find(
       (c) =>
         !isChannel(c) &&
@@ -282,7 +295,7 @@ export function MessagesClient({
       workspaceId,
       name: member.user.name,
       role: member.role === "owner" ? "Owner" : member.role === "admin" ? "Admin" : "Team Member",
-      color: "bg-cyan-500",
+      color: "bg-primary",
       type: "direct",
       recipientId: member.user.id,
     });
@@ -309,7 +322,7 @@ export function MessagesClient({
         participantIds: currentUser?.id ? [currentUser.id, member.user.id] : [member.user.id],
         name: member.user.name,
         initials,
-        color: "bg-cyan-500",
+        color: "bg-primary",
         role: member.role === "owner" ? "Owner" : member.role === "admin" ? "Admin" : "Team Member",
         online: true,
         lastMessage: "Conversation started.",
@@ -328,7 +341,6 @@ export function MessagesClient({
     setIsCreatingChat(false);
   };
 
-  // Create Channel
   const handleCreateChannel = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newChannelName.trim()) return;
@@ -342,38 +354,37 @@ export function MessagesClient({
       workspaceId,
       name: formattedName,
       role: newChannelDescription.trim() || "Team Channel",
-      color: "bg-violet-500",
+      color: "bg-secondary",
       type: "channel",
       initialMessage: newChannelInitialMessage.trim() || undefined,
     });
 
     if (res.success && res.id) {
-      const now = new Date().toISOString();
-      const newConv: Conversation = {
+      const newChannelConv: Conversation = {
         id: res.id,
         type: "channel",
         participantIds: [],
         name: formattedName,
         initials: "#",
-        color: "bg-violet-500",
+        color: "bg-secondary",
         role: newChannelDescription.trim() || "Team Channel",
         online: true,
         lastMessage: newChannelInitialMessage.trim() || "Channel created.",
-        lastTimestamp: now,
+        lastTimestamp: new Date().toISOString(),
         unread: 0,
         messages: newChannelInitialMessage.trim()
           ? [
               {
-                id: `m-${Date.now()}`,
-                sender: currentUser?.name || "Me",
+                id: `m-init-${Date.now()}`,
+                sender: currentUser?.name || "System",
                 content: newChannelInitialMessage.trim(),
-                timestamp: now,
+                timestamp: new Date().toISOString(),
               },
             ]
           : [],
       };
 
-      setConversations((prev) => [newConv, ...prev]);
+      setConversations((prev) => [newChannelConv, ...prev]);
       setActiveId(res.id);
       setShowNewChatModal(false);
       setNewChannelName("");
@@ -387,167 +398,309 @@ export function MessagesClient({
   };
 
   return (
-    <>
-      <section className="rounded-3xl border border-white/10 bg-slate-900/80 p-4 shadow-xl shadow-slate-950/20">
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h3 className="text-xl font-bold text-white">Messages</h3>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Collaborate in team channels and direct messages with colleagues.
-            </p>
+    <div className="h-full w-full flex overflow-hidden bg-surface">
+      {/* Left Sub-Pane: Channels & Peers Navigation (Telegram Desktop Sidebar) */}
+      <aside
+        className={`w-full md:w-80 lg:w-84 xl:w-88 flex-shrink-0 flex flex-col bg-surface-container-low border-r border-outline/15 select-none ${
+          showListOnMobile ? "flex" : "hidden md:flex"
+        }`}
+      >
+        {/* Telegram Desktop Top Bar: Title Landmark & Compose Trigger */}
+        <div className="h-14 px-3.5 border-b border-outline/15 flex items-center justify-between bg-surface-container-low shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <h1 className="text-sm sm:text-base font-bold text-on-surface font-headline-sm tracking-tight truncate">
+              Messages
+            </h1>
+            <span className="font-mono text-[9px] text-secondary bg-surface-container-high px-1.5 py-0.5 rounded border border-outline/10 shrink-0">
+              HUB
+            </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <button
+            type="button"
+            data-testid="new-chat-btn"
+            onClick={() => setShowNewChatModal(true)}
+            className="flex items-center gap-1.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-2.5 py-1.5 text-xs font-medium shadow-xs transition-colors shrink-0"
+            title="Create channel or conversation"
+          >
+            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            <span>+ New chat</span>
+          </button>
+        </div>
+
+        {/* Channel Search & Quick Filters */}
+        <div className="p-3 border-b border-outline/10 space-y-2.5 bg-surface-container-low shrink-0">
+          {/* Filter Search Input */}
+          <div className="relative flex items-center rounded-lg bg-surface-container-lowest border border-outline/20 px-2.5 py-1.5 text-xs text-on-surface focus-within:border-primary">
+            <svg className="h-3.5 w-3.5 text-on-surface-variant shrink-0 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
             <input
+              ref={searchInputRef}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search conversations..."
-              className="w-full sm:w-60 rounded-2xl border border-white/10 bg-slate-950/60 px-3.5 py-2 text-xs text-slate-200 placeholder:text-slate-500 theme-input-focus"
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  e.currentTarget.blur();
+                }
+              }}
+              placeholder="Filter channels, peers..."
+              className="w-full bg-transparent border-none outline-none font-body-sm text-xs text-on-surface placeholder:text-on-surface-variant/50"
             />
+            {search ? (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="p-0.5 text-on-surface-variant hover:text-on-surface rounded transition-colors"
+                aria-label="Clear search"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            ) : (
+              <kbd className="font-mono text-[9px] bg-surface-container-high text-on-surface-variant px-1 rounded">
+                F
+              </kbd>
+            )}
+          </div>
+
+          {/* Filter Pill Tabs */}
+          <div className="flex items-center gap-1 text-[11px] font-mono">
             <button
               type="button"
-              data-testid="new-chat-btn"
-              onClick={() => setShowNewChatModal(true)}
-              className="theme-btn-primary shrink-0 rounded-2xl px-4 py-2 text-xs font-semibold text-white shadow-lg transition hover:opacity-90"
+              onClick={() => setFilterType("all")}
+              className={`flex-1 py-1 rounded text-center transition-colors ${
+                filterType === "all"
+                  ? "bg-surface-container-highest text-on-surface font-semibold"
+                  : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
+              }`}
             >
-              + New chat
+              All ({conversations.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterType("channels")}
+              className={`flex-1 py-1 rounded text-center transition-colors ${
+                filterType === "channels"
+                  ? "bg-surface-container-highest text-on-surface font-semibold"
+                  : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
+              }`}
+            >
+              Channels ({conversations.filter(isChannel).length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterType("direct")}
+              className={`flex-1 py-1 rounded text-center transition-colors ${
+                filterType === "direct"
+                  ? "bg-surface-container-highest text-on-surface font-semibold"
+                  : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
+              }`}
+            >
+              DMs ({conversations.filter((c) => !isChannel(c)).length})
             </button>
           </div>
         </div>
 
-        {/* Filter Pills */}
-        <div className="mb-4 flex items-center gap-1.5 border-b border-white/5 pb-3">
-          <button
-            type="button"
-            onClick={() => setFilterType("all")}
-            className={`rounded-xl px-3 py-1 text-xs font-semibold transition ${
-              filterType === "all"
-                ? "bg-white/10 text-white"
-                : "text-slate-400 hover:text-white"
-            }`}
-          >
-            All ({conversations.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setFilterType("channels")}
-            className={`rounded-xl px-3 py-1 text-xs font-semibold transition ${
-              filterType === "channels"
-                ? "bg-white/10 text-white"
-                : "text-slate-400 hover:text-white"
-            }`}
-          >
-            Channels ({conversations.filter(isChannel).length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setFilterType("direct")}
-            className={`rounded-xl px-3 py-1 text-xs font-semibold transition ${
-              filterType === "direct"
-                ? "bg-white/10 text-white"
-                : "text-slate-400 hover:text-white"
-            }`}
-          >
-            Direct Messages ({conversations.filter((c) => !isChannel(c)).length})
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          {/* Conversation list */}
-          <aside
-            className={`col-span-1 max-h-[70vh] overflow-y-auto rounded-2xl border border-white/5 bg-slate-950/40 p-2 lg:block ${
-              showListOnMobile ? "block" : "hidden"
-            }`}
-          >
-            <div className="space-y-1.5">
-              {filtered.map((c) => (
-                <ConversationItem
-                  key={c.id}
-                  conversation={c}
-                  selected={c.id === activeId}
-                  onSelect={selectConversation}
-                />
-              ))}
-
-              {filtered.length === 0 && (
-                <div className="py-8 text-center text-xs text-slate-500">
-                  No conversations match your search.
-                </div>
-              )}
-            </div>
-          </aside>
-
-          {/* Chat area */}
-          <div className="col-span-1 lg:col-span-2 flex flex-col">
-            {activeConversation ? (
-              <div className="flex h-[70vh] flex-1 flex-col overflow-hidden rounded-2xl border border-white/5 bg-slate-950/30">
-                <ChatHeader
-                  conversation={activeConversation}
-                  onBack={() => setShowListOnMobile(true)}
-                />
-
-                <MessageList
-                  messages={activeConversation.messages}
-                  currentUserName={currentUser?.name}
-                  currentUserEmail={currentUser?.email}
-                />
-
-                <MessageComposer onSend={sendMessage} />
-              </div>
-            ) : (
-              <div className="flex h-[70vh] flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-slate-950/30 p-8 text-center text-slate-400">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-500/10 text-violet-400 mb-3">
-                  💬
-                </div>
-                <h4 className="text-base font-semibold text-white">No conversation selected</h4>
-                <p className="mt-1 text-xs text-slate-400 max-w-sm">
-                  Select a channel or colleague from the left panel, or click &quot;+ New chat&quot; to begin a new thread.
-                </p>
+        {/* Navigation Tree (Channels & Direct Messages) */}
+        <div className="flex-1 overflow-y-auto p-2 space-y-4 custom-scrollbar">
+          {/* 1. Channels Section */}
+          {(filterType === "all" || filterType === "channels") && (
+            <div>
+              <div className="flex items-center justify-between px-2 py-1 text-on-surface-variant">
+                <span className="font-mono text-[10px] uppercase tracking-wider font-semibold">
+                  Channels
+                </span>
                 <button
                   type="button"
-                  onClick={() => setShowNewChatModal(true)}
-                  className="mt-4 rounded-xl border border-white/10 bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-850"
+                  onClick={() => {
+                    setNewChatTab("channel");
+                    setShowNewChatModal(true);
+                  }}
+                  className="hover:text-on-surface text-xs p-0.5"
+                  title="New channel"
                 >
-                  Start a conversation
+                  +
                 </button>
               </div>
-            )}
+              <div className="space-y-0.5 mt-1">
+                {channelsList.map((c) => (
+                  <ConversationItem
+                    key={c.id}
+                    conversation={c}
+                    selected={c.id === activeId}
+                    onSelect={selectConversation}
+                  />
+                ))}
+                {channelsList.length === 0 && (
+                  <p className="px-2 py-1.5 text-[11px] font-mono text-on-surface-variant/60">
+                    No channels found
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* 2. Direct Messages Section */}
+          {(filterType === "all" || filterType === "direct") && (
+            <div>
+              <div className="flex items-center justify-between px-2 py-1 text-on-surface-variant">
+                <span className="font-mono text-[10px] uppercase tracking-wider font-semibold">
+                  Direct Messages
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNewChatTab("direct");
+                    setShowNewChatModal(true);
+                  }}
+                  className="hover:text-on-surface text-xs p-0.5"
+                  title="New direct message"
+                >
+                  +
+                </button>
+              </div>
+              <div className="space-y-0.5 mt-1">
+                {directList.map((c) => (
+                  <ConversationItem
+                    key={c.id}
+                    conversation={c}
+                    selected={c.id === activeId}
+                    onSelect={selectConversation}
+                  />
+                ))}
+                {directList.length === 0 && (
+                  <p className="px-2 py-1.5 text-[11px] font-mono text-on-surface-variant/60">
+                    No direct messages
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Bottom Stream Telemetry & Throughput Widget */}
+        <div className="p-3 bg-surface-container/70 border-t border-outline/10 select-none shrink-0">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="font-mono text-[9px] uppercase tracking-wider text-on-surface-variant">
+              Stream Throughput
+            </span>
+            <span className="font-mono text-[10px] font-bold text-secondary">
+              99.98%
+            </span>
+          </div>
+          {/* Mini SVG Sparkline */}
+          <svg className="w-full h-5 overflow-visible" fill="none" viewBox="0 0 200 20">
+            <path
+              className="text-secondary"
+              d="M0 16 L25 14 L50 17 L75 8 L100 11 L125 4 L150 7 L175 2 L200 5"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="1.5"
+            />
+            <path
+              className="text-secondary/15"
+              d="M0 16 L25 14 L50 17 L75 8 L100 11 L125 4 L150 7 L175 2 L200 5 V20 H0 Z"
+              fill="currentColor"
+            />
+          </svg>
+          <div className="flex justify-between items-center font-mono text-[9px] text-on-surface-variant mt-1.5">
+            <span>Core RPC</span>
+            <span className="text-secondary">SSE Connected</span>
           </div>
         </div>
-      </section>
+      </aside>
 
-      {/* New Chat Modal */}
-      {showNewChatModal && (
+      {/* Right Active Message Stream & Composer (Telegram Desktop Chat View) */}
+      <main
+        className={`flex-1 flex flex-col min-w-0 bg-surface overflow-hidden ${
+          !showListOnMobile ? "flex" : "hidden md:flex"
+        }`}
+      >
+        {activeConversation ? (
+          <div className="flex flex-1 flex-col h-full overflow-hidden">
+            <ChatHeader
+              conversation={activeConversation}
+              onBack={() => setShowListOnMobile(true)}
+              memberCount={workspaceMembers.length || 8}
+            />
+
+            <MessageList
+              messages={activeConversation.messages}
+              currentUserName={currentUser?.name}
+              currentUserEmail={currentUser?.email}
+            />
+
+            <MessageComposer
+              onSend={sendMessage}
+              channelName={activeConversation.name}
+            />
+          </div>
+        ) : (
+          <div className="flex flex-1 flex-col items-center justify-center p-8 text-center text-on-surface-variant">
+            <div className="w-12 h-12 rounded-xl bg-surface-container flex items-center justify-center text-primary mb-3 border border-outline/15 shadow-sm">
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+            </div>
+            <h3 className="text-sm font-semibold text-on-surface">No conversation selected</h3>
+            <p className="mt-1 text-xs font-mono text-on-surface-variant max-w-sm">
+              Select a channel or colleague from the left panel, or click &quot;+ New chat&quot; to begin a new thread.
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowNewChatModal(true)}
+              className="mt-4 rounded bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-3.5 py-1.5 text-xs font-medium transition shadow-xs"
+            >
+              Start a conversation
+            </button>
+          </div>
+        )}
+      </main>
+
+      {/* New Chat Modal with Portaled Root Backdrop */}
+      {showNewChatModal && mounted && createPortal(
         <div
           data-testid="new-chat-modal"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-md animate-in fade-in duration-150"
+          onClick={() => setShowNewChatModal(false)}
         >
-          <div className="w-full max-w-md rounded-3xl border border-white/10 bg-slate-900/95 p-6 shadow-2xl">
-            <div className="mb-4 flex items-center justify-between">
+          <div
+            className="w-full max-w-md rounded-xl bg-surface-container-high border border-outline/20 p-5 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4 flex items-center justify-between pb-2 border-b border-outline/10">
               <div>
-                <h3 className="text-lg font-bold text-white">Start a Conversation</h3>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Message a team member or create a new channel.
+                <h2 className="text-base font-bold text-on-surface font-headline-sm">Start a Conversation</h2>
+                <p className="text-[11px] font-mono text-on-surface-variant mt-0.5">
+                  Message a team member or create a new team channel.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowNewChatModal(false)}
-                className="rounded-xl p-1 text-slate-400 hover:text-white"
+                className="p-1 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
+                aria-label="Close modal"
               >
-                ✕
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
 
             {/* Modal Tabs */}
-            <div className="mb-4 flex rounded-xl border border-white/10 bg-slate-950/60 p-1">
+            <div className="mb-4 flex rounded bg-surface-container-lowest border border-outline/20 p-0.5">
               <button
                 type="button"
                 onClick={() => setNewChatTab("direct")}
-                className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition ${
+                className={`flex-1 rounded py-1.5 text-xs font-medium transition ${
                   newChatTab === "direct"
-                    ? "bg-violet-600 text-white shadow"
-                    : "text-slate-400 hover:text-white"
+                    ? "bg-surface-container-highest text-on-surface font-semibold shadow-xs"
+                    : "text-on-surface-variant hover:text-on-surface"
                 }`}
               >
                 Direct Message
@@ -555,10 +708,10 @@ export function MessagesClient({
               <button
                 type="button"
                 onClick={() => setNewChatTab("channel")}
-                className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition ${
+                className={`flex-1 rounded py-1.5 text-xs font-medium transition ${
                   newChatTab === "channel"
-                    ? "bg-violet-600 text-white shadow"
-                    : "text-slate-400 hover:text-white"
+                    ? "bg-surface-container-highest text-on-surface font-semibold shadow-xs"
+                    : "text-on-surface-variant hover:text-on-surface"
                 }`}
               >
                 Create Channel
@@ -566,39 +719,41 @@ export function MessagesClient({
             </div>
 
             {newChatTab === "direct" ? (
-              <div className="space-y-3">
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+              <div className="space-y-2.5">
+                <p className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">
                   Select Team Colleague
                 </p>
-                <div className="max-h-60 overflow-y-auto space-y-1.5 pr-1">
+                <div className="max-h-60 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
                   {workspaceMembers
                     .filter((m) => m.user.id !== currentUser?.id)
                     .map((m) => (
                       <button
                         key={m.user.id}
                         type="button"
-                        data-testid={`start-dm-${m.user.username || m.user.id}`}
+                        data-testid={`start-dm-${m.user.username?.toLowerCase() || m.user.id}`}
                         disabled={isCreatingChat}
                         onClick={() => handleStartDirectMessage(m)}
-                        className="flex w-full items-center justify-between rounded-xl border border-white/5 bg-slate-950/50 p-2.5 text-left transition hover:border-violet-500/40 hover:bg-slate-850"
+                        className="flex w-full items-center justify-between rounded bg-surface-container-lowest border border-outline/20 p-2.5 text-left transition hover:bg-surface-container-high group"
                       >
                         <div className="flex items-center gap-2.5">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 text-xs font-bold text-white">
-                            {m.user.name.charAt(0).toUpperCase()}
-                          </div>
+                          <UserAvatar avatar={m.user.avatar} name={m.user.name} size="sm" />
                           <div>
-                            <p className="text-xs font-semibold text-white">{m.user.name}</p>
-                            <p className="text-[11px] text-slate-400">@{m.user.username || "user"}</p>
+                            <p className="text-xs font-semibold text-on-surface group-hover:text-primary transition-colors">
+                              {m.user.name}
+                            </p>
+                            <p className="text-[11px] font-mono text-on-surface-variant">
+                              @{m.user.username || "user"}
+                            </p>
                           </div>
                         </div>
-                        <span className="rounded-lg border border-white/10 px-2 py-0.5 text-[10px] text-slate-300">
+                        <span className="rounded bg-surface-container px-2 py-0.5 text-[10px] font-mono text-on-surface-variant">
                           {m.role}
                         </span>
                       </button>
                     ))}
 
                   {workspaceMembers.filter((m) => m.user.id !== currentUser?.id).length === 0 && (
-                    <p className="py-4 text-center text-xs text-slate-500">
+                    <p className="py-4 text-center text-xs font-mono text-on-surface-variant">
                       No other members in this workspace yet. Invite colleagues in Settings!
                     </p>
                   )}
@@ -607,7 +762,7 @@ export function MessagesClient({
             ) : (
               <form onSubmit={handleCreateChannel} className="space-y-3">
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                  <label className="block text-[11px] font-mono uppercase text-on-surface-variant mb-1">
                     Channel Name
                   </label>
                   <input
@@ -616,12 +771,12 @@ export function MessagesClient({
                     placeholder="e.g. #marketing-sync"
                     value={newChannelName}
                     onChange={(e) => setNewChannelName(e.target.value)}
-                    className="w-full rounded-xl border border-white/10 bg-slate-950 px-3.5 py-2 text-xs text-white theme-input-focus"
+                    className="w-full rounded bg-surface-container-lowest border border-outline/20 px-3 py-1.5 text-xs text-on-surface focus:border-primary focus:outline-none font-mono"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                  <label className="block text-[11px] font-mono uppercase text-on-surface-variant mb-1">
                     Topic / Description
                   </label>
                   <input
@@ -629,12 +784,12 @@ export function MessagesClient({
                     placeholder="e.g. Cross-functional campaign coordination"
                     value={newChannelDescription}
                     onChange={(e) => setNewChannelDescription(e.target.value)}
-                    className="w-full rounded-xl border border-white/10 bg-slate-950 px-3.5 py-2 text-xs text-white theme-input-focus"
+                    className="w-full rounded bg-surface-container-lowest border border-outline/20 px-3 py-1.5 text-xs text-on-surface focus:border-primary focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                  <label className="block text-[11px] font-mono uppercase text-on-surface-variant mb-1">
                     Initial Message (Optional)
                   </label>
                   <textarea
@@ -642,22 +797,22 @@ export function MessagesClient({
                     placeholder="Welcome team! Use this channel to coordinate..."
                     value={newChannelInitialMessage}
                     onChange={(e) => setNewChannelInitialMessage(e.target.value)}
-                    className="w-full rounded-xl border border-white/10 bg-slate-950 px-3.5 py-2 text-xs text-white theme-input-focus resize-none"
+                    className="w-full rounded bg-surface-container-lowest border border-outline/20 px-3 py-1.5 text-xs text-on-surface focus:border-primary focus:outline-none resize-none"
                   />
                 </div>
 
-                <div className="mt-4 flex justify-end gap-2 pt-2">
+                <div className="mt-4 flex justify-end gap-2 pt-2 border-t border-outline/10">
                   <button
                     type="button"
                     onClick={() => setShowNewChatModal(false)}
-                    className="rounded-xl px-4 py-2 text-xs font-medium text-slate-300 hover:bg-white/5"
+                    className="rounded bg-surface-container-high px-3 py-1.5 text-xs font-medium text-on-surface hover:bg-surface-container-highest transition"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isCreatingChat || !newChannelName.trim()}
-                    className="theme-btn-primary rounded-xl px-4 py-2 text-xs font-semibold text-white shadow transition hover:opacity-90 disabled:opacity-50"
+                    className="rounded bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-3.5 py-1.5 text-xs font-medium shadow-sm transition disabled:opacity-50"
                   >
                     {isCreatingChat ? "Creating..." : "Create Channel"}
                   </button>
@@ -665,8 +820,9 @@ export function MessagesClient({
               </form>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
-    </>
+    </div>
   );
 }

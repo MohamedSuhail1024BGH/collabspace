@@ -105,12 +105,12 @@ export function ReportsWorkspace({
             visible={category === "Overview" || category === "Team"}
           />
 
-          <div className="rounded-3xl border border-white/10 bg-slate-950/60 p-5 shadow-xl shadow-slate-950/20">
+          <div className="rounded-xl border border-outline-variant/20 bg-surface-container-low p-4 shadow-xs">
             <div className="flex items-center gap-2 mb-2">
-              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-              <h4 className="text-sm font-semibold text-white">Live Workspace Metrics</h4>
+              <span className="h-2 w-2 rounded-full bg-secondary animate-pulse" />
+              <h4 className="text-xs font-semibold text-on-surface">Live Workspace Metrics</h4>
             </div>
-            <p className="text-xs text-slate-400 leading-relaxed">
+            <p className="text-[11px] text-on-surface-variant leading-relaxed font-body-sm">
               Analytics generated dynamically from active workspace projects, tasks, and assigned members.
               Refreshes in real-time on database mutation.
             </p>
