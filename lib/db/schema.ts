@@ -75,6 +75,7 @@ export const projects = sqliteTable("projects", {
   progress: integer("progress").notNull().default(0),
   due: text("due").notNull(),
   owner: text("owner").notNull(),
+  ownerUserId: text("owner_user_id").references(() => users.id, { onDelete: "set null" }),
   status: text("status").notNull().default("Planning"),
   overview: text("overview").notNull(),
   createdAt: text("created_at").notNull(),
@@ -114,11 +115,11 @@ export const tasks = sqliteTable("tasks", {
   id: text("id").primaryKey(),
   workspaceId: text("workspace_id")
     .notNull()
-    
     .references(() => workspaces.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   description: text("description").notNull().default(""),
   assignee: text("assignee").notNull().default("Unassigned"),
+  assigneeUserId: text("assignee_user_id").references(() => users.id, { onDelete: "set null" }),
   priority: text("priority").notNull().default("Medium"), // "High" | "Medium" | "Low"
   status: text("status").notNull().default("Not started"),
   due: text("due").notNull(),

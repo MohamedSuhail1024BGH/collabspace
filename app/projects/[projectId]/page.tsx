@@ -36,7 +36,7 @@ export default async function ProjectDetailPage({
 
   const isOwnerOrAdmin = userRole === "owner" || userRole === "admin";
   const isLead =
-    project.owner === user.name ||
+    (project.ownerUserId ? project.ownerUserId === user.id : false) ||
     project.teamMembers.some((m) => m.userId === user.id && (m.role === "lead" || m.role === "Project owner"));
   const canManageProject = isOwnerOrAdmin || isLead;
 

@@ -149,7 +149,9 @@ export async function logoutAction() {
   return { success: true };
 }
 
-export async function deleteAccountAction() {
+export async function deleteAccountAction(options?: {
+  replacementOwners?: Record<string, string>;
+}) {
   try {
     const user = await getCurrentUser();
     if (!user) {
@@ -159,33 +161,126 @@ export async function deleteAccountAction() {
     const userId = user.id;
 
     // 1. Find all workspaces where this user is an owner
-    const memberships = await db
-      .select({
-        workspaceId: workspaceMembers.workspaceId,
-        role: workspaceMembers.role,
-      })
-      .from(workspaceMembers)
-      .where(eq(workspaceMembers.userId, userId));
+    const ownedWorkspaces = sqlite
+      .prepare(`
+        SELECT w.id, w.name, (
+          SELECT COUNT(*) FROM workspace_members wm2 WHERE wm2.workspace_id = w.id
+        ) as member_count
+        FROM workspaces w
+        JOIN workspace_members wm ON w.id = wm.workspace_id
+        WHERE wm.user_id = ? AND wm.role = 'owner'
+      `)
+      .all(userId) as { id: string; name: string; member_count: number }[];
 
-    // 2. For each workspace where user is the owner, check if they are the sole member
-    for (const m of memberships) {
-      if (m.role === "owner") {
-        const allMembers = await db
-          .select()
-          .from(workspaceMembers)
-          .where(eq(workspaceMembers.workspaceId, m.workspaceId));
+    const soleMemberWorkspaces = ownedWorkspaces.filter((w) => w.member_count <= 1);
+    const multiMemberWorkspaces = ownedWorkspaces.filter((w) => w.member_count > 1);
 
-        if (allMembers.length <= 1) {
-          // Sole owner and member: delete workspace (cascades to tasks, projects, etc.)
-          await db.delete(workspaces).where(eq(workspaces.id, m.workspaceId));
+    if (multiMemberWorkspaces.length > 0) {
+      // If replacement mappings are absent, return interim blocker error
+      if (!options?.replacementOwners) {
+        const wsNames = multiMemberWorkspaces.map((w) => `'${w.name}'`).join(", ");
+        return {
+          success: false,
+          error: `Cannot delete account: you are the sole owner of active multi-member workspace(s) (${wsNames}). Please transfer ownership in Workspace Settings before deleting your account.`,
+        };
+      }
+
+      // If replacement mappings are provided, validate each required workspace
+      for (const w of multiMemberWorkspaces) {
+        const replacementUserId = options.replacementOwners[w.id];
+        if (!replacementUserId || typeof replacementUserId !== "string") {
+          return {
+            success: false,
+            error: `Cannot delete account: replacement owner required for workspace '${w.name}' (${w.id}).`,
+          };
+        }
+
+        if (replacementUserId === userId) {
+          return {
+            success: false,
+            error: `Cannot assign yourself as replacement owner for workspace '${w.name}'.`,
+          };
+        }
+
+        // Verify replacement is a member of that workspace
+        const targetMember = sqlite
+          .prepare("SELECT id, role FROM workspace_members WHERE workspace_id = ? AND user_id = ?")
+          .get(w.id, replacementUserId) as { id: string; role: string } | undefined;
+
+        if (!targetMember) {
+          return {
+            success: false,
+            error: `Replacement user ${replacementUserId} is not a member of workspace '${w.name}'.`,
+          };
+        }
+      }
+
+      // Reject extraneous / cross-workspace mappings that do not correspond to owned multi-member workspaces
+      for (const mappedWsId of Object.keys(options.replacementOwners)) {
+        if (!multiMemberWorkspaces.some((w) => w.id === mappedWsId)) {
+          return {
+            success: false,
+            error: `Invalid replacement mapping for workspace '${mappedWsId}': user is not the sole owner of a multi-member workspace with this ID.`,
+          };
         }
       }
     }
 
-    // 3. Delete user record (foreign keys cascade to sessions and workspaceMembers)
-    await db.delete(users).where(eq(users.id, userId));
+    // 2. Atomic transaction: promote replacements, explicitly delete caller memberships, delete sole-member workspaces, delete user
+    sqlite.transaction(() => {
+      // Process multi-member workspaces
+      for (const w of multiMemberWorkspaces) {
+        const repUserId = options!.replacementOwners![w.id];
 
-    // 4. Invalidate session in database & clear cookies
+        // Verify starting single-owner cardinality
+        const startingOwners = sqlite
+          .prepare("SELECT id, user_id FROM workspace_members WHERE workspace_id = ? AND role = 'owner'")
+          .all(w.id) as { id: string; user_id: string }[];
+
+        if (startingOwners.length !== 1 || startingOwners[0].user_id !== userId) {
+          throw new Error(`Workspace invariant violation: workspace '${w.id}' must start with exactly one owner.`);
+        }
+
+        // Promote replacement
+        sqlite
+          .prepare("UPDATE workspace_members SET role = 'owner' WHERE workspace_id = ? AND user_id = ?")
+          .run(w.id, repUserId);
+
+        // Explicitly delete caller's membership
+        sqlite
+          .prepare("DELETE FROM workspace_members WHERE workspace_id = ? AND user_id = ?")
+          .run(w.id, userId);
+
+        // Verify ending single-owner cardinality
+        const endOwners = sqlite
+          .prepare("SELECT COUNT(*) as cnt FROM workspace_members WHERE workspace_id = ? AND role = 'owner'")
+          .get(w.id) as { cnt: number };
+
+        if (endOwners.cnt !== 1) {
+          throw new Error(`Workspace invariant violation: workspace '${w.id}' must end with exactly one owner.`);
+        }
+      }
+
+      // Delete sole-member workspaces
+      for (const w of soleMemberWorkspaces) {
+        sqlite.prepare("DELETE FROM workspaces WHERE id = ?").run(w.id);
+      }
+
+      // Delete user sessions & user record
+      sqlite.prepare("DELETE FROM sessions WHERE user_id = ?").run(userId);
+      sqlite.prepare("DELETE FROM users WHERE id = ?").run(userId);
+
+      // Verify no remaining memberships for caller
+      const lingeringMemberships = sqlite
+        .prepare("SELECT COUNT(*) as cnt FROM workspace_members WHERE user_id = ?")
+        .get(userId) as { cnt: number };
+
+      if (lingeringMemberships.cnt !== 0) {
+        throw new Error("Account deletion failed: lingering memberships detected.");
+      }
+    })();
+
+    // Invalidate session in database & clear cookies
     await destroySession();
 
     safeRevalidatePath("/");
@@ -253,24 +348,40 @@ export async function createWorkspaceAction(data: {
   }
   const now = new Date().toISOString();
 
-  await db.insert(workspaces).values({
-    id: wsId,
-    name: data.name.trim() || "Untitled Workspace",
-    slug,
-    description: data.description?.trim() ?? "",
-    isPublic: data.isPublic ?? true,
-    plan: data.plan ?? "Pro",
-    createdAt: now,
-  });
+  sqlite.transaction(() => {
+    sqlite.prepare(`
+      INSERT INTO workspaces (id, name, slug, description, is_public, plan, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      wsId,
+      data.name.trim() || "Untitled Workspace",
+      slug,
+      data.description?.trim() ?? "",
+      data.isPublic ?? true ? 1 : 0,
+      data.plan ?? "Pro",
+      now
+    );
 
-  // Assign user as workspace owner
-  await db.insert(workspaceMembers).values({
-    id: `wm-${wsId}-owner`,
-    workspaceId: wsId,
-    userId: user.id,
-    role: "owner",
-    joinedAt: now,
-  });
+    // Assign user as workspace owner
+    sqlite.prepare(`
+      INSERT INTO workspace_members (id, workspace_id, user_id, role, joined_at)
+      VALUES (?, ?, ?, 'owner', ?)
+    `).run(
+      `wm-${wsId}-owner`,
+      wsId,
+      user.id,
+      now
+    );
+
+    const ownerCount = (
+      sqlite
+        .prepare("SELECT COUNT(*) as cnt FROM workspace_members WHERE workspace_id = ? AND role = 'owner'")
+        .get(wsId) as { cnt: number }
+    ).cnt;
+    if (ownerCount !== 1) {
+      throw new Error("Failed to initialize workspace owner.");
+    }
+  })();
 
   // Switch to newly created workspace
   await switchWorkspaceAction(wsId);
@@ -448,18 +559,25 @@ export async function deleteWorkspaceAction(workspaceId: string) {
     const currentUser = await getCurrentUser();
     if (!currentUser) return { success: false, error: "Unauthorized." };
 
-    const [membership] = await db
-      .select()
-      .from(workspaceMembers)
-      .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, currentUser.id)))
-      .limit(1);
-
-    if (!membership || membership.role !== "owner") {
-      return { success: false, error: "Only the workspace owner can delete this workspace." };
+    if (!workspaceId || typeof workspaceId !== "string") {
+      return { success: false, error: "A valid workspace ID is required." };
     }
 
-    // Delete workspace (cascades to related tables via foreign keys)
-    await db.delete(workspaces).where(eq(workspaces.id, workspaceId));
+    sqlite.transaction(() => {
+      const startingOwners = sqlite
+        .prepare("SELECT id, user_id FROM workspace_members WHERE workspace_id = ? AND role = 'owner'")
+        .all(workspaceId) as { id: string; user_id: string }[];
+
+      if (startingOwners.length !== 1) {
+        throw new Error("Workspace invariant violation: workspace must have exactly one owner.");
+      }
+      if (startingOwners[0].user_id !== currentUser.id) {
+        throw new Error("Only the workspace owner can delete this workspace.");
+      }
+
+      // Delete workspace (cascades to related tables via foreign keys)
+      sqlite.prepare("DELETE FROM workspaces WHERE id = ?").run(workspaceId);
+    })();
 
     const remainingWorkspaces = await getUserWorkspaces(currentUser.id);
     if (remainingWorkspaces.length > 0) {
@@ -481,33 +599,47 @@ export async function leaveWorkspaceAction(workspaceId: string) {
     const currentUser = await getCurrentUser();
     if (!currentUser) return { success: false, error: "Unauthorized." };
 
-    const [membership] = await db
-      .select()
-      .from(workspaceMembers)
-      .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, currentUser.id)))
-      .limit(1);
-
-    if (!membership) {
-      return { success: false, error: "You are not a member of this workspace." };
+    if (!workspaceId || typeof workspaceId !== "string") {
+      return { success: false, error: "A valid workspace ID is required." };
     }
 
-    if (membership.role === "owner") {
-      const allMembers = await db
-        .select()
-        .from(workspaceMembers)
-        .where(eq(workspaceMembers.workspaceId, workspaceId));
-      if (allMembers.length > 1) {
-        return {
-          success: false,
-          error: "Workspace owners cannot leave while other members exist. Transfer ownership or delete workspace.",
-        };
+    sqlite.transaction(() => {
+      const membership = sqlite
+        .prepare("SELECT id, role FROM workspace_members WHERE workspace_id = ? AND user_id = ?")
+        .get(workspaceId, currentUser.id) as { id: string; role: string } | undefined;
+
+      if (!membership) {
+        throw new Error("You are not a member of this workspace.");
       }
-      await db.delete(workspaces).where(eq(workspaces.id, workspaceId));
-    } else {
-      await db
-        .delete(workspaceMembers)
-        .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, currentUser.id)));
-    }
+
+      if (membership.role === "owner") {
+        const memberCount = (
+          sqlite
+            .prepare("SELECT COUNT(*) as cnt FROM workspace_members WHERE workspace_id = ?")
+            .get(workspaceId) as { cnt: number }
+        ).cnt;
+
+        if (memberCount > 1) {
+          throw new Error("Workspace owners cannot leave while other members exist. Transfer ownership or delete workspace.");
+        }
+
+        sqlite.prepare("DELETE FROM workspaces WHERE id = ?").run(workspaceId);
+      } else {
+        sqlite
+          .prepare("DELETE FROM workspace_members WHERE workspace_id = ? AND user_id = ?")
+          .run(workspaceId, currentUser.id);
+
+        const endOwners = (
+          sqlite
+            .prepare("SELECT COUNT(*) as cnt FROM workspace_members WHERE workspace_id = ? AND role = 'owner'")
+            .get(workspaceId) as { cnt: number }
+        ).cnt;
+
+        if (endOwners !== 1) {
+          throw new Error("Workspace invariant violation: workspace must have exactly one owner.");
+        }
+      }
+    })();
 
     const remainingWorkspaces = await getUserWorkspaces(currentUser.id);
     if (remainingWorkspaces.length > 0) {
@@ -529,43 +661,62 @@ export async function transferWorkspaceOwnershipAction(workspaceId: string, newO
     const currentUser = await getCurrentUser();
     if (!currentUser) return { success: false, error: "Unauthorized." };
 
-    if (currentUser.id === newOwnerUserId) {
-      return { success: false, error: "You are already the owner of this workspace." };
+    if (!workspaceId || typeof workspaceId !== "string" || !newOwnerUserId || typeof newOwnerUserId !== "string") {
+      return { success: false, error: "Workspace ID and new owner user ID are required." };
     }
 
-    // Verify caller is owner
-    const [callerMembership] = await db
-      .select()
-      .from(workspaceMembers)
-      .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, currentUser.id)))
-      .limit(1);
+    sqlite.transaction(() => {
+      const ws = sqlite.prepare("SELECT id FROM workspaces WHERE id = ?").get(workspaceId);
+      if (!ws) {
+        throw new Error("Workspace not found.");
+      }
 
-    if (!callerMembership || callerMembership.role !== "owner") {
-      return { success: false, error: "Only the current workspace owner can transfer ownership." };
-    }
+      // Starting cardinality check: must start with exactly 1 owner, and caller must be that owner
+      const startingOwners = sqlite
+        .prepare("SELECT id, user_id FROM workspace_members WHERE workspace_id = ? AND role = 'owner'")
+        .all(workspaceId) as { id: string; user_id: string }[];
 
-    // Verify target user is an existing member of this workspace
-    const [targetMembership] = await db
-      .select()
-      .from(workspaceMembers)
-      .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, newOwnerUserId)))
-      .limit(1);
+      if (startingOwners.length !== 1) {
+        throw new Error("Workspace invariant violation: workspace must start with exactly one owner.");
+      }
+      if (startingOwners[0].user_id !== currentUser.id) {
+        throw new Error("Only the current workspace owner can transfer ownership.");
+      }
 
-    if (!targetMembership) {
-      return { success: false, error: "Target user is not a member of this workspace." };
-    }
+      if (currentUser.id === newOwnerUserId) {
+        throw new Error("You are already the owner of this workspace.");
+      }
 
-    // Promote target to owner
-    await db
-      .update(workspaceMembers)
-      .set({ role: "owner" })
-      .where(eq(workspaceMembers.id, targetMembership.id));
+      // Verify target user is a member of this workspace
+      const targetMembership = sqlite
+        .prepare("SELECT id, role FROM workspace_members WHERE workspace_id = ? AND user_id = ?")
+        .get(workspaceId, newOwnerUserId) as { id: string; role: string } | undefined;
 
-    // Demote caller to admin
-    await db
-      .update(workspaceMembers)
-      .set({ role: "admin" })
-      .where(eq(workspaceMembers.id, callerMembership.id));
+      if (!targetMembership) {
+        throw new Error("Target user is not a member of this workspace.");
+      }
+
+      // Demote caller to admin
+      sqlite
+        .prepare("UPDATE workspace_members SET role = 'admin' WHERE id = ?")
+        .run(startingOwners[0].id);
+
+      // Promote target to owner
+      sqlite
+        .prepare("UPDATE workspace_members SET role = 'owner' WHERE id = ?")
+        .run(targetMembership.id);
+
+      // Ending cardinality check: must end with exactly 1 owner
+      const endOwners = (
+        sqlite
+          .prepare("SELECT COUNT(*) as cnt FROM workspace_members WHERE workspace_id = ? AND role = 'owner'")
+          .get(workspaceId) as { cnt: number }
+      ).cnt;
+
+      if (endOwners !== 1) {
+        throw new Error("Workspace invariant violation: workspace must end with exactly one owner.");
+      }
+    })();
 
     safeRevalidatePath("/");
     safeRevalidatePath("/start");
@@ -573,6 +724,9 @@ export async function transferWorkspaceOwnershipAction(workspaceId: string, newO
     return { success: true };
   } catch (err: unknown) {
     console.error("Transfer workspace ownership error:", err);
+    if (isUniqueConstraintError(err)) {
+      return { success: false, error: "Failed to transfer ownership: unique constraint violation." };
+    }
     return { success: false, error: err instanceof Error ? err.message : "Failed to transfer ownership." };
   }
 }
@@ -881,11 +1035,59 @@ export async function searchWorkspacesAction(query: string) {
 }
 
 // --- Tasks Actions ---
+function resolveTaskAssignee(
+  workspaceId: string,
+  assigneeName?: string,
+  assigneeUserId?: string
+): { success: true; assignee: string; assigneeUserId: string | null } | { success: false; error: string } {
+  if (assigneeUserId !== undefined) {
+    const trimmedId = assigneeUserId.trim();
+    if (!trimmedId) {
+      return { success: false, error: "Assignee must be an active member of this workspace." };
+    }
+    // Validate membership
+    const member = sqlite
+      .prepare(`
+        SELECT u.id, u.name FROM workspace_members wm
+        JOIN users u ON wm.user_id = u.id
+        WHERE wm.workspace_id = ? AND wm.user_id = ?
+      `)
+      .get(workspaceId, trimmedId) as { id: string; name: string } | undefined;
+
+    if (!member) {
+      return { success: false, error: "Assignee must be an active member of this workspace." };
+    }
+    return { success: true, assignee: member.name, assigneeUserId: member.id };
+  }
+
+  const rawName = assigneeName?.trim();
+  if (!rawName || rawName === "Unassigned") {
+    return { success: true, assignee: "Unassigned", assigneeUserId: null };
+  }
+
+  // Resolve by name within workspace
+  const matches = sqlite
+    .prepare(`
+      SELECT u.id, u.name FROM workspace_members wm
+      JOIN users u ON wm.user_id = u.id
+      WHERE wm.workspace_id = ? AND u.name = ?
+    `)
+    .all(workspaceId, rawName) as { id: string; name: string }[];
+
+  if (matches.length === 1) {
+    return { success: true, assignee: matches[0].name, assigneeUserId: matches[0].id };
+  }
+
+  // 0 or multiple matches -> leave assigneeUserId NULL, keep display name
+  return { success: true, assignee: rawName, assigneeUserId: null };
+}
+
 export async function createTaskAction(data: {
   workspaceId?: string;
   title: string;
   description?: string;
   assignee?: string;
+  assigneeUserId?: string;
   priority?: "High" | "Medium" | "Low";
   status?: string;
   due?: string;
@@ -923,6 +1125,11 @@ export async function createTaskAction(data: {
     }
   }
 
+  const resolved = resolveTaskAssignee(wsId, data.assignee, data.assigneeUserId);
+  if (!resolved.success) {
+    return { success: false, error: resolved.error };
+  }
+
   const id = `task-${Date.now()}`;
   const now = new Date().toISOString();
 
@@ -931,7 +1138,8 @@ export async function createTaskAction(data: {
     workspaceId: wsId,
     title: data.title.trim() || "Untitled task",
     description: data.description?.trim() ?? "",
-    assignee: data.assignee?.trim() || "Unassigned",
+    assignee: resolved.assignee,
+    assigneeUserId: resolved.assigneeUserId,
     priority: data.priority ?? "Medium",
     status: data.status ?? "Not started",
     due: data.due || new Date().toISOString().slice(0, 10),
@@ -952,6 +1160,7 @@ export async function updateTaskAction(
     title?: string;
     description?: string;
     assignee?: string;
+    assigneeUserId?: string;
     priority?: "High" | "Medium" | "Low";
     status?: string;
     due?: string;
@@ -988,12 +1197,37 @@ export async function updateTaskAction(
     }
   }
 
+  let resolvedAssignee: { assignee: string; assigneeUserId: string | null } | undefined;
+  const hasAssigneeUserId = data.assigneeUserId !== undefined;
+  const hasAssigneeName = data.assignee !== undefined;
+
+  if (hasAssigneeUserId) {
+    const res = resolveTaskAssignee(task.workspaceId, undefined, data.assigneeUserId);
+    if (!res.success) {
+      return { success: false, error: res.error };
+    }
+    resolvedAssignee = { assignee: res.assignee, assigneeUserId: res.assigneeUserId };
+  } else if (hasAssigneeName) {
+    const isNameChanged = data.assignee!.trim() !== task.assignee;
+    if (isNameChanged) {
+      const res = resolveTaskAssignee(task.workspaceId, data.assignee, undefined);
+      if (!res.success) {
+        return { success: false, error: res.error };
+      }
+      resolvedAssignee = { assignee: res.assignee, assigneeUserId: res.assigneeUserId };
+    } else {
+      resolvedAssignee = { assignee: task.assignee, assigneeUserId: task.assigneeUserId ?? null };
+    }
+  }
+
   await db
     .update(tasks)
     .set({
       ...(data.title ? { title: data.title.trim() } : {}),
       ...(data.description !== undefined ? { description: data.description.trim() } : {}),
-      ...(data.assignee ? { assignee: data.assignee.trim() } : {}),
+      ...(resolvedAssignee
+        ? { assignee: resolvedAssignee.assignee, assigneeUserId: resolvedAssignee.assigneeUserId }
+        : {}),
       ...(data.priority ? { priority: data.priority } : {}),
       ...(data.status ? { status: data.status } : {}),
       ...(data.due ? { due: data.due } : {}),
@@ -1046,12 +1280,24 @@ export async function deleteTaskAction(id: string) {
     .where(and(eq(workspaceMembers.workspaceId, task.workspaceId), eq(workspaceMembers.userId, currentUser.id)))
     .limit(1);
 
-  const isAssignee = task.assignee === currentUser.name;
-  if (!membership || membership.role === "viewer" || (membership.role === "member" && !isAssignee)) {
+  if (!membership) {
+    return { success: false, error: "Permission denied to delete task." };
+  }
+  if (membership.role === "viewer") {
     return { success: false, error: "Permission denied to delete task." };
   }
 
-  await db.delete(tasks).where(eq(tasks.id, id));
+  const isWsAdmin = membership.role === "owner" || membership.role === "admin";
+  const isAssignee = task.assigneeUserId ? task.assigneeUserId === currentUser.id : false;
+
+  if (!isWsAdmin && !isAssignee) {
+    return { success: false, error: "Permission denied to delete task." };
+  }
+
+  sqlite.transaction(() => {
+    sqlite.prepare("DELETE FROM tasks WHERE id = ?").run(id);
+  })();
+
   safeRevalidatePath("/tasks");
   safeRevalidatePath("/");
   if (task.projectId) safeRevalidatePath(`/projects/${task.projectId}`);
@@ -1181,13 +1427,14 @@ export async function createProjectAction(data: {
     // Atomic execution of project creation + roster insertion + initial activity in single transaction
     sqlite.transaction(() => {
       sqlite.prepare(`
-        INSERT INTO projects (id, workspace_id, name, owner, status, due, progress, overview, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO projects (id, workspace_id, name, owner, owner_user_id, status, due, progress, overview, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         projectId,
         wsId,
         trimmedName,
         leadName,
+        leadUserId,
         data.status || "Planning",
         data.due || "Next week",
         data.progress ?? 0,
@@ -1243,6 +1490,7 @@ export async function updateProjectAction(
   data: {
     name?: string;
     owner?: string;
+    ownerUserId?: string;
     status?: string;
     due?: string;
     progress?: number;
@@ -1265,17 +1513,55 @@ export async function updateProjectAction(
     return { success: false, error: "Permission denied." };
   }
 
-  await db
-    .update(projects)
-    .set({
-      ...(data.name ? { name: data.name.trim() } : {}),
-      ...(data.owner ? { owner: data.owner.trim() } : {}),
-      ...(data.status ? { status: data.status } : {}),
-      ...(data.due ? { due: data.due } : {}),
-      ...(data.progress !== undefined ? { progress: Math.min(100, Math.max(0, data.progress)) } : {}),
-      ...(data.overview !== undefined ? { overview: data.overview.trim() } : {}),
-    })
-    .where(eq(projects.id, id));
+  let resolvedOwner: string | undefined;
+  let resolvedOwnerUserId: string | null | undefined;
+
+  if (data.ownerUserId !== undefined) {
+    const target = sqlite
+      .prepare(`
+        SELECT u.id, u.name FROM workspace_members wm
+        JOIN users u ON wm.user_id = u.id
+        WHERE wm.workspace_id = ? AND u.id = ?
+      `)
+      .get(project.workspaceId, data.ownerUserId) as { id: string; name: string } | undefined;
+
+    if (!target) {
+      return { success: false, error: "Project owner must be an active member of this workspace." };
+    }
+    resolvedOwner = target.name;
+    resolvedOwnerUserId = target.id;
+  } else if (data.owner !== undefined) {
+    const rawOwner = data.owner.trim();
+    const matches = sqlite
+      .prepare(`
+        SELECT u.id, u.name FROM workspace_members wm
+        JOIN users u ON wm.user_id = u.id
+        WHERE wm.workspace_id = ? AND u.name = ?
+      `)
+      .all(project.workspaceId, rawOwner) as { id: string; name: string }[];
+
+    if (matches.length === 0) {
+      return { success: false, error: "Project owner must be an active member of this workspace." };
+    }
+    if (matches.length > 1) {
+      return { success: false, error: "Multiple workspace members match this name. Ambiguous owner change rejected." };
+    }
+    resolvedOwner = matches[0].name;
+    resolvedOwnerUserId = matches[0].id;
+  }
+
+  const updateData: Record<string, unknown> = {
+    ...(data.name ? { name: data.name.trim() } : {}),
+    ...(resolvedOwner !== undefined ? { owner: resolvedOwner, ownerUserId: resolvedOwnerUserId } : {}),
+    ...(data.status ? { status: data.status } : {}),
+    ...(data.due ? { due: data.due } : {}),
+    ...(data.progress !== undefined ? { progress: Math.min(100, Math.max(0, data.progress)) } : {}),
+    ...(data.overview !== undefined ? { overview: data.overview.trim() } : {}),
+  };
+
+  if (Object.keys(updateData).length > 0) {
+    await db.update(projects).set(updateData).where(eq(projects.id, id));
+  }
 
   if (data.status && data.status !== project.status) {
     await db.insert(projectActivity).values({
@@ -1305,14 +1591,27 @@ export async function deleteProjectAction(id: string) {
     .where(and(eq(workspaceMembers.workspaceId, project.workspaceId), eq(workspaceMembers.userId, currentUser.id)))
     .limit(1);
 
-  const isLead = project.owner === currentUser.name;
-  if (!wsMembership || (wsMembership.role !== "owner" && wsMembership.role !== "admin" && !isLead)) {
+  if (!wsMembership) {
     return { success: false, error: "Only workspace owners, admins, or the project lead can delete this project." };
   }
 
-  await db.delete(projectMembers).where(eq(projectMembers.projectId, id));
-  await db.delete(projectActivity).where(eq(projectActivity.projectId, id));
-  await db.delete(projects).where(eq(projects.id, id));
+  const isWsAdmin = wsMembership.role === "owner" || wsMembership.role === "admin";
+  const leadMember = sqlite
+    .prepare("SELECT id FROM project_members WHERE project_id = ? AND user_id = ? AND role = 'lead'")
+    .get(id, currentUser.id);
+  const isLeadMember = Boolean(leadMember);
+  const isProjectOwner = project.ownerUserId ? project.ownerUserId === currentUser.id : false;
+
+  if (!isWsAdmin && !isLeadMember && !isProjectOwner) {
+    return { success: false, error: "Only workspace owners, admins, or the project lead can delete this project." };
+  }
+
+  sqlite.transaction(() => {
+    sqlite.prepare("DELETE FROM project_members WHERE project_id = ?").run(id);
+    sqlite.prepare("DELETE FROM project_activity WHERE project_id = ?").run(id);
+    sqlite.prepare("UPDATE tasks SET project_id = NULL, project_name = 'General' WHERE project_id = ?").run(id);
+    sqlite.prepare("DELETE FROM projects WHERE id = ?").run(id);
+  })();
 
   safeRevalidatePath("/projects");
   safeRevalidatePath("/");

@@ -85,6 +85,7 @@ export function ensureTablesBasic(sqliteInstance = sqlite): void {
       workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
       owner TEXT NOT NULL,
+      owner_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
       status TEXT NOT NULL DEFAULT 'Planning',
       due TEXT NOT NULL,
       progress INTEGER NOT NULL DEFAULT 0,
@@ -115,11 +116,12 @@ export function ensureTablesBasic(sqliteInstance = sqlite): void {
       title TEXT NOT NULL,
       description TEXT DEFAULT '',
       assignee TEXT NOT NULL,
+      assignee_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
       priority TEXT NOT NULL DEFAULT 'Medium',
       status TEXT NOT NULL DEFAULT 'Todo',
       due TEXT NOT NULL,
-      project_id TEXT NOT NULL,
-      project_name TEXT NOT NULL,
+      project_id TEXT,
+      project_name TEXT,
       created_at TEXT NOT NULL
     );
 

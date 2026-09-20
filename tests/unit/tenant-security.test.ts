@@ -328,7 +328,7 @@ async function runTests() {
   zeroLeadDb.prepare("INSERT INTO users (id, email, username, name, password_hash, avatar, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)").run("zl1", "zl@t.com", "zl1", "ZL", "hash", null, now);
   zeroLeadDb.prepare("INSERT INTO workspaces (id, name, slug, plan, is_public, created_at) VALUES (?, ?, ?, ?, ?, ?)").run("ws_zl", "WS ZL", "wszl", "Pro", 1, now);
   zeroLeadDb.prepare("INSERT INTO workspace_members VALUES (?, ?, ?, ?, ?)").run("wm_zl", "ws_zl", "zl1", "owner", now);
-  zeroLeadDb.prepare("INSERT INTO projects VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)").run("proj_zl", "ws_zl", "Proj ZL", "ZL", "Planning", "2026-10-01", 0, "Overview", now);
+  zeroLeadDb.prepare("INSERT INTO projects (id, workspace_id, name, owner, owner_user_id, status, due, progress, overview, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run("proj_zl", "ws_zl", "Proj ZL", "ZL", null, "Planning", "2026-10-01", 0, "Overview", now);
   zeroLeadDb.prepare("INSERT INTO project_members VALUES (?, ?, ?, ?, ?, ?, ?)").run("pm_zl", "proj_zl", "zl1", "ZL", "contributor", "ZL", "bg-cyan-500"); // only contributor, 0 leads!
   zeroLeadDb.close();
 
@@ -350,7 +350,7 @@ async function runTests() {
   multiLeadDb.prepare("INSERT INTO workspaces (id, name, slug, plan, is_public, created_at) VALUES (?, ?, ?, ?, ?, ?)").run("ws_ml", "WS ML", "wsml", "Pro", 1, now);
   multiLeadDb.prepare("INSERT INTO workspace_members VALUES (?, ?, ?, ?, ?)").run("wm_l1", "ws_ml", "l1", "owner", now);
   multiLeadDb.prepare("INSERT INTO workspace_members VALUES (?, ?, ?, ?, ?)").run("wm_l2", "ws_ml", "l2", "member", now);
-  multiLeadDb.prepare("INSERT INTO projects VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)").run("proj_ml", "ws_ml", "Proj ML", "L1", "Planning", "2026-10-01", 0, "Overview", now);
+  multiLeadDb.prepare("INSERT INTO projects (id, workspace_id, name, owner, owner_user_id, status, due, progress, overview, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run("proj_ml", "ws_ml", "Proj ML", "L1", "l1", "Planning", "2026-10-01", 0, "Overview", now);
   multiLeadDb.prepare("INSERT INTO project_members VALUES (?, ?, ?, ?, ?, ?, ?)").run("pm_l1", "proj_ml", "l1", "L1", "lead", "L1", "bg-violet-500");
   multiLeadDb.prepare("INSERT INTO project_members VALUES (?, ?, ?, ?, ?, ?, ?)").run("pm_l2", "proj_ml", "l2", "L2", "lead", "L2", "bg-cyan-500");
   multiLeadDb.close();
@@ -462,7 +462,7 @@ async function runTests() {
   badIdxDb.prepare("INSERT INTO users (id, email, username, name, password_hash, avatar, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)").run("u_bi", "bi@t.com", "ubi", "User BI", "hash", null, now);
   badIdxDb.prepare("INSERT INTO workspaces (id, name, slug, plan, is_public, created_at) VALUES (?, ?, ?, ?, ?, ?)").run("ws_bi", "WS BI", "wsbi", "Pro", 1, now);
   badIdxDb.prepare("INSERT INTO workspace_members VALUES (?, ?, ?, ?, ?)").run("wm_bi", "ws_bi", "u_bi", "owner", now);
-  badIdxDb.prepare("INSERT INTO projects VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)").run("proj_bi", "ws_bi", "Proj BI", "User BI", "Planning", "2026-10-01", 0, "Overview", now);
+  badIdxDb.prepare("INSERT INTO projects (id, workspace_id, name, owner, owner_user_id, status, due, progress, overview, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run("proj_bi", "ws_bi", "Proj BI", "User BI", "u_bi", "Planning", "2026-10-01", 0, "Overview", now);
   badIdxDb.prepare("INSERT INTO project_members VALUES (?, ?, ?, ?, ?, ?, ?)").run("pm_bi", "proj_bi", "u_bi", "User BI", "lead", "UB", "bg-violet-500");
   badIdxDb.close();
 
@@ -562,7 +562,7 @@ async function runTests() {
   actionDb.prepare("INSERT INTO workspace_members VALUES (?, ?, ?, ?, ?)").run("wm_a_new", "ws_act", "usr_new", "member", now);
   actionDb.prepare("INSERT INTO workspace_members VALUES (?, ?, ?, ?, ?)").run("wm_a_ext", "ws_other", "usr_external", "member", now);
 
-  actionDb.prepare("INSERT INTO projects VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)").run("proj_act", "ws_act", "Project Action", "Lead User", "Planning", "2026-10-01", 0, "Overview", now);
+  actionDb.prepare("INSERT INTO projects (id, workspace_id, name, owner, owner_user_id, status, due, progress, overview, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run("proj_act", "ws_act", "Project Action", "Lead User", "usr_lead", "Planning", "2026-10-01", 0, "Overview", now);
   actionDb.prepare("INSERT INTO project_members VALUES (?, ?, ?, ?, ?, ?, ?)").run("pm_act_lead", "proj_act", "usr_lead", "Lead User", "lead", "LU", "bg-violet-500");
   actionDb.prepare("INSERT INTO project_members VALUES (?, ?, ?, ?, ?, ?, ?)").run("pm_act_mem", "proj_act", "usr_mem", "Member User", "contributor", "MU", "bg-cyan-500");
 
@@ -635,7 +635,7 @@ async function runTests() {
     assert(leadsAfter5.length === 1 && leadsAfter5[0].user_id === "usr_new", "Transaction rolled back: usr_new remains lead");
 
     // 7.6 Starting invariant: zero starting leads
-    actionDb.prepare("INSERT INTO projects VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)").run("proj_zero", "ws_act", "Zero Lead Proj", "No One", "Planning", "2026-10-01", 0, "Overview", now);
+    actionDb.prepare("INSERT INTO projects (id, workspace_id, name, owner, owner_user_id, status, due, progress, overview, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run("proj_zero", "ws_act", "Zero Lead Proj", "No One", null, "Planning", "2026-10-01", 0, "Overview", now);
     const resZeroLead = await assignProjectMemberAction({
       projectId: "proj_zero",
       userId: "usr_mem",
@@ -644,7 +644,7 @@ async function runTests() {
     assert(resZeroLead.success === false && resZeroLead.error!.includes("project must start with exactly one lead"), "Zero starting leads fails closed with invariant violation");
 
     // 7.7 Starting invariant: multiple starting leads
-    actionDb.prepare("INSERT INTO projects VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)").run("proj_multi", "ws_act", "Multi Lead Proj", "Both", "Planning", "2026-10-01", 0, "Overview", now);
+    actionDb.prepare("INSERT INTO projects (id, workspace_id, name, owner, owner_user_id, status, due, progress, overview, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run("proj_multi", "ws_act", "Multi Lead Proj", "Both", null, "Planning", "2026-10-01", 0, "Overview", now);
     actionDb.prepare("INSERT INTO project_members VALUES (?, ?, ?, ?, ?, ?, ?)").run("pm_m1", "proj_multi", "usr_lead", "L1", "lead", "LU", "bg-violet-500");
     actionDb.prepare("INSERT INTO project_members VALUES (?, ?, ?, ?, ?, ?, ?)").run("pm_m2", "proj_multi", "usr_mem", "L2", "lead", "MU", "bg-cyan-500");
 

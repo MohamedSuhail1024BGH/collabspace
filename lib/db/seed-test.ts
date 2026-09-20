@@ -54,8 +54,19 @@ async function seedTestData() {
   ]);
 
   for (const proj of projectDirectory) {
+    const ownerUserId =
+      proj.owner === "Ava Thompson" ? "usr-ava" : proj.owner === "Leo Martin" ? "usr-leo" : null;
     await db.insert(projects).values({
-      id: proj.id, workspaceId: "ws-acme", name: proj.name, progress: proj.progress, due: proj.due, owner: proj.owner, status: proj.status, overview: proj.overview, createdAt: now,
+      id: proj.id,
+      workspaceId: "ws-acme",
+      name: proj.name,
+      progress: proj.progress,
+      due: proj.due,
+      owner: proj.owner,
+      ownerUserId,
+      status: proj.status,
+      overview: proj.overview,
+      createdAt: now,
     });
     for (let i = 0; i < proj.teamMembers.length; i++) {
       const tm = proj.teamMembers[i];
@@ -69,8 +80,27 @@ async function seedTestData() {
   }
 
   for (const task of taskBoard) {
+    const assigneeUserId =
+      task.assignee === "Ava Thompson"
+        ? "usr-ava"
+        : task.assignee === "Leo Martin"
+        ? "usr-leo"
+        : task.assignee === "Mia Chen"
+        ? "usr-mia"
+        : null;
     await db.insert(tasks).values({
-      id: task.id, workspaceId: "ws-acme", title: task.title, description: task.description, assignee: task.assignee, priority: task.priority, status: task.status, due: task.due, projectId: task.project?.toLowerCase().replace(/\s+/g, "-"), projectName: task.project ?? "General", createdAt: now,
+      id: task.id,
+      workspaceId: "ws-acme",
+      title: task.title,
+      description: task.description,
+      assignee: task.assignee,
+      assigneeUserId,
+      priority: task.priority,
+      status: task.status,
+      due: task.due,
+      projectId: task.project?.toLowerCase().replace(/\s+/g, "-"),
+      projectName: task.project ?? "General",
+      createdAt: now,
     });
   }
 
@@ -151,8 +181,8 @@ async function seedTestData() {
   }
 
   await db.insert(projects).values([
-    { id: "mobile-app-launch", workspaceId: "ws-starlight", name: "Mobile App Launch", progress: 85, due: "Next Friday", owner: "Ava Thompson", status: "On track", overview: "Launch the native iOS and Android companion app with offline sync.", createdAt: now },
-    { id: "design-system-v2", workspaceId: "ws-starlight", name: "Design System v2", progress: 42, due: "End of month", owner: "Leo Martin", status: "Review", overview: "Upgrade component library to Tailwind v4 and unified dark mode theme.", createdAt: now },
+    { id: "mobile-app-launch", workspaceId: "ws-starlight", name: "Mobile App Launch", progress: 85, due: "Next Friday", owner: "Ava Thompson", ownerUserId: "usr-ava", status: "On track", overview: "Launch the native iOS and Android companion app with offline sync.", createdAt: now },
+    { id: "design-system-v2", workspaceId: "ws-starlight", name: "Design System v2", progress: 42, due: "End of month", owner: "Leo Martin", ownerUserId: "usr-leo", status: "Review", overview: "Upgrade component library to Tailwind v4 and unified dark mode theme.", createdAt: now },
   ]);
 
   console.log("Test database seeded!");
