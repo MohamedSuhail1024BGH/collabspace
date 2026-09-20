@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-labelledby="t d">
+<title id="t">CollabSpace logo</title>
+<desc id="d">Bridge tiles: an indigo tile and an emerald tile meeting corner to corner on a dark rounded square, joined by a white bridge link.</desc>
+<rect x="0.5" y="0.5" width="63" height="63" rx="15" fill="#111319" stroke="#282a30" stroke-width="1"/>
+<rect x="13" y="14" width="19" height="19" rx="5" fill="#8083ff"/>
+  <rect x="32" y="31" width="19" height="19" rx="5" fill="#4edea3"/>
+<path d="M28 25.5 H36 A6 6 0 0 1 42 31.5 V34.5" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round"/>
+</svg>
+

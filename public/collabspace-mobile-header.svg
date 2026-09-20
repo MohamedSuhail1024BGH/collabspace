@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="56" viewBox="0 0 390 56" role="img" aria-labelledby="tmdesc">
+  <title id="tmdesc">CollabSpace mobile chat header mockup</title>
+  <desc>Mobile reference header layout (56px h-14, surface-container) featuring hamburger navigation, Bridge tiles mark, and active channel identity.</desc>
+  <!-- Background & bottom border -->
+  <rect width="390" height="56" fill="#1E1F26"/>
+  <line x1="0" y1="55.5" x2="390" y2="55.5" stroke="#282A30" stroke-width="1"/>
+
+  <!-- Left: Hamburger button & Bridge Tiles Logo Mark (28px scale) -->
+  <g transform="translate(14, 14)">
+    <!-- Hamburger icon -->
+    <path d="M0 6 H16 M0 14 H16 M0 22 H16" stroke="#C7C4D7" stroke-width="1.8" stroke-linecap="round"/>
+
+    <!-- Bridge Tiles mark (scale 0.4375 => 28px) -->
+    <g transform="translate(28, 0) scale(0.4375)">
+      <rect x="0.5" y="0.5" width="63" height="63" rx="15" fill="#111319" stroke="#282a30" stroke-width="1"/>
+      <rect x="13" y="14" width="19" height="19" rx="5" fill="#8083ff"/>
+      <rect x="32" y="31" width="19" height="19" rx="5" fill="#4edea3"/>
+      <path d="M28 25.5 H36 A6 6 0 0 1 42 31.5 V34.5" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round"/>
+    </g>
+
+    <!-- Channel info -->
+    <g transform="translate(64, 4)">
+      <text x="0" y="11" fill="#F8FAFC" font-family="Geist, Inter, system-ui, sans-serif" font-size="13" font-weight="600"># engineering</text>
+      <text x="0" y="22" fill="#4EDEA3" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="500">● 8 online</text>
+    </g>
+  </g>
+
+  <!-- Right: Search button & User Avatar -->
+  <g transform="translate(305, 14)">
+    <!-- Search button -->
+    <circle cx="14" cy="14" r="14" fill="#282A30"/>
+    <circle cx="13" cy="13" r="4.5" fill="none" stroke="#C7C4D7" stroke-width="1.4"/>
+    <line x1="16.5" y1="16.5" x2="20" y2="20" stroke="#C7C4D7" stroke-width="1.4" stroke-linecap="round"/>
+
+    <!-- User Avatar (28px) -->
+    <g transform="translate(38, 0)">
+      <circle cx="14" cy="14" r="14" fill="#8083FF"/>
+      <text x="14" y="18" fill="#FFFFFF" font-family="Geist, Inter, system-ui, sans-serif" font-size="10" font-weight="600" text-anchor="middle">AL</text>
+      <circle cx="21" cy="21" r="3" fill="#4EDEA3" stroke="#1E1F26" stroke-width="1"/>
+    </g>
+  </g>
+</svg>
+

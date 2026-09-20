@@ -110,14 +110,19 @@ export function Sidebar({
       className="h-full w-60 bg-surface-container-low border-r border-outline/20 flex flex-col justify-between select-none text-on-surface"
     >
       <div className="flex flex-col">
-        {/* Top: CollabSpace Brand Header (Condition 1: workspace section removed from top) */}
+        {/* Top: CollabSpace Brand Header */}
         <div className="h-14 px-4 flex items-center justify-between border-b border-outline/20 bg-surface-container-low">
           <div className="flex items-center gap-2.5">
-            <svg className="h-6 w-6 shrink-0" viewBox="0 0 32 32" fill="none">
-              <rect width="32" height="32" rx="8" fill="#6366F1" />
-              <path d="M10 16L14 20L22 12" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-              <circle cx="10" cy="10" r="2.5" fill="white" fillOpacity="0.8" />
-              <circle cx="22" cy="22" r="2.5" fill="white" fillOpacity="0.8" />
+            <svg
+              className="h-8 w-8 shrink-0"
+              viewBox="0 0 64 64"
+              role="img"
+              aria-label="CollabSpace logo"
+            >
+              <rect x="0.5" y="0.5" width="63" height="63" rx="15" fill="#111319" stroke="#282a30" strokeWidth="1" />
+              <rect x="13" y="14" width="19" height="19" rx="5" fill="#8083ff" />
+              <rect x="32" y="31" width="19" height="19" rx="5" fill="#4edea3" />
+              <path d="M28 25.5 H36 A6 6 0 0 1 42 31.5 V34.5" fill="none" stroke="#FFFFFF" strokeWidth="5" strokeLinecap="round" />
             </svg>
             <div className="flex items-baseline gap-1.5">
               <span className="font-semibold text-sm tracking-tight text-on-surface font-headline-sm">CollabSpace</span>
