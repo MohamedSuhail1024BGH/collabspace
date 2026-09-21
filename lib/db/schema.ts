@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import { integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { integer, sqliteTable, text, uniqueIndex, index } from "drizzle-orm/sqlite-core";
 
 // --- Workspaces (Organizations) ---
 export const workspaces = sqliteTable("workspaces", {
@@ -24,13 +24,31 @@ export const users = sqliteTable("users", {
   createdAt: text("created_at").notNull(),
 });
 
-export const sessions = sqliteTable("sessions", {
-  id: text("id").primaryKey(),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  expiresAt: text("expires_at").notNull(),
-  createdAt: text("created_at").notNull(),
+export const sessions = sqliteTable(
+  "sessions",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    expiresAt: text("expires_at").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    index("idx_sessions_user_id").on(table.userId),
+    index("idx_sessions_expires_at").on(table.expiresAt),
+  ]
+);
+
+// --- Auth Rate Limits (Brute-Force & Lockout Protection) ---
+export const authRateLimits = sqliteTable("auth_rate_limits", {
+  key: text("key").primaryKey(), // "account:<email>" | "ip:<ip>"
+  type: text("type").notNull(), // "account" | "ip"
+  identifier: text("identifier").notNull(),
+  attemptCount: integer("attempt_count").notNull().default(1),
+  firstAttemptAt: text("first_attempt_at").notNull(),
+  lastAttemptAt: text("last_attempt_at").notNull(),
+  lockedUntil: text("locked_until"),
 });
 
 // --- Team Members ---
@@ -278,6 +296,7 @@ export type DbTask = typeof tasks.$inferSelect;
 export type DbConversation = typeof conversations.$inferSelect;
 export type DbMessage = typeof messages.$inferSelect;
 export type DbCalendarEvent = typeof calendarEvents.$inferSelect;
+export type DbAuthRateLimit = typeof authRateLimits.$inferSelect;
 
 export type InsertUser = typeof users.$inferInsert;
 export type InsertSession = typeof sessions.$inferInsert;
@@ -286,3 +305,4 @@ export type InsertTask = typeof tasks.$inferInsert;
 export type InsertProject = typeof projects.$inferInsert;
 export type InsertMessage = typeof messages.$inferInsert;
 export type InsertCalendarEvent = typeof calendarEvents.$inferInsert;
+export type InsertAuthRateLimit = typeof authRateLimits.$inferInsert;

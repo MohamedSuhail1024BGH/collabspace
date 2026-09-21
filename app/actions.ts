@@ -1,7 +1,7 @@
 "use server";
 
 import { and, eq } from "drizzle-orm";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getConversations, searchUsers, searchWorkspaces } from "@/lib/db/queries";
@@ -26,8 +26,12 @@ import {
 import {
   hashPassword,
   verifyPassword,
+  needsRehash,
+  dummyVerify,
   createSession,
   destroySession,
+  revokeAllUserSessions,
+  AUTH_COOKIE_NAME,
   getCurrentUser,
   getUserWorkspaces,
   AuthError,
@@ -36,6 +40,12 @@ import {
   requireWorkspaceRole,
   getTargetWorkspaceMembership,
 } from "@/lib/db/auth";
+import {
+  checkLoginRateLimit,
+  recordFailedLogin,
+  resetLoginRateLimit,
+  extractClientIp,
+} from "@/lib/auth/rate-limiter";
 import { sqlite } from "@/lib/db";
 import { classifyConversation, validateDirectConversation } from "@/lib/auth/dm-validator";
 
@@ -91,7 +101,7 @@ export async function signupAction(data: {
 
     const userId = `usr-${Date.now()}`;
     const now = new Date().toISOString();
-    const passwordHash = hashPassword(password);
+    const passwordHash = await hashPassword(password);
 
     await db.insert(users).values({
       id: userId,
@@ -112,34 +122,90 @@ export async function signupAction(data: {
 }
 
 export async function loginAction(data: { email: string; password: string }) {
-  const email = data.email.trim().toLowerCase();
-  const password = data.password;
+  try {
+    const email = data.email.trim().toLowerCase();
+    const password = data.password;
 
-  if (!email || !password) {
-    return { success: false, error: "Please enter your email and password." };
-  }
+    if (!email || !password) {
+      return { success: false, error: "Please enter your email and password." };
+    }
 
-  const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
-  if (!user) {
+    // 1. Extract client IP safely (rightmost entry / proxy hop)
+    let clientIp = "127.0.0.1";
+    try {
+      const headersList = await headers();
+      clientIp = extractClientIp(headersList);
+    } catch {
+      // Non-request or testing context
+    }
+
+    // 2. Pre-auth rate limit check (per-account primary defense, per-IP secondary defense)
+    // Fail-Closed: if locked or if storage fails, checkLoginRateLimit returns allowed: false
+    const rateCheck = checkLoginRateLimit(email, clientIp);
+    if (!rateCheck.allowed) {
+      return { success: false, error: "Invalid email or password." };
+    }
+
+    // 3. User lookup
+    const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    if (!user) {
+      // Constant-time dummy verification + record failed attempt
+      await dummyVerify(password);
+      try {
+        recordFailedLogin(email, clientIp);
+      } catch (recordErr) {
+        console.error("[Auth] Storage error recording failed attempt:", recordErr);
+      }
+      return { success: false, error: "Invalid email or password." };
+    }
+
+    // 4. Dual-format password verification (async scrypt)
+    const isValid = await verifyPassword(password, user.passwordHash);
+    if (!isValid) {
+      try {
+        recordFailedLogin(email, clientIp);
+      } catch (recordErr) {
+        console.error("[Auth] Storage error recording failed attempt:", recordErr);
+      }
+      return { success: false, error: "Invalid email or password." };
+    }
+
+    // 5. Successful authentication: reset both account and IP rate limit counters
+    try {
+      resetLoginRateLimit(email, clientIp);
+    } catch (resetErr) {
+      console.error("[Auth] Failed to reset rate limits:", resetErr);
+    }
+
+    // 6. Transparent Auto-Upgrade to modern $scrypt$ PHC format if needed
+    if (needsRehash(user.passwordHash)) {
+      try {
+        const upgradedHash = await hashPassword(password);
+        await db
+          .update(users)
+          .set({ passwordHash: upgradedHash })
+          .where(eq(users.id, user.id));
+      } catch (rehashErr) {
+        console.error("[Auth] Transparent rehash error:", rehashErr);
+      }
+    }
+
+    // 7. Fixation-Resistant Session Rotation (creates fresh session after revoking prior)
+    await createSession(user.id);
+
+    // Set active workspace to user's first workspace if they have one
+    const userWorkspaces = await getUserWorkspaces(user.id);
+    if (userWorkspaces.length > 0) {
+      await switchWorkspaceAction(userWorkspaces[0].id);
+    }
+
+    safeRevalidatePath("/");
+    safeRevalidatePath("/start");
+    return { success: true, userId: user.id };
+  } catch (err: unknown) {
+    console.error("[Auth] Fail-closed login error:", err);
     return { success: false, error: "Invalid email or password." };
   }
-
-  const isValid = verifyPassword(password, user.passwordHash);
-  if (!isValid) {
-    return { success: false, error: "Invalid email or password." };
-  }
-
-  await createSession(user.id);
-
-  // Set active workspace to user's first workspace if they have one
-  const userWorkspaces = await getUserWorkspaces(user.id);
-  if (userWorkspaces.length > 0) {
-    await switchWorkspaceAction(userWorkspaces[0].id);
-  }
-
-  safeRevalidatePath("/");
-  safeRevalidatePath("/start");
-  return { success: true, userId: user.id };
 }
 
 export async function logoutAction() {
@@ -2138,13 +2204,22 @@ export async function changePasswordAction(data: {
       return { success: false, error: "User not found." };
     }
 
-    const isValid = verifyPassword(data.currentPassword, dbUser.passwordHash);
+    const isValid = await verifyPassword(data.currentPassword, dbUser.passwordHash);
     if (!isValid) {
       return { success: false, error: "Current password is incorrect." };
     }
 
-    const newHash = hashPassword(data.newPassword);
+    const newHash = await hashPassword(data.newPassword);
     await db.update(users).set({ passwordHash: newHash }).where(eq(users.id, user.id));
+
+    // Multi-session revocation: keep current active session alive while revoking all other sessions
+    let currentSessionId: string | undefined;
+    try {
+      const cookieStore = await cookies();
+      currentSessionId = cookieStore.get(AUTH_COOKIE_NAME)?.value;
+    } catch {}
+
+    await revokeAllUserSessions(user.id, currentSessionId);
 
     return { success: true };
   } catch (error) {

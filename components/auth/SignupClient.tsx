@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Logo } from "@/components/ui/Logo";
 import { signupAction } from "@/app/actions";
 
 export function SignupClient() {
@@ -43,17 +44,7 @@ export function SignupClient() {
         {/* Brand Header */}
         <div className="mb-6 text-center">
           <div className="mx-auto mb-3 flex items-center justify-center">
-            <svg
-              className="h-12 w-12 shrink-0 shadow-md"
-              viewBox="0 0 64 64"
-              role="img"
-              aria-label="CollabSpace logo"
-            >
-              <rect x="0.5" y="0.5" width="63" height="63" rx="15" fill="#111319" stroke="#282a30" strokeWidth="1" />
-              <rect x="13" y="14" width="19" height="19" rx="5" fill="#8083ff" />
-              <rect x="32" y="31" width="19" height="19" rx="5" fill="#4edea3" />
-              <path d="M28 25.5 H36 A6 6 0 0 1 42 31.5 V34.5" fill="none" stroke="#FFFFFF" strokeWidth="5" strokeLinecap="round" />
-            </svg>
+            <Logo size={48} className="h-12 w-12 shadow-md" />
           </div>
           <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-surface-container-high text-on-surface-variant font-mono text-[10px] mb-2 uppercase tracking-widest">
             <span className="w-1.5 h-1.5 rounded-full bg-secondary" />

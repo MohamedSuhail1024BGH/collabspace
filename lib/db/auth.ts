@@ -1,10 +1,25 @@
 import crypto from "crypto";
 import { cookies } from "next/headers";
 import { AsyncLocalStorage } from "async_hooks";
-import { eq, and, gt } from "drizzle-orm";
-import { db } from "./index";
-import { users, sessions, workspaces, workspaceMembers, type DbUser, type DbWorkspace } from "./schema";
+import { eq, and, gt, ne, lte } from "drizzle-orm";
+import { db, sqlite } from "./index";
+import {
+  users,
+  sessions,
+  workspaces,
+  workspaceMembers,
+  type DbUser,
+  type DbWorkspace,
+} from "./schema";
 import { ACTIVE_WORKSPACE_COOKIE } from "./workspace";
+export {
+  hashPassword,
+  hashPasswordSync,
+  verifyPassword,
+  verifyPasswordSync,
+  needsRehash,
+  dummyVerify,
+} from "@/lib/auth/password";
 
 export const AUTH_COOKIE_NAME = "collabspace_session";
 
@@ -13,35 +28,38 @@ export const testAuthStorage =
     ? new AsyncLocalStorage<{ userId: string }>()
     : null;
 
-export function hashPassword(password: string): string {
-  const salt = crypto.randomBytes(16).toString("hex");
-  const derivedKey = crypto.scryptSync(password, salt, 64);
-  return `${salt}:${derivedKey.toString("hex")}`;
-}
-
-export function verifyPassword(password: string, storedHash: string): boolean {
-  try {
-    const [salt, key] = storedHash.split(":");
-    if (!salt || !key) return false;
-    const derivedKey = crypto.scryptSync(password, salt, 64);
-    return crypto.timingSafeEqual(Buffer.from(key, "hex"), derivedKey);
-  } catch {
-    return false;
-  }
-}
-
+/**
+ * Creates a fresh session for the user with session fixation resistance.
+ * Inactivates/destroys any prior active session for this client cookie,
+ * generates 256 bits of cryptographic entropy, and sets hardened cookie flags.
+ */
 export async function createSession(userId: string): Promise<string> {
-  const token = `sess_${crypto.randomBytes(24).toString("hex")}`;
+  // 1. Session Fixation Rotation: Invalidate any existing session from caller cookie first
+  try {
+    const cookieStore = await cookies();
+    const existingToken = cookieStore.get(AUTH_COOKIE_NAME)?.value;
+    if (existingToken) {
+      await db.delete(sessions).where(eq(sessions.id, existingToken));
+    }
+  } catch {
+    // Non-request context
+  }
+
+  // 2. Generate 256 bits of cryptographic entropy (base64url-safe)
+  const token = `sess_${crypto.randomBytes(32).toString("base64url")}`;
   const now = new Date();
-  const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(); // 30 days
+  const maxAgeSeconds = 30 * 24 * 60 * 60; // 30 days
+  const expiresAtDate = new Date(now.getTime() + maxAgeSeconds * 1000);
+  const expiresAtIso = expiresAtDate.toISOString();
 
   await db.insert(sessions).values({
     id: token,
     userId,
-    expiresAt,
+    expiresAt: expiresAtIso,
     createdAt: now.toISOString(),
   });
 
+  // 3. Set hardened cookie attributes with explicit expires Date
   try {
     const cookieStore = await cookies();
     cookieStore.set(AUTH_COOKIE_NAME, token, {
@@ -49,11 +67,15 @@ export async function createSession(userId: string): Promise<string> {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 30 * 24 * 60 * 60,
+      maxAge: maxAgeSeconds,
+      expires: expiresAtDate,
     });
   } catch {
     // Non-request context
   }
+
+  // 4. Opportunistic expired session cleanup (non-blocking)
+  cleanupExpiredSessions().catch(() => {});
 
   return token;
 }
@@ -114,6 +136,9 @@ export async function getCurrentUser(): Promise<Omit<DbUser, "passwordHash"> | n
   }
 }
 
+/**
+ * Destroys the current active session in SQLite and clears the authentication cookies.
+ */
 export async function destroySession(): Promise<void> {
   try {
     const cookieStore = await cookies();
@@ -125,6 +150,57 @@ export async function destroySession(): Promise<void> {
     cookieStore.delete(ACTIVE_WORKSPACE_COOKIE);
   } catch {
     // Non-request context
+  }
+}
+
+/**
+ * Revokes all sessions for a user, optionally keeping a specific session alive
+ * (e.g. keeping the current browser session alive during password change).
+ */
+export async function revokeAllUserSessions(
+  userId: string,
+  exceptSessionId?: string
+): Promise<void> {
+  try {
+    if (exceptSessionId) {
+      await db
+        .delete(sessions)
+        .where(and(eq(sessions.userId, userId), ne(sessions.id, exceptSessionId)));
+    } else {
+      await db.delete(sessions).where(eq(sessions.userId, userId));
+    }
+  } catch (error) {
+    console.error("[Session] Error revoking user sessions:", error);
+  }
+}
+
+/**
+ * Purges expired sessions from the database.
+ */
+export async function cleanupExpiredSessions(): Promise<number> {
+  try {
+    const nowIso = new Date().toISOString();
+    const result = await db
+      .delete(sessions)
+      .where(lte(sessions.expiresAt, nowIso));
+    return result.changes ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Synchronous version of expired session cleanup for startup / CLI seeds.
+ */
+export function cleanupExpiredSessionsSync(): number {
+  try {
+    const nowIso = new Date().toISOString();
+    const info = sqlite
+      .prepare("DELETE FROM sessions WHERE expires_at <= ?")
+      .run(nowIso);
+    return info.changes;
+  } catch {
+    return 0;
   }
 }
 

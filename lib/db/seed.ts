@@ -1,9 +1,11 @@
 import { db, sqlite } from "./index";
 import { users } from "./schema";
 import { verifyUniqueIndexes } from "@/scripts/migrate-uniqueness";
+import { cleanupExpiredSessionsSync } from "./auth";
 
 /**
- * Creates canonical unique indexes for workspace and project membership.
+ * Creates canonical unique indexes for workspace and project membership,
+ * and performance indexes for sessions.
  * Used strictly during explicit database reset/initialization.
  */
 export function createCanonicalIndexes(sqliteInstance = sqlite): void {
@@ -14,11 +16,17 @@ export function createCanonicalIndexes(sqliteInstance = sqlite): void {
     CREATE UNIQUE INDEX IF NOT EXISTS idx_project_members_proj_user
     ON project_members(project_id, user_id)
     WHERE user_id IS NOT NULL;
+
+    CREATE INDEX IF NOT EXISTS idx_sessions_user_id
+    ON sessions(user_id);
+
+    CREATE INDEX IF NOT EXISTS idx_sessions_expires_at
+    ON sessions(expires_at);
   `);
 }
 
 /**
- * Verifies that canonical unique indexes exist and are valid.
+ * Verifies that canonical unique indexes and auth security schema exist and are valid.
  * Throws loudly if missing or invalid; does not perform schema repair.
  */
 export function verifyStartupIndexes(sqliteInstance = sqlite): void {
@@ -26,6 +34,34 @@ export function verifyStartupIndexes(sqliteInstance = sqlite): void {
   if (!verif.ok) {
     throw new Error(
       `[CollabSpace] Database schema error: required unique indexes are missing or invalid (${verif.error}). Migration required. Run: npx tsx scripts/migrate-uniqueness.ts`
+    );
+  }
+
+  // Verify auth_rate_limits table exists
+  const rateLimitTable = sqliteInstance
+    .prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='auth_rate_limits'"
+    )
+    .get();
+  if (!rateLimitTable) {
+    throw new Error(
+      "[CollabSpace] Database schema error: required table auth_rate_limits is missing. Migration required. Run: npx tsx scripts/migrate-auth-security.ts"
+    );
+  }
+
+  // Verify sessions indexes exist
+  const sessionIndexes = sqliteInstance
+    .prepare("PRAGMA index_list('sessions')")
+    .all() as { name: string }[];
+  const hasUserIdIdx = sessionIndexes.some(
+    (i) => i.name === "idx_sessions_user_id"
+  );
+  const hasExpiresAtIdx = sessionIndexes.some(
+    (i) => i.name === "idx_sessions_expires_at"
+  );
+  if (!hasUserIdIdx || !hasExpiresAtIdx) {
+    throw new Error(
+      "[CollabSpace] Database schema error: required sessions indexes (idx_sessions_user_id, idx_sessions_expires_at) are missing. Migration required. Run: npx tsx scripts/migrate-auth-security.ts"
     );
   }
 }
@@ -51,6 +87,16 @@ export function ensureTablesBasic(sqliteInstance = sqlite): void {
       user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       expires_at TEXT NOT NULL,
       created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS auth_rate_limits (
+      key TEXT PRIMARY KEY,
+      type TEXT NOT NULL,
+      identifier TEXT NOT NULL,
+      attempt_count INTEGER NOT NULL DEFAULT 1,
+      first_attempt_at TEXT NOT NULL,
+      last_attempt_at TEXT NOT NULL,
+      locked_until TEXT
     );
 
     CREATE TABLE IF NOT EXISTS workspaces (
@@ -183,6 +229,7 @@ export function ensureTablesBasic(sqliteInstance = sqlite): void {
  */
 export function ensureTables(sqliteInstance = sqlite) {
   verifyStartupIndexes(sqliteInstance);
+  cleanupExpiredSessionsSync();
 }
 
 /**
@@ -200,6 +247,7 @@ export function resetDatabase(sqliteInstance = sqlite) {
     DROP TABLE IF EXISTS calendar_events;
     DROP TABLE IF EXISTS workspace_members;
     DROP TABLE IF EXISTS team_members;
+    DROP TABLE IF EXISTS auth_rate_limits;
     DROP TABLE IF EXISTS sessions;
     DROP TABLE IF EXISTS users;
     DROP TABLE IF EXISTS workspaces;

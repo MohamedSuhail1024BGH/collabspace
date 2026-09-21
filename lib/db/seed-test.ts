@@ -2,14 +2,16 @@ import { resetDatabase } from "./seed";
 import { db } from "./index";
 import { users, workspaces, teamMembers, workspaceMembers, projects, projectMembers, projectActivity, tasks, conversations, messages, calendarEvents } from "./schema";
 import { team, projectDirectory, taskBoard, conversations as initialConversations, calendarEvents as initialEvents } from "../../data/mock-data";
-import { hashPassword } from "./auth";
+import { hashPasswordSync } from "./auth";
+import { clearAllRateLimits } from "@/lib/auth/rate-limiter";
 
 async function seedTestData() {
   console.log("Setting up E2E test database...");
   resetDatabase();
+  clearAllRateLimits();
 
   const now = new Date().toISOString();
-  const defaultPasswordHash = hashPassword("password123");
+  const defaultPasswordHash = hashPasswordSync("password123");
 
   await db.insert(users).values([
     { id: "usr-ava", email: "ava@acme.com", name: "Ava Thompson", passwordHash: defaultPasswordHash, avatar: "from-violet-500 to-indigo-600", createdAt: now, username: "avathompson", bio: "Product Director & Systems Architect" },

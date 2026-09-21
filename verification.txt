@@ -1,0 +1,521 @@
+CollabSpace Full Verification Suite
+==================================================
+Timestamp: 2026-09-22T00:18:40+05:30
+Environment: Linux x86_64 / Node.js v22.23.2
+Repository: CollabSpace
+Branch: master (Working tree)
+
+Summary of All Verification Gates:
+1. TypeScript Check (npx tsc --noEmit): PASS (0 errors, exit code 0)
+2. ESLint (npm run lint): PASS (0 errors, 10 pre-existing UI warnings, exit code 0)
+3. Tenant Security Unit Tests (npx tsx tests/unit/tenant-security.test.ts): PASS (98/98 passed, exit code 0)
+4. Workspace Lifecycle Unit Tests (npx tsx tests/unit/workspace-lifecycle.test.ts): PASS (109/109 passed, exit code 0)
+5. Auth & Session Security Unit Tests (npx tsx tests/unit/auth-security.test.ts): PASS (70/70 passed, exit code 0)
+6. Next.js Production Build (npm run build): PASS (Static generation & Turbopack compile succeeded, exit code 0)
+7. Tenant Authorization Playwright Spec (npx playwright test tests/e2e/tenant-authorization.spec.ts): PASS (7/7 passed in 12.3s, exit code 0)
+8. Full E2E Playwright Suite (npm run test:e2e): PASS (25/25 passed in 42.4s, exit code 0)
+9. Auth Security Migration Dry-Run (npx tsx scripts/migrate-auth-security.ts --dry-run): PASS (10 users scanned, 27 active sessions, exit code 0)
+
+==================================================
+GATE 1: TypeScript Check
+Command: npx tsc --noEmit
+Exit Code: 0
+Output:
+(clean, 0 errors)
+
+==================================================
+GATE 2: ESLint
+Command: npm run lint
+Exit Code: 0
+Output:
+> collabspace@0.1.0 lint
+> eslint
+
+/home/msuhail1024b/Projects/CollabSpace/collabspace/components/dashboard/CalendarClient.tsx
+  36:3  warning  'currentUser' is defined but never used                                 @typescript-eslint/no-unused-vars
+  65:5  warning  Error: Calling setState synchronously within an effect can trigger cascading renders  react-hooks/set-state-in-effect
+
+/home/msuhail1024b/Projects/CollabSpace/collabspace/components/dashboard/DashboardShell.tsx
+  47:5  warning  Error: Calling setState synchronously within an effect can trigger cascading renders  react-hooks/set-state-in-effect
+
+/home/msuhail1024b/Projects/CollabSpace/collabspace/components/dashboard/FloatingSettingsModal.tsx
+  68:5  warning  Error: Calling setState synchronously within an effect can trigger cascading renders  react-hooks/set-state-in-effect
+  74:7  warning  Error: Calling setState synchronously within an effect can trigger cascading renders  react-hooks/set-state-in-effect
+  86:9  warning  Error: Calling setState synchronously within an effect can trigger cascading renders  react-hooks/set-state-in-effect
+
+/home/msuhail1024b/Projects/CollabSpace/collabspace/components/dashboard/ProjectTimelineWidget.tsx
+  26:3  warning  'tasks' is assigned a value but never used                              @typescript-eslint/no-unused-vars
+
+/home/msuhail1024b/Projects/CollabSpace/collabspace/components/dashboard/TaskBoard.tsx
+  3:30  warning  'TaskPriority' is defined but never used                                @typescript-eslint/no-unused-vars
+
+/home/msuhail1024b/Projects/CollabSpace/collabspace/components/dashboard/TasksClient.tsx
+  58:16  warning  '_currentUser' is defined but never used                               @typescript-eslint/no-unused-vars
+  60:16  warning  '_workspaceId' is defined but never used                               @typescript-eslint/no-unused-vars
+
+✖ 10 problems (0 errors, 10 warnings)
+
+==================================================
+GATE 3: Tenant Security Unit Tests
+Command: npx tsx tests/unit/tenant-security.test.ts
+Exit Code: 0
+Output:
+==================================================
+RUNNING TENANT SECURITY & INTEGRATION TESTS
+==================================================
+
+[Group 1: Tri-State DM Classifier & Fail-Closed Rules]
+  PASS: type: 'direct' classifies as 'direct'
+  PASS: type: 'channel' classifies as 'channel'
+  PASS: unknown type 'group' classifies as 'invalid'
+  PASS: unknown type 'admin' classifies as 'invalid'
+  PASS: empty string type without prefix classifies as 'invalid'
+  PASS: Stored type 'direct' preferred over channel prefix
+  PASS: Stored type 'channel' preferred over dm prefix
+  PASS: Null type with conv-dm- prefix falls back to 'direct'
+  PASS: Undefined type with conv-dm- prefix falls back to 'direct'
+  PASS: Null type with conv-channel- prefix falls back to 'channel'
+  PASS: isDirectConversation identifies direct type
+  PASS: isDirectConversation rejects channel type
+  PASS: Valid 2-person DM succeeds for participant u1
+  PASS: Valid 2-person DM succeeds for participant u2
+  PASS: Third workspace member u3 is denied access to u1-u2 DM
+  PASS: Corrupted participantIds JSON fails closed
+  PASS: 1-person participant array fails closed
+  PASS: 3-person participant array in DM fails closed
+  PASS: Duplicate IDs (self-DM) in DM fail closed
+  PASS: Cross-workspace participant in DM fails closed
+  PASS: Invalid conversation type fails closed in validator
+
+[Group 2: Dry-Run Immutability Guarantee]
+  PASS: No WAL sidecar exists before dry-run
+  PASS: No SHM sidecar exists before dry-run
+  PASS: Dry-run reports clean applied state
+  PASS: Database file size unmodified by dry-run (no-wal DB)
+  PASS: Database file mtime unmodified by dry-run (no-wal DB)
+  PASS: No WAL sidecar created by dry-run (no-wal DB)
+  PASS: No SHM sidecar created by dry-run (no-wal DB)
+  PASS: DB file exists before dry-run
+  PASS: WAL sidecar file exists before dry-run
+  PASS: SHM sidecar file exists before dry-run
+  PASS: Dry run on WAL DB succeeded
+  PASS: DB file exists after dry-run
+  PASS: WAL sidecar file exists after dry-run
+  PASS: SHM sidecar file exists after dry-run
+  PASS: Database file size unmodified by dry-run (WAL DB)
+  PASS: WAL sidecar size unmodified by dry-run (WAL DB)
+  PASS: SHM sidecar size unmodified by dry-run (WAL DB)
+  PASS: Database file SHA256 hash identical after dry-run (WAL DB)
+  PASS: WAL sidecar SHA256 hash identical after dry-run (WAL DB)
+  PASS: SHM sidecar SHA256 hash identical after dry-run (WAL DB)
+  PASS: Database file mtime unmodified by dry-run (WAL DB)
+  PASS: WAL sidecar mtime unmodified by dry-run (WAL DB)
+  PASS: SHM sidecar mtime unmodified by dry-run (WAL DB)
+
+[Group 3: Conflict Scanning & Cardinality Invariants]
+  PASS: Conflicting duplicate roles in workspace abort migration immediately before DDL
+  PASS: Differing joined_at timestamps with same role abort migration before DDL
+  PASS: Zero workspace owners aborts migration before DDL
+  PASS: Multiple workspace owners abort migration before DDL
+  PASS: Zero project leads aborts migration before DDL
+  PASS: Multiple project leads abort migration before DDL
+
+[Group 4: Pre-Commit Failure Injection & Rollback]
+  PASS: Pre-commit failure injection threw as expected
+  PASS: workspace_members ordered rows 100% identical after rollback
+  PASS: users ordered rows 100% identical after rollback
+  PASS: workspaces ordered rows 100% identical after rollback
+  PASS: sqlite_master index SQL and metadata 100% identical after rollback
+  PASS: PRAGMA index_list metadata 100% identical after rollback
+  PASS: PRAGMA index_info metadata 100% identical after rollback
+  PASS: Pre-existing malformed index preserved; canonical index was not committed
+
+[Group 5: Incorrect & Partial Index Replacement]
+  PASS: Deep index verification detects non-unique or malformed indexes
+  PASS: Live migration successfully replaced malformed indexes
+  PASS: Post-migration indexes pass deep verification (table, columns, uniqueness, partial predicate)
+  PASS: Post-migration foreign keys are valid
+  PASS: Post-migration SQLite integrity_check is ok
+
+[Group 6: Startup Separation (Clean Seed vs Normal Startup)]
+  PASS: Explicit resetDatabase creates canonical indexes and passes verification
+  PASS: Normal app startup on old schema DB fails loudly with 'Migration required' (no best-effort repair)
+  PASS: Old-schema DB size 100% unmodified by failed startup
+  PASS: Old-schema DB mtime 100% unmodified by failed startup
+  PASS: Old-schema DB SHA256 hash 100% identical after failed startup
+  PASS: Old-schema DB table DDL 100% unmodified by failed startup
+
+[Group 7: Real Server Actions on Isolated Test Database]
+  PASS: Demote sole lead with replacement already present succeeds
+  PASS: usr_mem promoted to lead, exactly 1 lead on project
+  PASS: usr_lead demoted to contributor
+  PASS: Ordinary lead transfer succeeds
+  PASS: usr_lead restored to lead, previous lead demoted to contributor
+  PASS: Demote sole lead with replacement absent from roster succeeds
+  PASS: usr_new inserted into project_members directly as lead
+  PASS: Exactly 1 lead on project after absent replacement promotion
+  PASS: Demoting sole lead without replacement is rejected
+  PASS: usr_new remains lead (unaltered)
+  PASS: Invalid replacement from outside workspace is rejected
+  PASS: Transaction rolled back: usr_new remains lead
+  PASS: Zero starting leads fails closed with invariant violation
+  PASS: Multiple starting leads fails closed with invariant violation
+  PASS: createProjectAction rejects roster member missing userId
+  PASS: createProjectAction rejects external roster member
+  PASS: createProjectAction rejects duplicate roster member
+  PASS: getLiveConversationsAction succeeds
+  PASS: Production getLiveConversationsAction omits unknown-type conversation
+  PASS: Production sendMessageAction rejects unknown-type conversation
+  PASS: sendMessageAction returns access denied for unknown type
+  PASS: SSE connection opens successfully for workspace member
+  PASS: SSE stream connected event received
+  PASS: SSE stream dropped event for unknown conversation type
+  PASS: SSE stream emitted event for valid channel
+  PASS: createConversationAction succeeds
+  PASS: createConversationAction did not reuse invalid DM candidate
+  PASS: createConversationAction succeeds for valid DM
+  PASS: createConversationAction reuses legitimate validated DM
+
+==================================================
+INTEGRATION TESTS COMPLETE: 98 of 98 passed.
+==================================================
+
+==================================================
+GATE 4: Workspace Lifecycle Unit Tests
+Command: npx tsx tests/unit/workspace-lifecycle.test.ts
+Exit Code: 0
+Output:
+==================================================
+RUNNING WORKSPACE LIFECYCLE & STABLE IDENTITY TESTS
+==================================================
+
+[Group A: Account Deletion]
+  PASS: deleteAccountAction rejects multi-member workspace without replacements
+  PASS: Returns clear missing-replacement error
+  PASS: deleteAccountAction rejects invalid replacement user ID
+  PASS: Returns invalid replacement error
+  PASS: deleteAccountAction succeeds with valid replacement
+  PASS: Replaced user u_owner1 is completely deleted from users
+  PASS: u_member1 promoted to sole owner of ws1
+  PASS: Previous owner u_owner1 membership record explicitly removed
+  PASS: Exactly 1 owner remaining in ws1
+  PASS: Sole-member workspace ws2 deleted with account
+  PASS: ws2 membership records deleted
+  PASS: Multi-member workspace ws_unowned deleted along with all its members
+  PASS: Pre-deletion owned workspace count verified
+  PASS: Deletion aborted on injected failure
+  PASS: Rollback verified: u_owner2 still exists
+  PASS: ws_multi still exists with original owner
+  PASS: Rollback verified: workspace_members 100% identical
+
+[Group B: Workspace Ownership Transfer]
+  PASS: Transfer rejects invalid newOwnerUserId
+  PASS: Returns non-member error
+  PASS: Transfer rejects non-member user
+  PASS: Returns non-member error
+  PASS: Transfer rejects transfer to self
+  PASS: Returns self-transfer error
+  PASS: Transfer rejects non-owner caller
+  PASS: Returns owner-required error
+  PASS: Transfer fails when trigger aborts promotion
+  PASS: Snapshots match 100%: u_member1 remains sole owner, u_extra remains member
+  PASS: transferWorkspaceOwnershipAction succeeds
+  PASS: ws1 has exactly 1 owner: u_extra
+  PASS: Previous owner u_member1 is now admin
+Transfer workspace ownership error: Error: Workspace invariant violation: workspace must start with exactly one owner.
+  PASS: Transfer on 0-owner workspace fails closed
+  PASS: Zero-owner invariant error returned
+Transfer workspace ownership error: Error: Workspace invariant violation: workspace must start with exactly one owner.
+  PASS: Transfer on multi-owner workspace fails closed
+  PASS: Multi-owner invariant error returned
+
+[Group C: Stable Identity Authorization]
+  PASS: createTaskAction succeeds with assigneeUserId
+  PASS: Task stores stable assignee_user_id and display name
+  PASS: Imposter Jordan with same display name cannot delete task
+  PASS: Returns permission denied error
+  PASS: Task remains intact after imposter deletion attempt
+  PASS: Legit assignee can update task
+  PASS: Legit Jordan can delete task after display name change
+  PASS: Task was successfully deleted by legitimate user
+  PASS: Task created with ambiguous assignee name
+  PASS: Ambiguous assignee name leaves assignee_user_id as NULL (does not infer identity)
+  PASS: Task created for reassignment test
+  PASS: Task initially assigned to Bob Member with u_member1 ID
+  PASS: updateTaskAction succeeds with name-only reassignment
+  PASS: Both assignee and assignee_user_id moved to the new unique member
+  PASS: createTaskAction rejects explicit out-of-workspace user ID
+  PASS: createTaskAction returns clear out-of-workspace membership error
+  PASS: createTaskAction rejects invalid user ID
+  PASS: createTaskAction returns clear membership error for non-existent user ID
+  PASS: createTaskAction rejects explicit blank assigneeUserId
+  PASS: createTaskAction returns clear membership error for blank assigneeUserId
+  PASS: createTaskAction rejects explicit whitespace assigneeUserId
+  PASS: createTaskAction returns clear membership error for whitespace assigneeUserId
+  PASS: updateTaskAction rejects explicit out-of-workspace user ID
+  PASS: updateTaskAction returns clear out-of-workspace membership error
+  PASS: updateTaskAction rejects invalid user ID
+  PASS: updateTaskAction returns clear membership error for non-existent user ID
+  PASS: updateTaskAction rejects explicit blank assigneeUserId
+  PASS: updateTaskAction returns clear membership error for blank assigneeUserId
+  PASS: updateTaskAction rejects explicit whitespace assigneeUserId
+  PASS: updateTaskAction returns clear membership error for whitespace assigneeUserId
+  PASS: Existing task row is exactly unchanged after rejected out-of-workspace, invalid, blank, or whitespace update
+  PASS: updateTaskAction succeeds for unassignment with assignee: 'Unassigned'
+  PASS: Task row correctly updated to assignee: 'Unassigned' and assignee_user_id: null
+  PASS: createProjectAction succeeds with ownerUserId
+  PASS: Project owner_user_id set from validated leadUserId
+  PASS: Imposter with same display name cannot delete project
+  PASS: Project remains intact after imposter delete attempt
+  PASS: Legit project lead can delete project after profile rename
+  PASS: Project successfully deleted
+  PASS: updateProjectAction rejects ambiguous owner name
+  PASS: updateProjectAction rejects non-member owner name
+  PASS: updateProjectAction succeeds with unique owner name
+  PASS: updateProjectAction synchronized owner display name and owner_user_id
+
+[Group D: Lifecycle Atomic Actions]
+  PASS: createWorkspaceAction succeeds
+  PASS: Created workspace has exactly 1 owner: u_member1
+Leave workspace error: Error: Workspace owners cannot leave while other members exist. Transfer ownership or delete workspace.
+  PASS: Owner cannot leave multi-member workspace
+  PASS: Returns clear leave-blocked error
+  PASS: Non-owner can leave multi-member workspace
+  PASS: Only u_member1 remains in workspace
+  PASS: Sole-member owner leaving deletes workspace
+  PASS: Workspace deleted upon sole member departure
+Delete workspace error: Error: Only the workspace owner can delete this workspace.
+  PASS: Non-owner cannot delete workspace
+  PASS: Owner can delete workspace
+  PASS: Workspace successfully deleted
+
+[Group E: Migration Column Addition & Backfill Priority]
+  PASS: Detects missing stable identity columns on old schema
+  PASS: Correctly identifies 2 resolvable and 2 unresolvable projects
+  PASS: Correctly identifies 1 resolvable and 1 unresolvable task
+  PASS: Dry-run succeeds on old schema
+  PASS: Dry-run does not report alreadyApplied when columns missing
+  PASS: Dry-run reports 2 missing columns
+  PASS: Dry-run reports 2 projects pending backfill
+  PASS: Dry-run reports 1 task pending backfill
+  PASS: Live migration succeeds on old schema
+  PASS: Live migration backfills 2 projects
+  PASS: Live migration backfills 1 task
+  PASS: p1 owner_user_id backfilled from lead row priority
+  PASS: p2 owner_user_id backfilled from unique name fallback
+  PASS: p3 owner_user_id left NULL due to ambiguous name match
+  PASS: p4 owner_user_id left NULL due to zero member matches
+  PASS: t1 assignee_user_id backfilled from unique name
+  PASS: t2 assignee_user_id left NULL due to ambiguous name match
+  PASS: t3 assignee_user_id left NULL for unassigned task
+  PASS: Post-migration dry-run reports alreadyApplied = true
+  PASS: Post-migration live run reports alreadyApplied = true
+
+==================================================
+LIFECYCLE TESTS COMPLETE: 109 of 109 passed.
+==================================================
+
+==================================================
+GATE 5: Auth & Session Security Unit Tests
+Command: npx tsx tests/unit/auth-security.test.ts
+Exit Code: 0
+Output:
+==================================================
+RUNNING AUTH & SESSION SECURITY UNIT TESTS
+==================================================
+
+[Group 1: Standard Modern scrypt Hashing & Dual-Format]
+  PASS: hashPassword outputs valid PHC format with N=65536, r=8, p=1
+  PASS: Modern hash does not require rehashing
+  PASS: hashPasswordSync outputs valid PHC format
+  PASS: verifyPassword succeeds with correct password on modern hash
+  PASS: verifyPassword rejects wrong password on modern hash
+  PASS: Legacy hash correctly triggers needsRehash = true
+  PASS: verifyPassword succeeds with correct password on legacy hash
+  PASS: verifyPassword rejects wrong password on legacy hash
+  PASS: verifyPasswordSync succeeds on modern hash
+  PASS: verifyPasswordSync rejects wrong password on modern hash
+  PASS: verifyPasswordSync succeeds on legacy hash
+  PASS: verifyPasswordSync rejects wrong password on legacy hash
+  PASS: DUMMY_PHC_HASH is valid PHC format
+  PASS: DUMMY_PHC_HASH has exact 16-byte salt (not 15)
+  PASS: DUMMY_PHC_HASH has exact 32-byte key
+  PASS: dummyVerify actually invokes crypto.scrypt
+  PASS: dummyVerify performs non-trivial scrypt derivation work (elapsed 204ms >= 10ms)
+  PASS: needsRehash triggers true for N < 65536
+  PASS: verifyPassword fails closed on malformed colon string
+  PASS: verifyPassword fails closed on bad PHC prefix
+  PASS: verifyPassword fails closed on empty password
+
+[Group 2: Login Rate Limiting & Lockout DoS Defense]
+  PASS: Initial rate limit check allows login
+  PASS: Account still allowed after 4 failed attempts
+  PASS: 5th failed attempt triggers account lockout
+  PASS: Lockout returns positive retryAfterSeconds
+  PASS: Per-account lockout applies across any client IP (primary defense)
+  PASS: resetLoginRateLimit immediately restores access
+  PASS: IP allowed under threshold of 10 attempts
+  PASS: 10th failed attempt triggers per-IP lockout
+  PASS: extractClientIp extracts rightmost proxy hop, ignoring client-controlled leftmost spoof
+  PASS: extractClientIp extracts single trimmed entry
+  PASS: extractClientIp falls back to x-real-ip
+  PASS: extractClientIp defaults safely to 127.0.0.1
+  PASS: checkLoginRateLimit fails closed (allowed: false) upon SQLite error
+  PASS: checkLoginRateLimit returns safe fallback retryAfterSeconds on storage failure
+  PASS: loginAction denies login with uniform error when rate limiter check encounters storage failure
+  PASS: recordFailedLogin throws on storage error (caller must handle)
+  PASS: loginAction catches recordFailedLogin write failure and returns uniform error without crashing
+
+[Group 3: Server-Side Session Lifecycle & Revocation]
+  PASS: createSession returns token with sess_ prefix
+  PASS: Session token has high cryptographic entropy (>256 bits)
+  PASS: User has 2 active sessions in SQLite
+  PASS: revokeAllUserSessions preserved active current session (exceptSessionId)
+  PASS: revokeAllUserSessions revoked other active session
+  PASS: cleanupExpiredSessionsSync successfully purged expired sessions
+  PASS: Expired session no longer exists in database
+
+[Group 4: Production Server Actions Integration]
+  PASS: signupAction succeeds
+  PASS: signupAction writes modern $scrypt$ PHC hash
+  PASS: loginAction succeeds for user with legacy hash
+  PASS: loginAction transparently upgraded legacy hash to modern $scrypt$ PHC format
+  PASS: Rehashed password no longer needs rehash
+  PASS: changePasswordAction succeeds
+  PASS: changePasswordAction wrote modern $scrypt$ PHC format
+
+[Group 5: Migration Script Integrity, Dry-Run & Safety]
+  PASS: Dry-run succeeded
+  PASS: Dry-run reported dryRun: true
+  PASS: Dry-run reported alreadyApplied: false for unmigrated DB
+  PASS: Dry-run scanned 2 users
+  PASS: Dry-run found 1 modern hash
+  PASS: Dry-run found 1 legacy hash
+  PASS: Dry-run reports rateLimitsTableCreated = true
+  PASS: Dry-run reports sessionsIndexesCreated = true
+  PASS: Database size unmodified by dry-run
+  PASS: Database mtime unmodified by dry-run
+  PASS: Forced failure threw as expected
+  PASS: auth_rate_limits was not committed after rollback
+  PASS: sessions indexes were not committed after rollback
+  PASS: Live migration succeeded
+  PASS: Live migration purged 1 expired session
+  PASS: auth_rate_limits table exists post-migration
+  PASS: sessions indexes exist post-migration
+  PASS: Post-migration dry run reports alreadyApplied = true
+
+==================================================
+AUTH SECURITY TESTS COMPLETE: 70 passed, 0 failed.
+==================================================
+
+==================================================
+GATE 6: Next.js Production Build
+Command: npm run build
+Exit Code: 0
+Output:
+▲ Next.js 16.3.1 (Turbopack)
+✓ Running next.config.ts took 30ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 1464ms
+  Finished TypeScript in 7.2s
+  Collecting page data using 7 workers in 1095ms
+✓ Generating static pages using 7 workers (4/4) in 184ms
+  Finalizing page optimization in 13ms
+
+Route (app)
+┌ ƒ /
+├ ƒ /_not-found
+├ ƒ /api/messages/events
+├ ƒ /calendar
+├ ○ /icon.svg
+├ ƒ /login
+├ ƒ /messages
+├ ƒ /preferences
+├ ƒ /projects
+├ ƒ /projects/[projectId]
+├ ƒ /reports
+├ ƒ /settings
+├ ƒ /signup
+├ ƒ /start
+└ ƒ /tasks
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+==================================================
+GATE 7: Tenant Authorization Playwright Spec
+Command: npx playwright test tests/e2e/tenant-authorization.spec.ts
+Exit Code: 0
+Output:
+Running 7 tests using 1 worker
+
+  ✓  1 should deny unauthenticated requests across actions and return 401 on SSE (82ms)
+  ✓  2 return 403 when user attempts to subscribe to another workspace's events (1.5s)
+  ✓  3 switching to unauthorized workspaces and self-joining private workspaces (1.5s)
+  ✓  4 cross-tenant project roster manipulation and enforce single-lead invariants (961ms)
+  ✓  5 enforce DM privacy from 3rd party workspace members and bind sender identity (3.2s)
+  ✓  6 users from creating conversations, sending messages, and creating projects (938ms)
+  ✓  7 should scope user search to workspace and reject tampered workspace context (1.3s)
+
+7 passed (12.3s)
+
+==================================================
+GATE 8: Full E2E Playwright Suite
+Command: npm run test:e2e
+Exit Code: 0
+Output:
+Running 25 tests using 1 worker
+
+  ✓   1 redirect unauthenticated users to /login when accessing protected routes (612ms)
+  ✓   2 user and custom workspace, then redirect to login, sign in, and log out (1.7s)
+  ✓   3 should allow logging in with credentials and switching workspaces (1.2s)
+  ✓   4 allow deleting user account with confirmation and prevent subsequent login (2.3s)
+  ✓   5 create event with modal, edit event details, and safely delete event (2.3s)
+  ✓   6 select conversation, send a message, and verify persistence in chat history (1.4s)
+  ✓   7 should open new chat modal and start direct message with team colleague (1.2s)
+  ✓   8 counterparty identity correctly across accounts (Ava sees Leo, Leo sees Ava) (3.0s)
+  ✓   9 receive in real time between two open browser sessions without manual reload (4.3s)
+  ✓  10 project portfolio, allow selection, and navigate to project detail page (1.6s)
+  ✓  11 browse reports, switches filters, verifies activity labels and project links (1.4s)
+  ✓  12 visit to settings and manages workspace, members, account, and UI preferences (2.9s)
+  ✓  13 should toggle Command Palette with Ctrl+K and close with Escape (1.6s)
+  ✓  14 navigate using G chords (G T for tasks, G M for messages, G P for projects) (1.3s)
+  ✓  15 should focus message filter input with F key and blur on Escape (1.0s)
+  ✓  16 allow owner to view workspaces, search public workspaces, and discover users (1.4s)
+  ✓  17 list tasks, create task via project associated tasks, and manage in task queue (1.8s)
+  ✓  18 should deny unauthenticated requests across actions and return 401 on SSE (49ms)
+  ✓  19 return 403 when user attempts to subscribe to another workspace's events (914ms)
+  ✓  20 switching to unauthorized workspaces and self-joining private workspaces (858ms)
+  ✓  21 cross-tenant project roster manipulation and enforce single-lead invariants (956ms)
+  ✓  22 enforce DM privacy from 3rd party workspace members and bind sender identity (3.2s)
+  ✓  23 users from creating conversations, sending messages, and creating projects (837ms)
+  ✓  24 should scope user search to workspace and reject tampered workspace context (822ms)
+  ✓  25 display default Acme Corporation workspace and switch to Starlight Studios (1.4s)
+
+25 passed (42.4s)
+
+==================================================
+MIGRATION DRY-RUN CHECK
+Command: npx tsx scripts/migrate-auth-security.ts --dry-run
+Exit Code: 0
+Output:
+Auth security migration completed: {
+  success: true,
+  dryRun: true,
+  alreadyApplied: false,
+  usersScanned: 10,
+  modernHashesCount: 0,
+  legacyHashesCount: 10,
+  corruptedHashesCount: 0,
+  activeSessionsCount: 27,
+  expiredSessionsPurged: 0,
+  rateLimitsTableCreated: true,
+  sessionsIndexesCreated: true
+}
+
+==================================================
+Database Safety Confirmation:
+Pre-test snapshot was restored: collabspace.db is untouched.
+No live migration was executed against production database.
+All 8 test gates and dry runs passed cleanly with exit code 0.

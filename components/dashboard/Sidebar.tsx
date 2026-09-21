@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import type { DbWorkspace, DbUser } from "@/lib/db/schema";
+import { Logo } from "@/components/ui/Logo";
 import { logoutAction } from "@/app/actions";
 
 type SidebarProps = {
@@ -113,17 +114,7 @@ export function Sidebar({
         {/* Top: CollabSpace Brand Header */}
         <div className="h-14 px-4 flex items-center justify-between border-b border-outline/20 bg-surface-container-low">
           <div className="flex items-center gap-2.5">
-            <svg
-              className="h-8 w-8 shrink-0"
-              viewBox="0 0 64 64"
-              role="img"
-              aria-label="CollabSpace logo"
-            >
-              <rect x="0.5" y="0.5" width="63" height="63" rx="15" fill="#111319" stroke="#282a30" strokeWidth="1" />
-              <rect x="13" y="14" width="19" height="19" rx="5" fill="#8083ff" />
-              <rect x="32" y="31" width="19" height="19" rx="5" fill="#4edea3" />
-              <path d="M28 25.5 H36 A6 6 0 0 1 42 31.5 V34.5" fill="none" stroke="#FFFFFF" strokeWidth="5" strokeLinecap="round" />
-            </svg>
+            <Logo size={32} className="h-8 w-8" />
             <div className="flex items-baseline gap-1.5">
               <span className="font-semibold text-sm tracking-tight text-on-surface font-headline-sm">CollabSpace</span>
               <span className="font-mono text-[9px] text-secondary bg-surface-container-high px-1 py-0.2 rounded">v2</span>

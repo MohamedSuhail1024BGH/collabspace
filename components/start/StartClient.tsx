@@ -13,6 +13,7 @@ import {
 import type { DbUser } from "@/lib/db/schema";
 import { FloatingSettingsModal } from "@/components/dashboard/FloatingSettingsModal";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import { Logo } from "@/components/ui/Logo";
 
 type UserWorkspaceItem = {
   id: string;
@@ -172,17 +173,7 @@ export function StartClient({
       <header className="border-b border-outline/10 bg-surface-container-low sticky top-0 z-30">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
-            <svg
-              className="h-9 w-9 shrink-0 shadow-xs"
-              viewBox="0 0 64 64"
-              role="img"
-              aria-label="CollabSpace logo"
-            >
-              <rect x="0.5" y="0.5" width="63" height="63" rx="15" fill="#111319" stroke="#282a30" strokeWidth="1" />
-              <rect x="13" y="14" width="19" height="19" rx="5" fill="#8083ff" />
-              <rect x="32" y="31" width="19" height="19" rx="5" fill="#4edea3" />
-              <path d="M28 25.5 H36 A6 6 0 0 1 42 31.5 V34.5" fill="none" stroke="#FFFFFF" strokeWidth="5" strokeLinecap="round" />
-            </svg>
+            <Logo size={36} className="h-9 w-9 shadow-xs" />
             <div className="flex items-baseline gap-2">
               <span className="text-base font-bold tracking-tight text-on-surface">CollabSpace</span>
               <span className="rounded bg-surface-container-high border border-outline-variant/20 px-2 py-0.5 text-[10px] font-mono font-medium text-secondary">
