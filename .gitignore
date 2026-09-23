@@ -58,3 +58,6 @@ collabspace.db*
 .agents/
 .freebuff/
 .test-tmp/
+
+#additional
+verification.txt

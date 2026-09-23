@@ -66,14 +66,35 @@ export function TaskRow({ task, onEdit, onDelete, onStatusChange }: TaskRowProps
       <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
         <div className="flex-1 min-w-0">
           <div className="flex items-start gap-2.5">
-            <span
-              className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
-                priority === "High" ? "bg-error animate-pulse" : "bg-primary"
-              }`}
-              aria-hidden="true"
-            />
+            {onStatusChange ? (
+              <button
+                type="button"
+                aria-label={status === "Completed" ? "Mark incomplete" : "Mark completed"}
+                onClick={() => onStatusChange(taskId, status === "Completed" ? "In progress" : "Completed")}
+                className={`mt-0.5 w-5 h-5 rounded flex items-center justify-center transition-all shrink-0 cursor-pointer active:scale-90 ${
+                  status === "Completed"
+                    ? "bg-secondary text-on-secondary shadow-xs"
+                    : "border border-outline-variant/40 bg-surface-lowest text-transparent hover:text-secondary/60 hover:border-secondary"
+                }`}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+              </button>
+            ) : (
+              <span
+                className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
+                  priority === "High" ? "bg-error animate-pulse" : "bg-primary"
+                }`}
+                aria-hidden="true"
+              />
+            )}
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-on-surface group-hover:text-primary transition-colors truncate font-headline-sm">
+              <p
+                className={`text-sm font-semibold text-on-surface group-hover:text-primary transition-colors truncate font-headline-sm ${
+                  status === "Completed" ? "line-through text-on-surface-variant/60" : ""
+                }`}
+              >
                 {title}
               </p>
               {description ? (

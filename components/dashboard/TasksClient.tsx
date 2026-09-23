@@ -6,6 +6,7 @@ import {
   deleteTaskAction,
   updateTaskAction,
   updateTaskStatusAction,
+  createTaskAction,
 } from "@/app/actions";
 import { TaskFilters } from "@/components/dashboard/TaskFilters";
 import { TaskForm, type TaskDraft } from "@/components/dashboard/TaskForm";
@@ -129,6 +130,21 @@ export function TasksClient({
     setIsFormOpen(true);
   };
 
+  const openCreateTask = () => {
+    setDraftTask({
+      id: "",
+      title: "",
+      description: "",
+      assignee: formAssigneeOptions[0] || "Unassigned",
+      priority: "Medium",
+      status: "Not started",
+      due: getTodayValue(),
+      project: projectOptions[0]?.name ?? "General",
+      projectId: projectOptions[0]?.id,
+    });
+    setIsFormOpen(true);
+  };
+
   const closeForm = () => {
     setDraftTask(null);
     setIsFormOpen(false);
@@ -145,7 +161,7 @@ export function TasksClient({
   };
 
   const handleSaveTask = async () => {
-    if (!draftTask || !draftTask.id) return;
+    if (!draftTask) return;
 
     const normalizedTask = {
       title: draftTask.title.trim() || "Untitled task",
@@ -157,6 +173,38 @@ export function TasksClient({
       status: draftTask.status || "Not started",
       priority: (draftTask.priority || "Medium") as TaskPriority,
     };
+
+    if (!draftTask.id) {
+      setIsSaving(true);
+      const res = await createTaskAction({
+        workspaceId: _workspaceId,
+        title: normalizedTask.title,
+        description: normalizedTask.description,
+        assignee: normalizedTask.assignee,
+        priority: normalizedTask.priority,
+        status: normalizedTask.status,
+        due: normalizedTask.due,
+        projectId: normalizedTask.projectId,
+        projectName: normalizedTask.projectName,
+      });
+      if (res.success && res.id) {
+        const createdTask: DashboardTask = {
+          id: res.id,
+          title: normalizedTask.title,
+          description: normalizedTask.description,
+          assignee: normalizedTask.assignee,
+          priority: normalizedTask.priority,
+          status: normalizedTask.status,
+          due: normalizedTask.due,
+          project: normalizedTask.projectName,
+        };
+        setTasks((prev) => [createdTask, ...prev]);
+        closeForm();
+        router.refresh();
+      }
+      setIsSaving(false);
+      return;
+    }
 
     setIsSaving(true);
     const taskId = draftTask.id;
@@ -221,7 +269,7 @@ export function TasksClient({
             <h1 className="text-lg font-bold tracking-tight text-on-surface font-headline-sm">Task queue</h1>
             <p className="text-[11px] font-mono text-on-surface-variant">Engineering tasks and execution queue</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <span className="rounded-md bg-surface-container-high px-2 py-0.5 text-xs font-mono text-secondary">
               {filteredTasks.length} items
             </span>
@@ -257,7 +305,83 @@ export function TasksClient({
                 <span>Board</span>
               </button>
             </div>
+
+            {!isViewer && (
+              <button
+                type="button"
+                onClick={openCreateTask}
+                className="hidden sm:flex items-center gap-1.5 bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-3 py-1 rounded font-medium text-xs transition shadow-xs"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                <span>Add Task</span>
+              </button>
+            )}
           </div>
+        </div>
+
+        {/* Quick Filter Chips Carousel (< md) inspired by stitch mobile view */}
+        <div className="flex md:hidden items-center gap-1.5 overflow-x-auto no-scrollbar pb-3 mb-2 border-b border-outline/10">
+          <button
+            type="button"
+            onClick={() => {
+              setStatusFilter("All");
+              setPriorityFilter("All");
+            }}
+            className={`flex items-center gap-1 px-3 py-1 rounded-full font-mono text-xs whitespace-nowrap active:scale-95 transition-all ${
+              statusFilter === "All" && priorityFilter === "All"
+                ? "bg-primary text-on-primary font-semibold shadow-xs"
+                : "bg-surface-container-high text-on-surface-variant hover:text-on-surface"
+            }`}
+          >
+            <span>All</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-surface-lowest/50">
+              {tasks.length}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setPriorityFilter("High")}
+            className={`flex items-center gap-1 px-3 py-1 rounded-full font-mono text-xs whitespace-nowrap active:scale-95 transition-all ${
+              priorityFilter === "High"
+                ? "bg-error text-on-error font-semibold shadow-xs"
+                : "bg-surface-container-high text-on-surface-variant hover:text-on-surface"
+            }`}
+          >
+            <span>High / Urgent</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-surface-lowest/50">
+              {tasks.filter((t) => t.priority === "High").length}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter("In progress")}
+            className={`flex items-center gap-1 px-3 py-1 rounded-full font-mono text-xs whitespace-nowrap active:scale-95 transition-all ${
+              statusFilter === "In progress"
+                ? "bg-primary text-on-primary font-semibold shadow-xs"
+                : "bg-surface-container-high text-on-surface-variant hover:text-on-surface"
+            }`}
+          >
+            <span>In Progress</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-surface-lowest/50">
+              {tasks.filter((t) => t.status === "In progress").length}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter("Completed")}
+            className={`flex items-center gap-1 px-3 py-1 rounded-full font-mono text-xs whitespace-nowrap active:scale-95 transition-all ${
+              statusFilter === "Completed"
+                ? "bg-secondary text-on-secondary font-semibold shadow-xs"
+                : "bg-surface-container-high text-on-surface-variant hover:text-on-surface"
+            }`}
+          >
+            <span>Completed</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-surface-lowest/50">
+              {tasks.filter((t) => t.status === "Completed").length}
+            </span>
+          </button>
         </div>
 
         <TaskFilters
@@ -308,6 +432,22 @@ export function TasksClient({
           onSave={handleSaveTask}
         />
       ) : null}
+      {/* Mobile Floating Sticky Action Button (+ New Task) */}
+      {!isViewer && (
+        <div className="fixed bottom-20 right-4 md:hidden z-30">
+          <button
+            type="button"
+            onClick={openCreateTask}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-primary hover:bg-primary-container text-on-primary font-mono text-xs font-bold shadow-xl active:scale-95 transition-all"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            <span>New Task</span>
+            <span className="px-1.5 py-0.2 bg-on-primary/20 rounded text-[10px]">N</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

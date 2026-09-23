@@ -236,15 +236,41 @@ export function ProjectsClient({
           className="block w-full text-left cursor-pointer"
         >
           <div className="mb-3 flex items-start justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-on-surface hover:text-primary transition-colors font-headline-sm">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="font-mono text-[10px] text-primary tracking-wider uppercase font-semibold">
+                  PRJ-{project.id.slice(-4).toUpperCase()}
+                </span>
+                <span className="rounded-md bg-surface-lowest border border-outline-variant/25 px-2 py-0.5 text-[10px] font-mono text-secondary flex items-center gap-1">
+                  {(project.status === "In progress" || project.status === "On track") && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />
+                  )}
+                  <span>{project.status}</span>
+                </span>
+              </div>
+              <p className="mt-1 text-sm font-semibold text-on-surface hover:text-primary transition-colors font-headline-sm truncate">
                 {project.name}
               </p>
-              <p className="mt-0.5 text-xs text-on-surface-variant font-mono">Owner: {project.owner}</p>
+              <p className="mt-0.5 text-xs text-on-surface-variant font-mono truncate">Owner: {project.owner}</p>
             </div>
-            <span className="rounded-md bg-surface-lowest border border-outline-variant/25 px-2 py-0.5 text-[10px] font-mono text-secondary">
-              {project.status}
-            </span>
+            {project.teamMembers && project.teamMembers.length > 0 && (
+              <div className="flex -space-x-1.5 shrink-0 pt-0.5">
+                {project.teamMembers.slice(0, 3).map((m, idx) => (
+                  <div
+                    key={idx}
+                    title={`${m.name} (${m.role})`}
+                    className={`w-5 h-5 rounded-full text-[9px] font-mono font-bold flex items-center justify-center text-white ring-1 ring-surface-container ${m.color || "bg-primary"}`}
+                  >
+                    {m.initials || m.name.slice(0, 1)}
+                  </div>
+                ))}
+                {project.teamMembers.length > 3 && (
+                  <div className="w-5 h-5 rounded-full bg-surface-container-high text-primary font-mono text-[9px] flex items-center justify-center font-semibold ring-1 ring-surface-container">
+                    +{project.teamMembers.length - 3}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="mb-1.5 flex items-center justify-between text-xs text-on-surface-variant">
@@ -282,9 +308,10 @@ export function ProjectsClient({
         <div className="mt-3 pt-2.5 border-t border-outline/10 flex items-center justify-between gap-2">
           <Link
             href={`/projects/${project.id}`}
-            className="text-xs font-mono font-medium text-primary hover:underline"
+            className="text-xs font-mono font-medium text-primary hover:underline flex items-center gap-1"
           >
-            Open details
+            <span>Open details</span>
+            <span>&rarr;</span>
           </Link>
           {!isViewer && (
             <div className="flex items-center gap-1.5">
@@ -311,8 +338,8 @@ export function ProjectsClient({
 
   return (
     <div className="space-y-4 sm:space-y-6 pb-12">
-      {/* Metrics Row */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      {/* Metrics Row (2x2 Bento on Mobile, 4-col on Desktop) */}
+      <section className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         {liveReportCards.map((report) => (
           <StatCard key={report.title} label={report.title} value={report.value} change={report.trend} />
         ))}
@@ -320,44 +347,83 @@ export function ProjectsClient({
 
       {/* Main Portfolio Grid */}
       <section className="grid gap-5 xl:grid-cols-[1.8fr_1fr]">
-        <div className="rounded-xl bg-surface-container-low border border-outline-variant/20 p-4 sm:p-5 shadow-xs">
-          <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between pb-3 border-b border-outline-variant/15">
-            <div>
-              <h1 className="text-lg font-bold tracking-tight text-on-surface font-headline-sm">Project portfolio</h1>
-              <p className="text-[11px] font-mono text-on-surface-variant">Active initiatives and engineering deliverables</p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative">
-                <input
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  type="search"
-                  placeholder="Search projects"
-                  className="rounded-lg bg-surface-lowest border border-outline-variant/25 px-3 py-1.5 text-xs text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 focus:outline-none transition-all"
-                />
+        <div className="rounded-xl bg-surface-container-low border border-outline-variant/20 p-3.5 sm:p-5 shadow-xs">
+          <div className="mb-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between pb-3 border-b border-outline-variant/15">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-lg font-bold tracking-tight text-on-surface font-headline-sm">Project portfolio</h1>
+                <p className="text-[11px] font-mono text-on-surface-variant">Active initiatives and engineering deliverables</p>
               </div>
-              <select
-                value={statusFilter}
-                onChange={(event) => setStatusFilter(event.target.value)}
-                className="rounded-lg bg-surface-lowest border border-outline-variant/25 px-3 py-1.5 text-xs text-on-surface focus:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 focus:outline-none font-mono transition-all"
-              >
-                {statusOptions.map((option) => (
-                  <option key={option} value={option} className="bg-surface-container-high text-on-surface">
-                    {option}
-                  </option>
-                ))}
-              </select>
               {!isViewer && (
                 <button
                   type="button"
                   onClick={() => setShowNewProject((current) => !current)}
-                  className="rounded-lg bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-3.5 py-1.5 text-xs font-medium transition shadow-xs"
+                  className="sm:hidden rounded-lg bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-3 py-1.5 text-xs font-medium transition shadow-xs shrink-0"
                 >
-                  {showNewProject ? "Close" : "New project"}
+                  {showNewProject ? "Close" : "+ New"}
                 </button>
               )}
             </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <div className="relative w-full sm:w-auto">
+                <input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  type="search"
+                  placeholder="Search projects..."
+                  className="w-full sm:w-48 lg:w-56 rounded-lg bg-surface-lowest border border-outline-variant/25 px-3 py-1.5 text-xs text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 focus:outline-none transition-all"
+                />
+              </div>
+              <div className="hidden sm:flex items-center gap-2">
+                <select
+                  value={statusFilter}
+                  onChange={(event) => setStatusFilter(event.target.value)}
+                  className="rounded-lg bg-surface-lowest border border-outline-variant/25 px-3 py-1.5 text-xs text-on-surface focus:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 focus:outline-none font-mono transition-all"
+                >
+                  {statusOptions.map((option) => (
+                    <option key={option} value={option} className="bg-surface-container-high text-on-surface">
+                      {option}
+                    </option>
+                  ))}
+                </select>
+                {!isViewer && (
+                  <button
+                    type="button"
+                    onClick={() => setShowNewProject((current) => !current)}
+                    className="rounded-lg bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-3.5 py-1.5 text-xs font-medium transition shadow-xs whitespace-nowrap"
+                  >
+                    {showNewProject ? "Close" : "New project"}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile Filter Chips Carousel */}
+          <div className="sm:hidden flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-3 mb-2 -mx-1 px-1">
+            {statusOptions.map((option) => {
+              const count = option === "All" ? projects.length : projects.filter((p) => p.status === option).length;
+              const isActive = statusFilter === option;
+              return (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => setStatusFilter(option)}
+                  className={`px-3 py-1 rounded-full text-xs font-mono transition-all whitespace-nowrap flex items-center gap-1.5 shrink-0 ${
+                    isActive
+                      ? "bg-primary text-on-primary font-semibold shadow-xs"
+                      : "bg-surface-lowest border border-outline-variant/25 text-on-surface-variant hover:text-on-surface"
+                  }`}
+                >
+                  {isActive && <span className="w-1.5 h-1.5 rounded-full bg-on-primary animate-pulse" />}
+                  <span>{option}</span>
+                  <span className={`text-[10px] ${isActive ? "text-on-primary/80" : "text-on-surface-variant/70"}`}>
+                    ({count})
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           {showNewProject && (

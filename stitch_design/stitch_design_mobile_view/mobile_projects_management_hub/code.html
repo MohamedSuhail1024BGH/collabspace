@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><title>CollabSpace</title><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=JetBrains+Mono:wght@100..900&display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "on-secondary-fixed-variant": "#005236", "surface-container-high": "#282a30", "secondary-container": "#00a572", "on-surface": "#e2e2eb", "background": "#111319", "surface-container-low": "#191b22", "on-tertiary": "#472a00", "on-tertiary-container": "#3e2400", "surface-variant": "#33343b", "tertiary": "#ffb95f", "surface-bright": "#373940", "on-primary-fixed": "#07006c", "inverse-on-surface": "#2e3037", "secondary-fixed": "#6ffbbe", "on-primary": "#1000a9", "surface-container": "#1e1f26", "surface": "#111319", "on-error-container": "#ffdad6", "on-primary-fixed-variant": "#2f2ebe", "primary-fixed": "#e1e0ff", "surface-tint": "#c0c1ff", "tertiary-fixed-dim": "#ffb95f", "on-error": "#690005", "on-tertiary-fixed": "#2a1700", "outline-variant": "#464554", "tertiary-fixed": "#ffddb8", "on-secondary-fixed": "#002113", "surface-container-lowest": "#0c0e14", "secondary": "#4edea3", "outline": "#908fa0", "on-secondary": "#003824", "on-secondary-container": "#00311f", "primary": "#c0c1ff", "primary-fixed-dim": "#c0c1ff", "inverse-surface": "#e2e2eb", "tertiary-container": "#ca8100", "on-tertiary-fixed-variant": "#653e00", "inverse-primary": "#494bd6", "surface-container-highest": "#33343b", "surface-dim": "#111319", "on-surface-variant": "#c7c4d7", "error-container": "#93000a", "error": "#ffb4ab", "on-background": "#e2e2eb", "on-primary-container": "#0d0096", "primary-container": "#8083ff", "secondary-fixed-dim": "#4edea3" }, "borderRadius": { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" }, "spacing": { "margin": "1rem", "margin-lg": "1.5rem", "space-xs": "0.25rem", "space-xl": "1.5rem", "space-sm": "0.5rem", "gutter": "0.75rem", "gutter-lg": "1rem", "margin-sm": "0.75rem", "space-md": "0.75rem", "gutter-sm": "0.5rem", "space-lg": "1rem" }, "fontFamily": { "label-md": ["JetBrains Mono"], "label-sm": ["JetBrains Mono"], "headline-xl-mobile": ["Geist"], "body-md": ["Geist"], "code-inline": ["JetBrains Mono"], "body-sm": ["Geist"], "headline-md": ["Geist"], "headline-lg": ["Geist"], "headline-xl": ["Geist"], "body-lg": ["Geist"], "headline-sm": ["Geist"] }, "fontSize": { "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }], "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "500" }], "headline-xl-mobile": ["26px", { "lineHeight": "32px", "letterSpacing": "-0.025em", "fontWeight": "600" }], "body-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0em", "fontWeight": "400" }], "code-inline": ["12px", { "lineHeight": "16px", "letterSpacing": "0em", "fontWeight": "400" }], "body-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0em", "fontWeight": "400" }], "headline-md": ["18px", { "lineHeight": "24px", "letterSpacing": "-0.015em", "fontWeight": "600" }], "headline-lg": ["24px", { "lineHeight": "30px", "letterSpacing": "-0.02em", "fontWeight": "600" }], "headline-xl": ["32px", { "lineHeight": "38px", "letterSpacing": "-0.03em", "fontWeight": "600" }], "body-lg": ["14px", { "lineHeight": "22px", "letterSpacing": "-0.005em", "fontWeight": "400" }], "headline-sm": ["15px", { "lineHeight": "20px", "letterSpacing": "-0.01em", "fontWeight": "500" }] } } } };</script><style>@layer base { html, body { width: 100%; margin: 0; padding: 0; } body { overscroll-behavior-y: none; } .pb-safe { padding-bottom: max(env(safe-area-inset-bottom, 0px), 12px); } .pt-safe { padding-top: max(env(safe-area-inset-top, 0px), 0px); } main > :first-child { margin-top: 0 !important; } main > :last-child { margin-bottom: 0 !important; } } ::-webkit-scrollbar { display: none; } .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; font-size: 20px; line-height: 1; display: inline-block; }</style></head><body class="bg-background text-on-surface font-body-md text-body-md flex flex-col min-h-screen antialiased selection:bg-primary selection:text-on-primary"><header class="fixed top-0 w-full z-50 pt-safe bg-surface-container-lowest/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.4)]"><div class="h-14 px-gutter flex items-center justify-between"><div class="flex items-center gap-space-sm min-w-0"><button aria-label="Open Workspace Drawer" class="w-11 h-11 flex items-center justify-center rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors active:scale-95" onclick="document.getElementById('aux-drawer').classList.toggle('-translate-x-full'); document.getElementById('drawer-backdrop').classList.toggle('hidden');" type="button"><span class="material-symbols-outlined">menu</span></button><div class="flex items-center gap-space-xs min-w-0 pr-space-xs"><div class="w-6 h-6 rounded bg-primary text-on-primary flex items-center justify-center font-headline-sm text-headline-sm font-bold flex-shrink-0">C</div><div class="flex flex-col min-w-0"><span class="font-label-sm text-label-sm text-primary tracking-wider uppercase leading-none truncate">CollabSpace</span><button class="flex items-center gap-0.5 text-left text-on-surface font-headline-sm text-headline-sm truncate hover:text-primary transition-colors py-0.5" type="button"><span class="truncate font-medium">Acme Engineering</span><span class="material-symbols-outlined text-outline text-[16px]">expand_more</span></button></div></div></div><div class="flex items-center gap-space-xs flex-shrink-0"><button aria-label="Quick Search & Command" class="w-11 h-11 flex items-center justify-center rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors active:scale-95" type="button"><span class="material-symbols-outlined">search</span></button><div class="w-11 h-11 flex items-center justify-center pl-1"><img alt="Profile" class="w-8 h-8 rounded-full object-cover ring-1 ring-outline-variant/60" src="https://lh3.googleusercontent.com/aida/AEtjO1VJnzOkPVbbczc1q_ydY9-JOp8JIHnTgCNKH4QrrUpbZgpbCG8BK1s7ySs2GvU2mtm7qV-LmK3J7kFdJO5rUwH4l3xoN_z7jYNLai5lteRx9ghHM2qUbEuiNocmW2stqeX27hIkAXPujyhejB4rNyRhFZEgnQZ0M5Lg3aNMpHGJKq32zh3uvCxVEW5WYRYGGU3PwZqoa1pOH12NaUbF5nPaCZYwYjAAMGmjOeCeE5rsyHHHi6Xf3s2hdr61"/></div></div></div><div class="px-gutter pb-space-xs flex items-center justify-between text-on-surface-variant"><span class="font-label-sm text-label-sm uppercase tracking-wider text-outline">Context • Projects Management Hub</span><span class="font-code-inline text-code-inline text-secondary flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span>LIVE</span></div></header><div class="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 hidden transition-opacity" id="drawer-backdrop" onclick="document.getElementById('aux-drawer').classList.add('-translate-x-full'); this.classList.add('hidden');"></div><aside class="fixed top-0 bottom-0 left-0 w-72 max-w-[80vw] bg-surface-container-lowest z-50 -translate-x-full transition-transform duration-200 ease-out flex flex-col pt-safe pb-safe shadow-2xl" id="aux-drawer"><div class="p-space-lg flex items-center justify-between"><div class="flex items-center gap-space-sm"><div class="w-7 h-7 rounded bg-primary text-on-primary flex items-center justify-center font-bold font-headline-sm text-headline-sm">C</div><span class="font-headline-sm text-headline-sm font-semibold text-on-surface">Acme Eng Rail</span></div><button class="w-11 h-11 flex items-center justify-center text-outline hover:text-on-surface" onclick="document.getElementById('aux-drawer').classList.add('-translate-x-full'); document.getElementById('drawer-backdrop').classList.add('hidden');" type="button"><span class="material-symbols-outlined">close</span></button></div><div class="flex-1 overflow-y-auto px-space-md py-space-sm space-y-space-md"><div class="space-y-1"><span class="px-space-sm font-label-sm text-label-sm uppercase tracking-wider text-outline">Workspace Modules</span><a class="flex items-center gap-space-sm px-space-sm py-2.5 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" data-path="overview-command-dashboard" href="#"><span class="material-symbols-outlined">dashboard</span><span class="font-body-md text-body-md font-medium">Overview</span></a><a class="flex items-center gap-space-sm px-space-sm py-2.5 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" data-path="projects-management-hub" href="#"><span class="material-symbols-outlined">folder_open</span><span class="font-body-md text-body-md font-medium">Projects</span></a><a class="flex items-center gap-space-sm px-space-sm py-2.5 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" data-path="tasks-queue-management" href="#"><span class="material-symbols-outlined">task_alt</span><span class="font-body-md text-body-md font-medium">Tasks</span></a><a class="flex items-center justify-between px-space-sm py-2.5 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" data-path="team-messages-communications" href="#"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined">forum</span><span class="font-body-md text-body-md font-medium">Messages</span></div><span class="px-1.5 py-0.5 bg-primary text-on-primary font-label-sm text-label-sm rounded font-medium">3</span></a></div><div class="space-y-1 pt-space-xs"><span class="px-space-sm font-label-sm text-label-sm uppercase tracking-wider text-outline">Auxiliary Intelligence</span><a class="flex items-center gap-space-sm px-space-sm py-2.5 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" data-path="calendar-sprint-agenda" href="#"><span class="material-symbols-outlined">calendar_month</span><span class="font-body-md text-body-md font-medium">Sprint Calendar</span></a><a class="flex items-center gap-space-sm px-space-sm py-2.5 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" data-path="workspace-reports-capacity" href="#"><span class="material-symbols-outlined">analytics</span><span class="font-body-md text-body-md font-medium">Reports & Capacity</span></a><a class="flex items-center gap-space-sm px-space-sm py-2.5 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" data-path="settings-workspace-admin" href="#"><span class="material-symbols-outlined">tune</span><span class="font-body-md text-body-md font-medium">Admin Settings</span></a></div><div class="p-space-md rounded bg-surface-container-high space-y-2 mt-space-lg"><div class="flex items-center justify-between font-label-sm text-label-sm"><span class="text-outline">Storage Quota</span><span class="text-on-surface font-code-inline text-code-inline font-medium">7.4 / 10 GB</span></div><div class="w-full h-1.5 bg-surface-container-lowest rounded-full overflow-hidden"><div class="h-full bg-secondary rounded-full w-[74%]"></div></div><p class="font-label-sm text-label-sm text-outline-variant">Active Plan: Enterprise Dedicated</p></div></div><div class="p-space-md bg-surface-container-lowest flex items-center justify-between"><div class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-outline">dark_mode</span><span class="font-label-md text-label-md text-on-surface-variant">Theme: Dark</span></div><span class="px-2 py-0.5 bg-surface-container text-outline rounded font-label-sm text-label-sm font-mono">v2.4-prod</span></div></aside><main class="flex flex-col relative w-full pt-14 pb-24 bg-surface min-h-[calc(100vh-3.5rem)] px-gutter"><div class="flex flex-col w-full space-y-space-md">
+<!-- Interactive Segmented Navigation Tabs -->
+<div class="w-full overflow-x-auto no-scrollbar -mx-gutter px-gutter py-space-xs">
+<div class="inline-flex p-1 bg-surface-container-lowest rounded-full gap-1 min-w-full justify-between sm:justify-start" id="project-nav-tabs">
+<button class="project-tab-btn active px-space-md py-1.5 rounded-full font-label-sm text-label-sm text-on-surface bg-surface-container-high transition-all shadow-sm flex items-center gap-1.5" onclick="switchProjectTab('overview', this)" type="button">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+<span>Overview</span>
+</button>
+<button class="project-tab-btn px-space-md py-1.5 rounded-full font-label-sm text-label-sm text-outline hover:text-on-surface hover:bg-surface-container transition-all flex items-center gap-1.5" onclick="switchProjectTab('tasks', this)" type="button">
+<span>Tasks</span>
+<span class="px-1.5 py-0.2 bg-surface-container-high text-outline rounded font-code-inline text-[10px]">34</span>
+</button>
+<button class="project-tab-btn px-space-md py-1.5 rounded-full font-label-sm text-label-sm text-outline hover:text-on-surface hover:bg-surface-container transition-all flex items-center gap-1.5" onclick="switchProjectTab('team', this)" type="button">
+<span>Team</span>
+<span class="px-1.5 py-0.2 bg-surface-container-high text-outline rounded font-code-inline text-[10px]">8</span>
+</button>
+<button class="project-tab-btn px-space-md py-1.5 rounded-full font-label-sm text-label-sm text-outline hover:text-on-surface hover:bg-surface-container transition-all flex items-center gap-1.5" onclick="switchProjectTab('roadmap', this)" type="button">
+<span>Roadmap</span>
+</button>
+</div>
+</div>
+<!-- Featured Project Hero Card -->
+<section class="w-full bg-surface-container-low rounded-xl p-space-md flex flex-col space-y-space-md relative overflow-hidden shadow-md">
+<div class="absolute -right-8 -top-8 w-36 h-36 bg-gradient-to-bl from-primary/10 to-transparent rounded-full pointer-events-none"></div>
+<!-- Top Metadata Row -->
+<div class="flex items-start justify-between gap-space-sm relative z-10">
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="font-code-inline text-code-inline text-primary tracking-wider uppercase">NEB-302</span>
+<span class="px-2 py-0.5 rounded-full bg-secondary/15 text-secondary font-label-sm text-label-sm font-semibold flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span>
+            In Progress
+          </span>
+</div>
+<h2 class="font-headline-sm text-headline-sm font-semibold text-on-surface mt-1 truncate">Nebula Design System v3</h2>
+</div>
+<div class="flex items-center gap-1 flex-shrink-0">
+<a aria-label="Open Repository" class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high active:scale-95 transition-all" href="https://github.com" rel="noopener noreferrer" target="_blank">
+<svg class="w-4 h-4 fill-current" viewbox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"></path></svg>
+</a>
+<button aria-label="Project actions" class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high active:scale-95 transition-all" type="button">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Active Sprint Key Metric Badges Bento -->
+<div class="grid grid-cols-2 gap-space-xs pt-1">
+<div class="bg-surface-container p-2.5 rounded-lg flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-outline">Sprint Velocity</span>
+<span class="material-symbols-outlined text-secondary text-[16px]">trending_up</span>
+</div>
+<div class="mt-2 flex items-baseline gap-1.5">
+<span class="font-headline-sm text-headline-sm font-semibold text-on-surface">82.3%</span>
+<span class="font-code-inline text-[11px] text-outline">28/34 Done</span>
+</div>
+</div>
+<div class="bg-surface-container p-2.5 rounded-lg flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-outline">Remaining</span>
+<span class="material-symbols-outlined text-tertiary text-[16px]">timer</span>
+</div>
+<div class="mt-2 flex items-baseline gap-1.5">
+<span class="font-headline-sm text-headline-sm font-semibold text-on-surface">4 Days</span>
+<span class="font-code-inline text-[11px] text-tertiary">Sprint 14</span>
+</div>
+</div>
+<div class="bg-surface-container p-2.5 rounded-lg flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-outline">Total Backlog</span>
+<span class="material-symbols-outlined text-primary text-[16px]">list_alt</span>
+</div>
+<div class="mt-2 flex items-baseline gap-1">
+<span class="font-headline-sm text-headline-sm font-semibold text-on-surface">34</span>
+<span class="font-code-inline text-[11px] text-outline">Tickets</span>
+</div>
+</div>
+<div class="bg-surface-container p-2.5 rounded-lg flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-outline">Blockers</span>
+<span class="material-symbols-outlined text-error text-[16px]">crisis_alert</span>
+</div>
+<div class="mt-2 flex items-baseline gap-1">
+<span class="font-headline-sm text-headline-sm font-semibold text-error">2</span>
+<span class="font-code-inline text-[11px] text-error/80">Active</span>
+</div>
+</div>
+</div>
+<!-- Active Contributors Bar -->
+<div class="flex items-center justify-between pt-space-xs border-t border-surface-container-high/60">
+<div class="flex items-center gap-2">
+<div class="flex -space-x-2">
+<img class="w-6 h-6 rounded-full object-cover" data-alt="Close up modern software engineer headshot portrait in dark moody tech office lighting with ambient violet and emerald reflections" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAL4Wqhk4N-xPw8SFFJSIPVg5gQm32GADF4OM1BiSXJpuws2mSTXW3qEkMzPSSAKM73qCTAieBAOv47UsIt2AaL0kUretIMTaS9ntKJtA77ADPkY0JiMw-f3puBNfrL-SANXV2doJUpQ_w2XKA74lJV8qu0d_-lLU7vjPqyC9rwKEgIdCbKJKaHgmOgFAiIHjz1_wASxSEvDhGo-CNs_F9fB7UjiAJXPtuQT8DLFx7cVDzOj3YBdMs3UQ"/>
+<img class="w-6 h-6 rounded-full object-cover" data-alt="Technical designer smiling headshot portrait against architectural dark background with warm directional studio spotlight" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDUCqFCuOzFpPt67BisVxfepWX-LMe2RtkvK4IGfJW9qjJQRMc7_hXLiIE-Lbgh0rs5IhcxGKX83S6bZZQz1vzGvSOS_5g-pUXHgItf1f7-XGUKMCfGLIVl_hd-6Xz6LbBdF3gVpmCQIedgYyGBtWZ139R3V_OpHqf3PsVBGaQt-A8fT1FDZhdqKwbg11qSJw7tjCon0B8K2ilIkPrMVMuB3VucuMM3SpOadzti6i2QDF1Rpx1al_CCRg"/>
+<img class="w-6 h-6 rounded-full object-cover" data-alt="Senior frontend developer headshot portrait wearing glasses in a focused creative coding studio atmosphere" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCkeGLRwYE5KrX-wIjiOnmKkYvAMa-CfWDHV-TgaOJYXHlvAYNY7WWUqNEBCOGlHu2tptnmn25z8tf0X23UZU7UGBrQOumqhODCytjtTIEk0TiEaV3uP9LVXwjqOtEU7bAlyjN_j5KJf3mmiSPGvfDTEVNOqbMXJU3UbvfEwHbs-L-8SXTwCPjtj48ReejqhyWZ7We5xETs0QMbkavr1CPP13Ja7UW1LoLctIG2aUt9JTPejtuDOew2kA"/>
+<div class="w-6 h-6 rounded-full bg-surface-container-high text-primary font-code-inline text-[10px] flex items-center justify-center font-semibold">+5</div>
+</div>
+<span class="font-body-sm text-body-sm text-outline">8 Team Leads</span>
+</div>
+<button class="font-label-sm text-label-sm text-primary hover:text-on-surface transition-colors flex items-center gap-0.5" type="button">
+        View Hub
+        <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+</button>
+</div>
+</section>
+<!-- Sprint Burn-up Sparkline Graph Card -->
+<section class="w-full bg-surface-container-low rounded-xl p-space-md flex flex-col space-y-space-sm shadow-md">
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5">
+<span class="font-headline-sm text-headline-sm font-semibold text-on-surface">Sprint 14 Burn-up</span>
+<span class="px-1.5 py-0.5 rounded bg-secondary/15 text-secondary font-code-inline text-[10px] font-medium">+14% vs S13</span>
+</div>
+<span class="font-body-sm text-body-sm text-outline mt-0.5">Predicted completion on Day 8</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Ideal</span>
+<span class="w-2 h-2 rounded-full bg-primary ml-2"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Actual</span>
+</div>
+</div>
+<!-- Inline SVG Chart -->
+<div class="w-full pt-2">
+<svg class="w-full h-20 overflow-visible" preserveaspectratio="none" viewbox="0 0 320 80">
+<!-- Grid subtle lines -->
+<line stroke="#282a30" stroke-dasharray="3,3" stroke-width="1" x1="0" x2="320" y1="20" y2="20"></line>
+<line stroke="#282a30" stroke-dasharray="3,3" stroke-width="1" x1="0" x2="320" y1="50" y2="50"></line>
+<!-- Ideal trajectory line -->
+<polyline fill="none" opacity="0.6" points="0,75 80,55 160,38 240,22 320,8" stroke="#4edea3" stroke-dasharray="4,4" stroke-width="1.5"></polyline>
+<!-- Actual trajectory area and line -->
+<defs>
+<lineargradient id="chartGlow" x1="0%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" stop-color="#c0c1ff" stop-opacity="0.3"></stop>
+<stop offset="100%" stop-color="#c0c1ff" stop-opacity="0.0"></stop>
+</lineargradient>
+</defs>
+<polygon fill="url(#chartGlow)" points="0,78 0,74 55,62 110,58 170,35 220,24 220,78"></polygon>
+<polyline fill="none" points="0,74 55,62 110,58 170,35 220,24" stroke="#c0c1ff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></polyline>
+<!-- Current Point Pulser -->
+<circle cx="220" cy="24" fill="#111319" r="5" stroke="#c0c1ff" stroke-width="2"></circle>
+<circle cx="220" cy="24" fill="#c0c1ff" r="2"></circle>
+</svg>
+<div class="flex justify-between font-code-inline text-[10px] text-outline pt-1">
+<span>Day 1</span>
+<span>Day 4</span>
+<span>Day 7 (Today)</span>
+<span>Day 10 (Sprint End)</span>
+</div>
+</div>
+</section>
+<!-- Milestone Progress Interactive Accordion -->
+<section class="w-full flex flex-col space-y-space-sm">
+<div class="flex items-center justify-between px-space-xs">
+<h3 class="font-headline-sm text-headline-sm font-semibold text-on-surface">Milestones & Phases</h3>
+<span class="font-code-inline text-code-inline text-outline">v3.0.0-rc.2</span>
+</div>
+<!-- Phase 1: Complete -->
+<div class="bg-surface-container-low rounded-xl overflow-hidden transition-all shadow-sm">
+<button class="w-full p-space-md flex items-center justify-between text-left hover:bg-surface-container/50 transition-colors" onclick="toggleAccordion('milestone-1')" type="button">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-7 h-7 rounded bg-secondary/15 text-secondary flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]">check</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-2">
+<span class="font-label-sm text-label-sm text-outline uppercase">Phase 01</span>
+<span class="font-code-inline text-[11px] text-secondary">100% Done</span>
+</div>
+<span class="font-body-md text-body-md font-medium text-on-surface truncate">Token Engine Architecture</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline transition-transform duration-200" id="milestone-1-icon">expand_more</span>
+</button>
+<div class="hidden px-space-md pb-space-md pt-0 text-outline space-y-2 bg-surface-container-lowest/40" id="milestone-1">
+<div class="h-1.5 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-secondary w-full"></div>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">All 1,240 atomic tokens compiled and mapped to W3C Design Token JSON specification with cross-framework distributors.</p>
+<div class="flex items-center gap-2 pt-1 font-code-inline text-[11px] text-outline">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">commit</span> 38 commits</span>
+<span>•</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">verified</span> Approved by Arch Council</span>
+</div>
+</div>
+</div>
+<!-- Phase 2: In Flight (Open by Default) -->
+<div class="bg-surface-container-low rounded-xl overflow-hidden transition-all shadow-sm">
+<button class="w-full p-space-md flex items-center justify-between text-left hover:bg-surface-container/50 transition-colors" onclick="toggleAccordion('milestone-2')" type="button">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-7 h-7 rounded bg-primary/15 text-primary flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]">autorenew</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-2">
+<span class="font-label-sm text-label-sm text-primary uppercase">Phase 02</span>
+<span class="font-code-inline text-[11px] text-primary">88% In Flight</span>
+</div>
+<span class="font-body-md text-body-md font-medium text-on-surface truncate">React Component Library v3</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline rotate-180 transition-transform duration-200" id="milestone-2-icon">expand_more</span>
+</button>
+<div class="px-space-md pb-space-md pt-0 text-outline space-y-space-xs bg-surface-container-lowest/40" id="milestone-2">
+<div class="h-1.5 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[88%] rounded-full"></div>
+</div>
+<div class="grid grid-cols-2 gap-2 pt-1">
+<div class="p-2 rounded bg-surface-container flex flex-col">
+<span class="font-label-sm text-label-sm text-outline">Components Ported</span>
+<span class="font-headline-sm text-headline-sm font-semibold text-on-surface mt-0.5">42 / 48</span>
+</div>
+<div class="p-2 rounded bg-surface-container flex flex-col">
+<span class="font-label-sm text-label-sm text-outline">Storybook Coverage</span>
+<span class="font-headline-sm text-headline-sm font-semibold text-secondary mt-0.5">96.4%</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-1">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Next: Form Select Combobox</span>
+<span class="px-2 py-0.5 bg-surface-container-high rounded font-label-sm text-label-sm text-primary">PR #418</span>
+</div>
+</div>
+</div>
+<!-- Phase 3: Upcoming -->
+<div class="bg-surface-container-low rounded-xl overflow-hidden transition-all shadow-sm">
+<button class="w-full p-space-md flex items-center justify-between text-left hover:bg-surface-container/50 transition-colors" onclick="toggleAccordion('milestone-3')" type="button">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-7 h-7 rounded bg-tertiary/15 text-tertiary flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]">schedule</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-2">
+<span class="font-label-sm text-label-sm text-outline uppercase">Phase 03</span>
+<span class="font-code-inline text-[11px] text-tertiary">20% Upcoming</span>
+</div>
+<span class="font-body-md text-body-md font-medium text-on-surface truncate">Figma Plugin Real-time Sync</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline transition-transform duration-200" id="milestone-3-icon">expand_more</span>
+</button>
+<div class="hidden px-space-md pb-space-md pt-0 text-outline space-y-2 bg-surface-container-lowest/40" id="milestone-3">
+<div class="h-1.5 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-tertiary w-[20%] rounded-full"></div>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Bi-directional variable synchronization pipeline between Figma Variables API and repository tokens via GitHub Webhooks.</p>
+<span class="font-label-sm text-label-sm text-outline">Target Kickoff: Sprint 15 (Next Monday)</span>
+</div>
+</div>
+</section>
+<!-- Other Active Projects Quick Switcher -->
+<section class="w-full flex flex-col space-y-space-sm pt-space-xs">
+<div class="flex items-center justify-between px-space-xs">
+<h3 class="font-headline-sm text-headline-sm font-semibold text-on-surface">Other Active Projects</h3>
+<button class="font-label-sm text-label-sm text-primary hover:underline" type="button">View All (12)</button>
+</div>
+<div class="flex flex-col space-y-2">
+<!-- Project 1 -->
+<div class="w-full p-space-md bg-surface-container-low hover:bg-surface-container rounded-xl flex items-center justify-between gap-space-sm transition-all active:scale-[0.99] cursor-pointer">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-9 h-9 rounded-lg bg-surface-container-high flex items-center justify-center text-primary flex-shrink-0">
+<span class="material-symbols-outlined text-[20px]">hub</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-2">
+<span class="font-code-inline text-[11px] text-outline">INF-108</span>
+<span class="font-body-md text-body-md font-semibold text-on-surface truncate">Q3 Infra Platform v2</span>
+</div>
+<div class="flex items-center gap-2 mt-0.5">
+<div class="w-20 h-1 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-secondary w-[65%]"></div>
+</div>
+<span class="font-code-inline text-[11px] text-outline">65%</span>
+</div>
+</div>
+</div>
+<span class="px-2 py-1 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm flex-shrink-0">7 Active</span>
+</div>
+<!-- Project 2 -->
+<div class="w-full p-space-md bg-surface-container-low hover:bg-surface-container rounded-xl flex items-center justify-between gap-space-sm transition-all active:scale-[0.99] cursor-pointer">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-9 h-9 rounded-lg bg-surface-container-high flex items-center justify-center text-secondary flex-shrink-0">
+<span class="material-symbols-outlined text-[20px]">phone_iphone</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-2">
+<span class="font-code-inline text-[11px] text-outline">MOB-44</span>
+<span class="font-body-md text-body-md font-semibold text-on-surface truncate">Mobile Labs iOS</span>
+</div>
+<div class="flex items-center gap-2 mt-0.5">
+<div class="w-20 h-1 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-tertiary w-[42%]"></div>
+</div>
+<span class="font-code-inline text-[11px] text-outline">42%</span>
+</div>
+</div>
+</div>
+<span class="px-2 py-1 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm flex-shrink-0">12 Active</span>
+</div>
+<!-- Project 3 -->
+<div class="w-full p-space-md bg-surface-container-low hover:bg-surface-container rounded-xl flex items-center justify-between gap-space-sm transition-all active:scale-[0.99] cursor-pointer">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-9 h-9 rounded-lg bg-surface-container-high flex items-center justify-center text-tertiary flex-shrink-0">
+<span class="material-symbols-outlined text-[20px]">terminal</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-2">
+<span class="font-code-inline text-[11px] text-outline">DEV-90</span>
+<span class="font-body-md text-body-md font-semibold text-on-surface truncate">Developer CLI Engine</span>
+</div>
+<div class="flex items-center gap-2 mt-0.5">
+<div class="w-20 h-1 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-secondary w-[94%]"></div>
+</div>
+<span class="font-code-inline text-[11px] text-outline">94%</span>
+</div>
+</div>
+</div>
+<span class="px-2 py-1 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm flex-shrink-0">2 Active</span>
+</div>
+</div>
+</section>
+<!-- Quick Floating Action Trigger for New Project/Task -->
+<div class="pt-space-sm flex justify-center">
+<button class="w-full py-2.5 px-space-md rounded-xl bg-primary text-on-primary font-headline-sm text-headline-sm font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-all shadow-md" type="button">
+<span class="material-symbols-outlined text-[18px]">add_circle</span>
+<span>Create Workstream Item</span>
+</button>
+</div>
+</div>
+<script>
+  function toggleAccordion(id) {
+    const el = document.getElementById(id);
+    const icon = document.getElementById(id + '-icon');
+    if (!el) return;
+    const isHidden = el.classList.contains('hidden');
+    if (isHidden) {
+      el.classList.remove('hidden');
+      if (icon) icon.classList.add('rotate-180');
+    } else {
+      el.classList.add('hidden');
+      if (icon) icon.classList.remove('rotate-180');
+    }
+  }
+
+  function switchProjectTab(tabKey, btnElement) {
+    const parent = document.getElementById('project-nav-tabs');
+    if (!parent) return;
+    const allBtns = parent.querySelectorAll('.project-tab-btn');
+    allBtns.forEach(btn => {
+      btn.classList.remove('bg-surface-container-high', 'text-on-surface');
+      btn.classList.add('text-outline');
+    });
+    btnElement.classList.remove('text-outline');
+    btnElement.classList.add('bg-surface-container-high', 'text-on-surface');
+  }
+</script></main><nav class="fixed bottom-0 inset-x-0 z-50 pb-safe bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_-1px_8px_rgba(0,0,0,0.4)]" data-active-classes="text-primary font-medium bg-surface-container-high/60"><div class="flex items-center justify-around h-16 px-gutter-sm"><a class="flex flex-col items-center justify-center gap-1 flex-1 h-12 rounded-lg text-on-surface-variant hover:text-on-surface transition-all active:scale-95" data-path="overview-command-dashboard" href="#"><span class="material-symbols-outlined">grid_view</span><span class="font-label-sm text-label-sm tracking-tight">Home</span></a><a aria-current="page" class="flex flex-col items-center justify-center gap-1 flex-1 h-12 rounded-lg transition-all active:scale-95 text-primary font-medium bg-surface-container-high/60" data-path="projects-management-hub" href="#"><span class="material-symbols-outlined">folder</span><span class="font-label-sm text-label-sm tracking-tight">Projects</span></a><a class="flex flex-col items-center justify-center gap-1 flex-1 h-12 rounded-lg text-on-surface-variant hover:text-on-surface transition-all active:scale-95" data-path="tasks-queue-management" href="#"><span class="material-symbols-outlined">check_circle</span><span class="font-label-sm text-label-sm tracking-tight">Tasks</span></a><a class="relative flex flex-col items-center justify-center gap-1 flex-1 h-12 rounded-lg text-on-surface-variant hover:text-on-surface transition-all active:scale-95" data-path="team-messages-communications" href="#"><div class="relative flex items-center justify-center"><span class="material-symbols-outlined">chat_bubble</span><span class="absolute -top-1 -right-2 px-1 py-0.2 bg-primary text-on-primary font-label-sm text-[10px] leading-tight rounded-full font-bold">3</span></div><span class="font-label-sm text-label-sm tracking-tight">Messages</span></a><a class="flex flex-col items-center justify-center gap-1 flex-1 h-12 rounded-lg text-on-surface-variant hover:text-on-surface transition-all active:scale-95" data-path="settings-workspace-admin" href="#"><span class="material-symbols-outlined">more_horiz</span><span class="font-label-sm text-label-sm tracking-tight">More</span></a></div></nav></body></html>

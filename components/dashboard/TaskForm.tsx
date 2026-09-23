@@ -51,8 +51,8 @@ export function TaskForm({
   }, [onCancel]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-fade-in">
-      <div className="w-full max-w-2xl rounded-2xl bg-surface-container border border-outline-variant/30 p-6 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] backdrop-blur-md animate-fade-in">
+      <div className="w-full max-w-2xl max-h-[90dvh] overflow-y-auto rounded-2xl bg-surface-container border border-outline-variant/30 p-6 shadow-2xl custom-scrollbar">
         <div className="mb-5 flex items-center justify-between gap-3 pb-4 border-b border-outline-variant/15">
           <div>
             <p className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">

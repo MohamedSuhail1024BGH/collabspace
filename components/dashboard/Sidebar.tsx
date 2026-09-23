@@ -108,11 +108,11 @@ export function Sidebar({
   const sidebarContent = (
     <aside
       data-testid="primary-sidebar"
-      className="h-full w-60 bg-surface-container-low border-r border-outline/20 flex flex-col justify-between select-none text-on-surface"
+      className="h-full w-60 bg-surface-container-low border-r border-outline/20 flex flex-col justify-between select-none text-on-surface overflow-hidden"
     >
-      <div className="flex flex-col">
+      <div className="flex flex-col min-h-0 flex-1">
         {/* Top: CollabSpace Brand Header */}
-        <div className="h-14 px-4 flex items-center justify-between border-b border-outline/20 bg-surface-container-low">
+        <div className="h-14 px-4 flex items-center justify-between border-b border-outline/20 bg-surface-container-low shrink-0">
           <div className="flex items-center gap-2.5">
             <Logo size={32} className="h-8 w-8" />
             <div className="flex items-baseline gap-1.5">
@@ -135,13 +135,12 @@ export function Sidebar({
         </div>
 
         {/* Workspace Navigation Section */}
-        <div className="px-3 pt-3">
+        <div className="px-3 pt-3 overflow-y-auto flex-1 min-h-0 custom-scrollbar">
           <span className="font-mono text-[11px] font-medium uppercase tracking-wider text-on-surface-variant block mb-2 px-1">
             Workspace
           </span>
           <nav className="flex flex-col gap-1">
             {navItems
-              .filter((item) => item !== "Settings")
               .map((item) => {
                 const href = hrefLookup[item] || "/";
                 const isActive =
@@ -175,7 +174,10 @@ export function Sidebar({
       </div>
 
       {/* Bottom Section: Expandable Workspace & Account Switcher */}
-      <div className="p-2.5 bg-surface-container-lowest border-t border-outline/20">
+      <div
+        data-testid="sidebar-footer"
+        className="p-2.5 bg-surface-container-lowest border-t border-outline/20 shrink-0 pb-[calc(0.625rem+env(safe-area-inset-bottom,0px))]"
+      >
         <WorkspaceSwitcher
           activeWorkspace={activeWorkspace}
           workspaces={workspaces}
@@ -196,12 +198,12 @@ export function Sidebar({
 
       {/* Mobile Off-canvas Drawer */}
       {isMobileOpen && (
-        <div className="fixed inset-0 z-50 md:hidden flex animate-in fade-in duration-150">
+        <div data-testid="mobile-drawer" className="fixed inset-0 z-50 md:hidden flex h-dvh max-h-dvh overflow-hidden animate-in fade-in duration-150">
           <div
             className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
             onClick={onMobileClose}
           />
-          <div className="relative z-10 w-60 h-full shadow-2xl animate-in slide-in-from-left duration-200">
+          <div className="relative z-10 w-60 h-full max-h-dvh flex flex-col shadow-2xl animate-in slide-in-from-left duration-200">
             {sidebarContent}
           </div>
         </div>

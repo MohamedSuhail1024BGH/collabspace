@@ -12,6 +12,7 @@ type HeaderProps = {
   onToggleMobileMenu?: () => void;
   isProjectsSidebarOpen?: boolean;
   onToggleProjectsSidebar?: () => void;
+  onOpenSearch?: () => void;
 };
 
 export function Header({
@@ -21,12 +22,15 @@ export function Header({
   onToggleMobileMenu,
   isProjectsSidebarOpen,
   onToggleProjectsSidebar,
+  onOpenSearch,
 }: HeaderProps) {
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
 
+  const handleOpenSearch = onOpenSearch || (() => setIsCommandPaletteOpen(true));
+
   return (
     <>
-      <header className="fixed top-0 md:left-60 left-0 right-0 h-14 bg-surface/90 backdrop-blur-xl z-40 border-b border-outline-variant/20 flex items-center justify-between px-3 sm:px-6 transition-all">
+      <header className="fixed top-0 md:left-60 left-0 right-0 h-14 bg-surface/90 backdrop-blur-xl z-40 border-b border-outline-variant/20 hidden md:flex items-center justify-between px-3 sm:px-6 transition-all">
         {/* Left: Mobile Toggle + Breadcrumbs */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           {/* Mobile hamburger menu toggle */}
@@ -53,7 +57,7 @@ export function Header({
         {/* Center / Search trigger */}
         <button
           type="button"
-          onClick={() => setIsCommandPaletteOpen(true)}
+          onClick={handleOpenSearch}
           className="hidden md:flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-surface-lowest border border-outline-variant/20 text-xs text-on-surface-variant hover:border-primary/40 hover:text-on-surface transition-all w-52 lg:w-64 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
           title="Open Command Palette (Cmd+K)"
         >

@@ -76,7 +76,7 @@ export function SecondaryProjectsSidebar({
   return (
     <aside
       data-testid="secondary-projects-sidebar"
-      className="w-60 shrink-0 bg-surface-container-low border-r border-outline/20 flex flex-col h-[calc(100vh-3.5rem)] sticky top-14 select-none custom-scrollbar hidden lg:flex"
+      className="w-60 shrink-0 bg-surface-container-low border-r border-outline/20 flex flex-col h-[calc(100dvh-3.5rem)] sticky top-14 select-none custom-scrollbar hidden lg:flex"
     >
       {/* Header */}
       <div className="p-3 border-b border-outline/10 flex items-center justify-between">

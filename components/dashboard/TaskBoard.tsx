@@ -1,6 +1,7 @@
 "use client";
 
-import type { DashboardTask, TaskPriority } from "@/data/mock-data";
+import { useState } from "react";
+import type { DashboardTask } from "@/data/mock-data";
 import { EmptyState } from "@/components/ui/EmptyState";
 
 const COLUMNS = [
@@ -39,6 +40,8 @@ export function TaskBoard({
   onStatusChange,
   onResetFilters,
 }: TaskBoardProps) {
+  const [activeMobileColumn, setActiveMobileColumn] = useState<string>("In progress");
+
   if (tasks.length === 0) {
     return (
       <EmptyState
@@ -51,20 +54,61 @@ export function TaskBoard({
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 overflow-x-auto pb-4 scrollbar-thin">
-      {COLUMNS.map((column) => {
-        const columnTasks = tasks.filter((t) => {
-          if (column.id === "In progress") {
-            return t.status === "In progress" || t.status === "Pending";
-          }
-          return t.status === column.id;
-        });
+    <div className="space-y-3">
+      {/* Mobile Column Switcher Carousel (< md) */}
+      <div className="flex md:hidden items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
+        {COLUMNS.map((column) => {
+          const count = tasks.filter((t) => {
+            if (column.id === "In progress") {
+              return t.status === "In progress" || t.status === "Pending";
+            }
+            return t.status === column.id;
+          }).length;
+          const isActive = activeMobileColumn === column.id;
+          return (
+            <button
+              key={column.id}
+              type="button"
+              onClick={() => setActiveMobileColumn(column.id)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full font-mono text-xs whitespace-nowrap active:scale-95 transition-all ${
+                isActive
+                  ? "bg-primary text-on-primary font-semibold shadow-xs"
+                  : "bg-surface-container-high text-on-surface-variant hover:text-on-surface"
+              }`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${column.dot}`} />
+              <span>{column.label}</span>
+              <span
+                className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                  isActive
+                    ? "bg-on-primary/20 text-on-primary font-bold"
+                    : "bg-surface-lowest text-on-surface-variant font-medium"
+                }`}
+              >
+                {count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
 
-        return (
-          <div
-            key={column.id}
-            className="flex flex-col bg-surface-lowest/70 border border-outline-variant/15 rounded-xl p-3 min-h-[420px]"
-          >
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 overflow-x-auto pb-4 scrollbar-thin">
+        {COLUMNS.map((column) => {
+          const isColumnVisibleOnMobile = activeMobileColumn === column.id;
+          const columnTasks = tasks.filter((t) => {
+            if (column.id === "In progress") {
+              return t.status === "In progress" || t.status === "Pending";
+            }
+            return t.status === column.id;
+          });
+
+          return (
+            <div
+              key={column.id}
+              className={`flex-col bg-surface-lowest/70 border border-outline-variant/15 rounded-xl p-3 min-h-[420px] ${
+                isColumnVisibleOnMobile ? "flex" : "hidden md:flex"
+              }`}
+            >
             {/* Column Header */}
             <div className="flex items-center justify-between pb-3 mb-3 border-b border-outline-variant/15">
               <div className="flex items-center gap-2">
@@ -194,6 +238,8 @@ export function TaskBoard({
         );
       })}
     </div>
-  );
+  </div>
+);
 }
+
 

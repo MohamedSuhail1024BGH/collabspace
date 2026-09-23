@@ -168,7 +168,7 @@ export function StartClient({
   };
 
   return (
-    <div className="min-h-screen bg-surface text-on-surface flex flex-col">
+    <div className="min-h-screen min-h-dvh bg-surface text-on-surface flex flex-col">
       {/* Top Header (Stitch Precision Engineering Dark) */}
       <header className="border-b border-outline/10 bg-surface-container-low sticky top-0 z-30">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">

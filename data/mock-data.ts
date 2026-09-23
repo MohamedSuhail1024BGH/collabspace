@@ -5,7 +5,7 @@ export const navItems = [
   "Messages",
   "Calendar",
   "Reports",
-  "Workspace Preferences",
+  "Settings",
 ];
 
 export const stats = [
