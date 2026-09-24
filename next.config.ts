@@ -1,14 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  experimental: {
-    serverActions: {
-      allowedOrigins: [
-        "localhost:3000",
-        "*.devtunnels.ms",
-      ],
-    },
-  },
+  /* config options here */
 };
 
 export default nextConfig;

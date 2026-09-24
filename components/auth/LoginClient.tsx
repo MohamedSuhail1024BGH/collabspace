@@ -33,7 +33,7 @@ export function LoginClient() {
   };
 
   return (
-    <main className="flex min-h-screen min-h-dvh items-center justify-center bg-surface p-4 text-on-surface">
+    <main className="flex min-h-screen items-center justify-center bg-surface p-4 text-on-surface">
       <div className="w-full max-w-md">
         {/* Brand Header */}
         <div className="mb-6 text-center">

@@ -38,7 +38,7 @@ export default function CalendarToolbar({
 }: Props) {
   return (
     <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex items-center gap-1.5 flex-wrap">
+      <div className="flex items-center gap-1.5">
         <button
           type="button"
           onClick={onPrev}

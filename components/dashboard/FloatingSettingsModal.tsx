@@ -258,12 +258,12 @@ export function FloatingSettingsModal({
   return createPortal(
     <div
       data-testid="floating-settings-overlay"
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] backdrop-blur-md animate-in fade-in duration-200"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-md animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div
         data-testid="floating-settings-modal"
-        className="w-full max-w-2xl bg-surface-container-high border border-outline/20 rounded-xl shadow-2xl p-5 sm:p-6 space-y-5 max-h-[90dvh] overflow-y-auto custom-scrollbar"
+        className="w-full max-w-2xl bg-surface-container-high border border-outline/20 rounded-xl shadow-2xl p-5 sm:p-6 space-y-5 max-h-[90vh] overflow-y-auto custom-scrollbar"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
@@ -708,7 +708,7 @@ export function FloatingSettingsModal({
 
         {/* Delete Account Modal Confirmation */}
         {showDeleteAccountModal && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
+          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 p-4">
             <div
               data-testid="delete-account-modal"
               className="w-full max-w-sm rounded-xl bg-surface-container-high border border-outline/20 p-5 shadow-2xl space-y-3"

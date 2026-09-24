@@ -36,7 +36,7 @@ export function TaskSummary({ tasks }: { tasks: DashboardTask[] }) {
   ];
 
   return (
-    <section className="mb-4 sm:mb-6 grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+    <section className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
       {cards.map((card) => (
         <StatCard key={card.label} label={card.label} value={card.value} change={card.change} />
       ))}

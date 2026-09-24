@@ -138,7 +138,6 @@ html {
 
 body {
   min-height: 100vh;
-  min-height: 100dvh;
   margin: 0;
   background:
     radial-gradient(circle at top, rgba(var(--accent-rgb), 0.16), transparent 28%),
@@ -270,24 +269,5 @@ html[data-density="compact"] section {
 .animate-shimmer {
   animation: stitch-shimmer 1.8s infinite;
 }
-
-/* Mobile Safe-Area & Touch Helpers (stitch_design_mobile_view) */
-.pb-safe {
-  padding-bottom: max(env(safe-area-inset-bottom, 0px), 12px);
-}
-
-.pt-safe {
-  padding-top: max(env(safe-area-inset-top, 0px), 0px);
-}
-
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
 
 

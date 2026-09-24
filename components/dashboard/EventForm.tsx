@@ -122,8 +122,8 @@ export default function EventForm({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-surface-container-lowest/80 p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] backdrop-blur-sm">
-      <div className="w-full max-w-2xl max-h-[90dvh] overflow-y-auto rounded border border-outline/20 bg-surface-container-low p-5 sm:p-6 shadow-2xl custom-scrollbar">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-surface-container-lowest/80 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-2xl rounded border border-outline/20 bg-surface-container-low p-5 sm:p-6 shadow-2xl">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
             <p className="font-label-sm text-xs uppercase tracking-wider text-primary">

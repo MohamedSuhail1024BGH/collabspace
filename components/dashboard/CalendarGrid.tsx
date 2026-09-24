@@ -23,16 +23,6 @@ const categoryChipStyles: Record<string, string> = {
   Other: "border-outline/30 bg-surface-container text-on-surface-variant hover:brightness-110",
 };
 
-const categoryDotStyles: Record<string, string> = {
-  Meeting: "bg-secondary",
-  Planning: "bg-primary",
-  Design: "bg-primary/70",
-  Engineering: "bg-tertiary",
-  Deadline: "bg-error",
-  Client: "bg-secondary",
-  Other: "bg-outline",
-};
-
 function pad(n: number) {
   return n.toString().padStart(2, "0");
 }
@@ -92,15 +82,7 @@ export default function CalendarGrid({
     });
   }
 
-  const daysOfWeek = [
-    { full: "Sun", short: "S" },
-    { full: "Mon", short: "M" },
-    { full: "Tue", short: "T" },
-    { full: "Wed", short: "W" },
-    { full: "Thu", short: "T" },
-    { full: "Fri", short: "F" },
-    { full: "Sat", short: "S" },
-  ];
+  const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const now = new Date();
   const todayYmd = dateToYMD(now.getFullYear(), now.getMonth(), now.getDate());
 
@@ -111,20 +93,19 @@ export default function CalendarGrid({
   };
 
   return (
-    <div data-testid="calendar-grid-view" className="w-full min-w-0 overflow-hidden select-none">
-      <div className="grid grid-cols-7 gap-1 sm:gap-1.5 border-b border-outline-variant/15 pb-2 text-center text-[10px] sm:text-[11px] font-mono uppercase text-on-surface-variant font-medium w-full min-w-0">
-        {daysOfWeek.map((d, i) => (
+    <div data-testid="calendar-grid-view" className="overflow-x-auto select-none scrollbar-thin">
+      <div className="grid grid-cols-7 gap-1.5 border-b border-outline-variant/15 pb-2.5 text-center text-[11px] font-mono uppercase text-on-surface-variant min-w-[580px] font-medium">
+        {daysOfWeek.map((d) => (
           <div
-            key={d.full + i}
+            key={d}
             className="py-1"
           >
-            <span className="sm:hidden">{d.short}</span>
-            <span className="hidden sm:inline">{d.full}</span>
+            {d}
           </div>
         ))}
       </div>
 
-      <div className="mt-2 grid grid-cols-7 gap-1 sm:gap-1.5 w-full min-w-0">
+      <div className="mt-2 grid grid-cols-7 gap-1.5 min-w-[580px]">
         {cells.map((cell) => {
           const isToday = cell.date === todayYmd;
           const isSelected = selectedDate === cell.date;
@@ -134,7 +115,7 @@ export default function CalendarGrid({
             <div
               key={cell.date}
               onClick={() => onSelectDate(cell.date)}
-              className={`min-h-[52px] sm:min-h-[100px] cursor-pointer rounded-md sm:rounded-lg p-1 sm:p-2 text-xs transition-all flex flex-col justify-between ${
+              className={`min-h-[100px] cursor-pointer rounded-lg p-2 text-xs transition-all ${
                 isSelected
                   ? "border-2 border-primary bg-surface-high shadow-xs"
                   : isToday
@@ -146,7 +127,7 @@ export default function CalendarGrid({
             >
               <div className="flex items-center justify-between">
                 <span
-                  className={`flex h-4 w-4 sm:h-5 sm:w-5 items-center justify-center rounded text-[10px] sm:text-[11px] font-mono transition ${
+                  className={`flex h-5 w-5 items-center justify-center rounded text-[11px] font-mono transition ${
                     isToday
                       ? "bg-primary font-bold text-on-primary"
                       : isSelected
@@ -159,34 +140,13 @@ export default function CalendarGrid({
                   {cell.day}
                 </span>
                 {evs.length > 0 && (
-                  <span className="text-[9px] sm:text-[10px] font-mono text-on-surface-variant">
+                  <span className="text-[10px] font-mono text-on-surface-variant">
                     {evs.length}
                   </span>
                 )}
               </div>
 
-              {/* Mobile Event Dots (< sm) */}
-              {evs.length > 0 && (
-                <div className="flex sm:hidden items-center justify-center gap-0.5 mt-1 flex-wrap overflow-hidden">
-                  {evs.slice(0, 3).map((ev) => (
-                    <span
-                      key={ev.id}
-                      className={`h-1.5 w-1.5 rounded-full shrink-0 ${
-                        categoryDotStyles[ev.category] || "bg-outline"
-                      }`}
-                      title={ev.title}
-                    />
-                  ))}
-                  {evs.length > 3 && (
-                    <span className="text-[8px] font-mono text-on-surface-variant leading-none">
-                      +
-                    </span>
-                  )}
-                </div>
-              )}
-
-              {/* Desktop Event Chips (sm+) */}
-              <div className="hidden sm:block mt-1 space-y-1">
+              <div className="mt-1 space-y-1">
                 {evs.slice(0, 2).map((ev) => {
                   const style =
                     categoryChipStyles[ev.category] ||

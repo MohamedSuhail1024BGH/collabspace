@@ -50,46 +50,32 @@ export default async function Home() {
 
   return (
     <div className="space-y-4 sm:space-y-6 pb-12">
-      {/* Workspace Overview Header (Stitch Precision Engineering Dark) */}
-      <div className="rounded-xl bg-surface-container-low border border-outline-variant/20 p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-[10px] uppercase tracking-wider text-primary font-semibold">
-              {activeWorkspace.name}
-            </span>
-            <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />
-            <span className="font-mono text-[10px] text-secondary">Active</span>
+      {/* Top Command Action Bar (Stitch Precision Engineering Dark) */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-2 border-b border-outline/10">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <div className="flex items-baseline gap-2">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-on-surface">Welcome to {activeWorkspace.name}</h1>
+            <span className="font-mono text-[11px] text-on-surface-variant">SPRINT-34 · CYCLE ACTIVE</span>
           </div>
-          <h1 className="text-lg sm:text-xl font-bold tracking-tight text-on-surface font-headline-sm mt-0.5">
-            Command Dashboard
-          </h1>
-          <p className="text-xs text-on-surface-variant font-mono mt-0.5">
-            Active initiatives, priority execution queue, and sprint velocity
-          </p>
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-surface-container-high text-secondary font-mono text-[11px]">
+            <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />
+            <span>All systems nominal</span>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 self-start md:self-auto text-xs">
           <Link
             href="/tasks"
-            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-3.5 py-2 text-xs font-semibold shadow-xs transition"
+            className="flex items-center gap-1.5 bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-3 py-1 rounded font-medium text-xs transition shadow-sm"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            <span>+ Add Task</span>
-          </Link>
-          <Link
-            href="/projects"
-            className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-surface-container hover:bg-surface-high border border-outline-variant/25 text-on-surface px-3 py-2 text-xs font-mono transition"
-          >
-            <span>Projects</span>
-            <span>&rarr;</span>
+            <span>Quick Issue</span>
+            <kbd className="px-1 bg-surface-container-lowest text-primary text-[10px] rounded font-mono">C</kbd>
           </Link>
         </div>
       </div>
 
-      {/* Metric Strips (2x2 on mobile, 4-col on lg) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+      {/* Metric Strips (4 cards) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {stats.map((stat) => (
           <StatCard
             key={stat.label}

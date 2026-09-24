@@ -297,7 +297,7 @@ export function CalendarClient({
         </div>
 
         {/* Main Calendar Section */}
-        <section className="rounded-xl border border-outline-variant/20 bg-surface-container-low p-3 sm:p-5 shadow-xs">
+        <section className="rounded-xl border border-outline-variant/20 bg-surface-container-low p-4 sm:p-5 shadow-xs">
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-3 border-b border-outline-variant/15">
             <div>
               <h3 className="text-xl font-bold text-on-surface tracking-tight font-headline-sm">Calendar</h3>
@@ -306,7 +306,7 @@ export function CalendarClient({
               </p>
             </div>
 
-            <div className="flex items-center gap-2.5 flex-wrap">
+            <div className="flex items-center gap-2.5">
               <select
                 value={category}
                 data-testid="calendar-category-filter"

@@ -80,7 +80,7 @@ export function ProjectTimelineWidget({
   return (
     <div
       data-testid="project-timeline-widget"
-      className="rounded bg-surface-container-low border border-outline/20 p-3 sm:p-4 flex flex-col text-on-surface h-full min-w-0 overflow-hidden"
+      className="rounded bg-surface-container-low border border-outline/20 p-4 flex flex-col text-on-surface h-full"
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
@@ -94,8 +94,8 @@ export function ProjectTimelineWidget({
       </div>
 
       {/* Date Header Markers */}
-      <div className="border-b border-outline/10 pb-2 mb-3 overflow-x-auto no-scrollbar">
-        <div className="grid grid-cols-6 gap-2 text-[10px] font-mono text-on-surface-variant text-center font-medium min-w-[280px]">
+      <div className="border-b border-outline/10 pb-2 mb-3">
+        <div className="grid grid-cols-6 gap-2 text-[10px] font-mono text-on-surface-variant text-center font-medium">
           {timelineDates.map((date, idx) => (
             <div key={idx} className="flex flex-col items-center">
               <span>{date}</span>
@@ -106,7 +106,7 @@ export function ProjectTimelineWidget({
       </div>
 
       {/* Timeline Gantt Track */}
-      <div className="space-y-2 overflow-x-auto pb-1 min-w-0">
+      <div className="space-y-2 overflow-x-auto pb-1">
         {phases.map((phase) => (
           <div
             key={phase.id}
