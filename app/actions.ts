@@ -48,7 +48,6 @@ import {
 } from "@/lib/auth/rate-limiter";
 import { sqlite } from "@/lib/db";
 import { classifyConversation, validateDirectConversation } from "@/lib/auth/dm-validator";
-import { newId } from "@/lib/id";
 
 function isUniqueConstraintError(err: unknown): boolean {
   if (err && typeof err === "object") {
@@ -100,7 +99,7 @@ export async function signupAction(data: {
       username = `${rawUsername}_${Date.now().toString(36).slice(-4)}`;
     }
 
-    const userId = newId("usr");
+    const userId = `usr-${Date.now()}`;
     const now = new Date().toISOString();
     const passwordHash = await hashPassword(password);
 
@@ -406,7 +405,7 @@ export async function createWorkspaceAction(data: {
     return { success: false, error: "Must be logged in to create a workspace." };
   }
 
-  const wsId = newId("ws");
+  const wsId = `ws-${Date.now()}`;
   const baseSlug = data.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "workspace";
   let slug = baseSlug;
   const existingWs = await db.select().from(workspaces).where(eq(workspaces.slug, slug)).limit(1);
@@ -977,7 +976,7 @@ export async function assignProjectMemberAction(data: {
       sqlite
         .prepare("INSERT INTO project_activity (id, project_id, content, created_at) VALUES (?, ?, ?, ?)")
         .run(
-          newId("pa"),
+          `pa-${Date.now()}`,
           data.projectId,
           `${targetUser.name} was assigned as ${data.role}.`,
           new Date().toISOString()
@@ -1197,7 +1196,7 @@ export async function createTaskAction(data: {
     return { success: false, error: resolved.error };
   }
 
-  const id = newId("task");
+  const id = `task-${Date.now()}`;
   const now = new Date().toISOString();
 
   await db.insert(tasks).values({
@@ -1488,7 +1487,7 @@ export async function createProjectAction(data: {
       }
     }
 
-    const projectId = newId("project");
+    const projectId = `project-${Date.now()}`;
     const now = new Date().toISOString();
 
     // Atomic execution of project creation + roster insertion + initial activity in single transaction
@@ -1531,7 +1530,7 @@ export async function createProjectAction(data: {
         INSERT INTO project_activity (id, project_id, content, created_at)
         VALUES (?, ?, ?, ?)
       `).run(
-        newId("pa"),
+        `pa-${projectId}-0`,
         projectId,
         `${currentUser.name} created project '${trimmedName}'.`,
         now
@@ -1632,7 +1631,7 @@ export async function updateProjectAction(
 
   if (data.status && data.status !== project.status) {
     await db.insert(projectActivity).values({
-      id: newId("pa"),
+      id: `pa-${id}-${Date.now()}`,
       projectId: id,
       content: `Status updated to ${data.status} by ${currentUser.name}.`,
       createdAt: new Date().toISOString(),
@@ -1726,7 +1725,7 @@ export async function sendMessageAction(conversationId: string, _sender: string,
 
     // Sender identity is strictly bound to authenticated currentUser.name (never trust _sender)
     const effectiveSender = currentUser.name;
-    const msgId = newId("m");
+    const msgId = `m-${Date.now()}`;
     const timestamp = new Date().toISOString();
 
     await db.insert(messages).values({
@@ -1842,7 +1841,7 @@ export async function createConversationAction(data: {
         return { success: true, id: existing.id, isExisting: true };
       }
 
-      const id = newId("conv");
+      const id = `conv-${Date.now()}`;
       const now = new Date().toISOString();
       const initials = (trimmedName.split(" ")[0]?.[0] ?? "").toUpperCase() || "#";
 
@@ -1925,7 +1924,7 @@ export async function createConversationAction(data: {
       return { success: true, id: existingDm.id, isExisting: true };
     }
 
-    const id = newId("conv");
+    const id = `conv-${Date.now()}`;
     const now = new Date().toISOString();
     const displayName = recipientUser.name;
     const initials =
@@ -1989,7 +1988,7 @@ export async function createCalendarEventAction(data: {
     return { success: false, error: "Viewers cannot create calendar events." };
   }
 
-  const id = newId("ev");
+  const id = data.id || `ev-${Date.now()}`;
 
   await db.insert(calendarEvents).values({
     id,
