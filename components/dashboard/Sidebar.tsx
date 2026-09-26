@@ -108,7 +108,7 @@ export function Sidebar({
   const sidebarContent = (
     <aside
       data-testid="primary-sidebar"
-      className="h-full w-60 bg-surface-container-low border-r border-outline/20 flex flex-col justify-between select-none text-on-surface"
+      className="h-full w-full md:w-60 bg-surface-container-low border-r border-outline/20 flex flex-col justify-between select-none text-on-surface"
     >
       <div className="flex flex-col">
         {/* Top: CollabSpace Brand Header */}

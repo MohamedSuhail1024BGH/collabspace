@@ -80,6 +80,12 @@ export function MobileBottomNav({ onOpenMenu, unreadCount = 0 }: MobileBottomNav
     },
   ];
 
+  const isMoreActive =
+    pathname.startsWith("/calendar") ||
+    pathname.startsWith("/reports") ||
+    pathname.startsWith("/preferences") ||
+    pathname.startsWith("/settings");
+
   return (
     <nav
       data-testid="mobile-bottom-nav"
@@ -117,7 +123,11 @@ export function MobileBottomNav({ onOpenMenu, unreadCount = 0 }: MobileBottomNav
         type="button"
         onClick={onOpenMenu}
         aria-label="Open navigation menu"
-        className="flex flex-col items-center justify-center min-w-[56px] py-1 px-2 rounded-lg text-on-surface-variant hover:text-on-surface transition-all active:scale-95 cursor-pointer"
+        className={`flex flex-col items-center justify-center min-w-[56px] py-1 px-2 rounded-lg transition-all active:scale-95 cursor-pointer ${
+          isMoreActive
+            ? "text-primary font-semibold"
+            : "text-on-surface-variant hover:text-on-surface"
+        }`}
       >
         <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
@@ -128,6 +138,9 @@ export function MobileBottomNav({ onOpenMenu, unreadCount = 0 }: MobileBottomNav
           />
         </svg>
         <span className="text-[10px] font-mono tracking-tight mt-0.5">More</span>
+        {isMoreActive && (
+          <span className="w-1 h-1 rounded-full bg-primary mt-0.5 animate-in fade-in zoom-in" />
+        )}
       </button>
     </nav>
   );

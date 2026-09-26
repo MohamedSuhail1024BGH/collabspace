@@ -542,25 +542,25 @@ export function WorkspacePreferencesClient({
 
                 {/* Search Results Dropdown */}
                 {memberSearchResults.length > 0 && (
-                  <div className="mt-2 space-y-1 max-h-40 overflow-y-auto border border-outline/20 rounded p-1.5 bg-surface-container-high">
+                  <div className="mt-2 space-y-1 max-h-48 overflow-y-auto border border-outline/20 rounded p-1.5 bg-surface-container-high">
                     {memberSearchResults.map((u) => (
                       <div
                         key={u.id}
-                        className="flex items-center justify-between p-2 rounded hover:bg-surface-container text-xs"
+                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 rounded hover:bg-surface-container text-xs"
                       >
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center font-mono text-[10px] font-bold">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center font-mono text-[10px] font-bold shrink-0">
                             {u.name.charAt(0).toUpperCase()}
                           </div>
-                          <div>
-                            <p className="font-medium text-on-surface">{u.name}</p>
-                            <p className="text-[10px] font-mono text-on-surface-variant">{u.email}</p>
+                          <div className="min-w-0">
+                            <p className="font-medium text-on-surface truncate">{u.name}</p>
+                            <p className="text-[10px] font-mono text-on-surface-variant truncate">{u.email}</p>
                           </div>
                         </div>
                         <button
                           type="button"
                           onClick={() => handleAddMember(u.id)}
-                          className="px-2.5 py-1 bg-primary text-on-primary rounded text-[11px] font-medium hover:bg-primary-container hover:text-on-primary-container transition"
+                          className="px-2.5 py-1.5 sm:py-1 bg-primary text-on-primary rounded text-[11px] font-medium hover:bg-primary-container hover:text-on-primary-container transition active:scale-95 shrink-0 self-end sm:self-auto"
                         >
                           Add as {selectedRoleForNewMember}
                         </button>
@@ -571,8 +571,75 @@ export function WorkspacePreferencesClient({
               </div>
             )}
 
-            {/* Members Roster Table */}
-            <div className="overflow-x-auto scrollbar-thin">
+            {/* Mobile Member Cards (< sm) */}
+            <div className="sm:hidden space-y-2">
+              {members.map((m) => {
+                const isSelf = m.user.id === user.id;
+                const canManage = isOwner && !isSelf;
+
+                return (
+                  <div
+                    key={m.membershipId}
+                    className="p-3 rounded-lg bg-surface-container-lowest border border-outline/20 space-y-2.5"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-8 h-8 rounded-full bg-surface-container-highest text-on-surface flex items-center justify-center font-mono text-xs font-semibold shrink-0">
+                          {m.user.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-medium text-xs text-on-surface flex items-center gap-1.5 truncate">
+                            <span className="truncate">{m.user.name}</span>
+                            {isSelf && (
+                              <span className="font-mono text-[9px] bg-primary/20 text-primary px-1 py-0.2 rounded shrink-0">
+                                You
+                              </span>
+                            )}
+                          </p>
+                          <p className="text-[10px] font-mono text-on-surface-variant truncate">{m.user.email}</p>
+                        </div>
+                      </div>
+                      <span
+                        className={`font-mono text-[10px] px-2 py-0.5 rounded capitalize shrink-0 ${
+                          m.role === "owner"
+                            ? "bg-primary/20 text-primary font-semibold"
+                            : m.role === "admin"
+                            ? "bg-secondary/20 text-secondary"
+                            : "bg-surface-container-high text-on-surface-variant"
+                        }`}
+                      >
+                        {m.role}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1.5 border-t border-outline/10 text-[10px] font-mono text-on-surface-variant">
+                      <span>Joined {new Date(m.joinedAt).toLocaleDateString()}</span>
+                      {canManage && (
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setMemberToTransfer(m)}
+                            className="px-2.5 py-1 rounded bg-surface-container hover:bg-surface-container-high text-on-surface text-[11px] font-mono transition active:scale-95"
+                          >
+                            Transfer
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setMemberToRemove(m)}
+                            className="px-2.5 py-1 rounded bg-error/10 hover:bg-error/20 text-error text-[11px] font-mono transition active:scale-95"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Members Roster Table (>= sm) */}
+            <div className="hidden sm:block overflow-x-auto scrollbar-thin">
               <table className="w-full text-left text-xs min-w-[500px]">
                 <thead>
                   <tr className="border-b border-outline/10 text-on-surface-variant font-mono text-[10px] uppercase">

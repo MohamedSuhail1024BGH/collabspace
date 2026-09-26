@@ -94,18 +94,19 @@ export default function CalendarGrid({
 
   return (
     <div data-testid="calendar-grid-view" className="overflow-x-auto select-none scrollbar-thin">
-      <div className="grid grid-cols-7 gap-1.5 border-b border-outline-variant/15 pb-2.5 text-center text-[11px] font-mono uppercase text-on-surface-variant min-w-[580px] font-medium">
+      <div className="grid grid-cols-7 gap-1 sm:gap-1.5 border-b border-outline-variant/15 pb-2.5 text-center text-[10px] sm:text-[11px] font-mono uppercase text-on-surface-variant w-full min-w-0 sm:min-w-[580px] font-medium">
         {daysOfWeek.map((d) => (
           <div
             key={d}
             className="py-1"
           >
-            {d}
+            <span className="sm:hidden">{d.charAt(0)}</span>
+            <span className="hidden sm:inline">{d}</span>
           </div>
         ))}
       </div>
 
-      <div className="mt-2 grid grid-cols-7 gap-1.5 min-w-[580px]">
+      <div className="mt-2 grid grid-cols-7 gap-1 sm:gap-1.5 w-full min-w-0 sm:min-w-[580px]">
         {cells.map((cell) => {
           const isToday = cell.date === todayYmd;
           const isSelected = selectedDate === cell.date;
@@ -115,7 +116,7 @@ export default function CalendarGrid({
             <div
               key={cell.date}
               onClick={() => onSelectDate(cell.date)}
-              className={`min-h-[64px] sm:min-h-[100px] cursor-pointer rounded-lg p-1.5 sm:p-2 text-xs transition-all ${
+              className={`min-h-[52px] sm:min-h-[100px] cursor-pointer rounded-lg p-1 sm:p-2 text-xs transition-all ${
                 isSelected
                   ? "border-2 border-primary bg-surface-high shadow-xs"
                   : isToday

@@ -681,7 +681,7 @@ export function MessagesClient({
           onClick={() => setShowNewChatModal(false)}
         >
           <div
-            className="w-full max-w-md rounded-xl bg-surface-container-high border border-outline/20 p-5 shadow-2xl"
+            className="w-full max-w-md rounded-xl bg-surface-container-high border border-outline/20 p-5 shadow-2xl max-h-[90dvh] overflow-y-auto custom-scrollbar"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-4 flex items-center justify-between pb-2 border-b border-outline/10">

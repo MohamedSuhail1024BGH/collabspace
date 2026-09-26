@@ -122,179 +122,193 @@ export default function EventForm({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-surface-container-lowest/80 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-2xl rounded border border-outline/20 bg-surface-container-low p-5 sm:p-6 shadow-2xl">
-        <div className="mb-4 flex items-center justify-between gap-3">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-surface-container-lowest/80 p-0 sm:p-4 backdrop-blur-sm">
+      <div className="w-full max-w-2xl rounded-t-2xl sm:rounded-xl border border-outline/20 bg-surface-container-low p-5 sm:p-6 shadow-2xl max-h-[92dvh] flex flex-col animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-150">
+        <div className="mb-4 flex items-center justify-between gap-3 shrink-0">
           <div>
             <p className="font-label-sm text-xs uppercase tracking-wider text-primary">
               {mode === "create" ? "New event" : "Edit event"}
             </p>
-            <h3 className="mt-1 text-xl font-semibold text-on-surface">
+            <h3 className="mt-1 text-lg sm:text-xl font-semibold text-on-surface">
               {mode === "create" ? "Schedule an event" : "Update event details"}
             </h3>
           </div>
-          <span className="font-label-sm rounded border border-outline/20 bg-surface-container px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-on-surface-variant">
-            {mode === "create" ? "Draft" : "Event"}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="font-label-sm rounded border border-outline/20 bg-surface-container px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-on-surface-variant">
+              {mode === "create" ? "Draft" : "Event"}
+            </span>
+            <button
+              type="button"
+              onClick={onCancel}
+              className="p-1 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors sm:hidden min-h-[36px] min-w-[36px] flex items-center justify-center cursor-pointer"
+              aria-label="Close"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {isInvalidTimeRange && (
-          <div className="mb-4 rounded border border-error/30 bg-error/10 p-3 text-xs text-error font-body-sm">
+          <div className="mb-4 rounded border border-error/30 bg-error/10 p-3 text-xs text-error font-body-sm shrink-0">
             <strong>Invalid time range:</strong> End time cannot be earlier than start time.
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-3.5">
-          <div>
-            <label className="mb-1 block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
-              Title
-            </label>
-            <input
-              type="text"
-              required
-              placeholder="Event title..."
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:border-primary focus:outline-none"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0">
+          <div className="space-y-3.5 overflow-y-auto flex-1 pr-1 custom-scrollbar">
             <div>
               <label className="mb-1 block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
-                Date
+                Title
               </label>
               <input
-                type="date"
+                type="text"
                 required
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface focus:border-primary focus:outline-none"
+                placeholder="Event title..."
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:border-primary focus:outline-none"
               />
             </div>
 
-            <div>
-              <label className="mb-1 block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
-                Start Time
-              </label>
-              <input
-                type="time"
-                required
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                className="w-full rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface focus:border-primary focus:outline-none"
-              />
-            </div>
-
-            <div>
-              <div className="mb-1 flex items-center justify-between">
-                <label className="block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
-                  End Time
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div>
+                <label className="mb-1 block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
+                  Date
                 </label>
-                {durationInfo.text && !isInvalidTimeRange && (
-                  <span className="inline-flex items-center gap-1 font-label-sm text-[10px] font-semibold text-primary">
-                    <svg className="w-3 h-3 text-primary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span>{durationInfo.text}</span>
-                  </span>
-                )}
+                <input
+                  type="date"
+                  required
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  className="w-full rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface focus:border-primary focus:outline-none"
+                />
               </div>
-              <input
-                type="time"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                className={`w-full rounded border bg-surface-container-lowest px-3 py-2 text-xs text-on-surface focus:outline-none ${
-                  isInvalidTimeRange
-                    ? "border-error/50 focus:border-error"
-                    : "border-outline/20 focus:border-primary"
-                }`}
+
+              <div>
+                <label className="mb-1 block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
+                  Start Time
+                </label>
+                <input
+                  type="time"
+                  required
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  className="w-full rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface focus:border-primary focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <label className="block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
+                    End Time
+                  </label>
+                  {durationInfo.text && !isInvalidTimeRange && (
+                    <span className="inline-flex items-center gap-1 font-label-sm text-[10px] font-semibold text-primary">
+                      <svg className="w-3 h-3 text-primary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span>{durationInfo.text}</span>
+                    </span>
+                  )}
+                </div>
+                <input
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  className={`w-full rounded border bg-surface-container-lowest px-3 py-2 text-xs text-on-surface focus:outline-none ${
+                    isInvalidTimeRange
+                      ? "border-error/50 focus:border-error"
+                      : "border-outline/20 focus:border-primary"
+                  }`}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
+                  Category
+                </label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value as CalendarEvent["category"])}
+                  className="w-full rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface focus:border-primary focus:outline-none"
+                >
+                  {categoryOptions.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1 block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
+                  Attendees ({selectedAttendees.length})
+                </label>
+                <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto rounded border border-outline/20 bg-surface-container-lowest p-2">
+                  {workspaceMembers.length > 0 ? (
+                    workspaceMembers.map((m) => {
+                      const isSelected = selectedAttendees.includes(m.user.name);
+                      return (
+                        <button
+                          key={m.user.id}
+                          type="button"
+                          onClick={() => toggleAttendee(m.user.name)}
+                          className={`inline-flex items-center gap-1 rounded border px-2 py-0.5 text-xs font-medium transition cursor-pointer ${
+                            isSelected
+                              ? "border-primary/40 bg-primary/20 text-primary"
+                              : "border-outline/20 bg-surface-container text-on-surface-variant hover:text-on-surface hover:border-outline/40"
+                          }`}
+                        >
+                          {isSelected ? (
+                            <svg className="w-3 h-3 text-primary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          ) : (
+                            <svg className="w-3 h-3 text-on-surface-variant shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                          )}
+                          <span>{m.user.name}</span>
+                        </button>
+                      );
+                    })
+                  ) : (
+                    <span className="text-xs text-on-surface-variant">No members available</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-1 block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
+                Description
+              </label>
+              <textarea
+                rows={3}
+                placeholder="Notes, agenda, or video call links..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:border-primary focus:outline-none"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div>
-              <label className="mb-1 block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
-                Category
-              </label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value as CalendarEvent["category"])}
-                className="w-full rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface focus:border-primary focus:outline-none"
-              >
-                {categoryOptions.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="mb-1 block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
-                Attendees ({selectedAttendees.length})
-              </label>
-              <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto rounded border border-outline/20 bg-surface-container-lowest p-2">
-                {workspaceMembers.length > 0 ? (
-                  workspaceMembers.map((m) => {
-                    const isSelected = selectedAttendees.includes(m.user.name);
-                    return (
-                      <button
-                        key={m.user.id}
-                        type="button"
-                        onClick={() => toggleAttendee(m.user.name)}
-                        className={`inline-flex items-center gap-1 rounded border px-2 py-0.5 text-xs font-medium transition ${
-                          isSelected
-                            ? "border-primary/40 bg-primary/20 text-primary"
-                            : "border-outline/20 bg-surface-container text-on-surface-variant hover:text-on-surface hover:border-outline/40"
-                        }`}
-                      >
-                        {isSelected ? (
-                          <svg className="w-3 h-3 text-primary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                        ) : (
-                          <svg className="w-3 h-3 text-on-surface-variant shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                          </svg>
-                        )}
-                        <span>{m.user.name}</span>
-                      </button>
-                    );
-                  })
-                ) : (
-                  <span className="text-xs text-on-surface-variant">No members available</span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <label className="mb-1 block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
-              Description
-            </label>
-            <textarea
-              rows={3}
-              placeholder="Notes, agenda, or video call links..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:border-primary focus:outline-none"
-            />
-          </div>
-
-          <div className="flex items-center justify-end gap-2.5 pt-2">
+          <div className="flex items-center justify-end gap-2.5 pt-3 mt-3 border-t border-outline/10 shrink-0">
             <button
               type="button"
               onClick={onCancel}
-              className="rounded border border-outline/20 bg-surface-container px-3.5 py-1.5 text-xs font-medium text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface"
+              className="rounded-lg border border-outline/20 bg-surface-container hover:bg-surface-container-high px-4 py-2 sm:py-1.5 text-xs font-medium text-on-surface-variant hover:text-on-surface transition active:scale-95 cursor-pointer min-h-[40px] sm:min-h-0"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSaving || !title.trim() || !date || !startTime || isInvalidTimeRange}
-              className="rounded bg-primary px-4 py-1.5 text-xs font-semibold text-on-primary transition hover:bg-primary-container hover:text-on-primary-container disabled:opacity-50 shadow-sm"
+              className="rounded-lg bg-primary hover:bg-primary-container px-4 py-2 sm:py-1.5 text-xs font-semibold text-on-primary hover:text-on-primary-container transition disabled:opacity-50 shadow-sm active:scale-95 cursor-pointer min-h-[40px] sm:min-h-0"
             >
               {isSaving ? "Saving..." : mode === "create" ? "Create event" : "Save changes"}
             </button>
