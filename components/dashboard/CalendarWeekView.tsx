@@ -80,12 +80,12 @@ export default function CalendarWeekView({
   }, [refDate, events, category, selectedDate, month]);
 
   return (
-    <div data-testid="calendar-week-view" className="overflow-x-auto select-none">
-      <div className="grid min-w-[620px] grid-cols-7 gap-2">
+    <div data-testid="calendar-week-view" className="overflow-x-auto select-none scrollbar-thin">
+      <div className="grid min-w-[540px] sm:min-w-[620px] grid-cols-7 gap-1.5 sm:gap-2">
         {weekDays.map((day) => (
           <div
             key={day.dateStr}
-            className={`flex min-h-[340px] flex-col rounded border transition-all ${
+            className={`flex min-h-[260px] sm:min-h-[340px] flex-col rounded border transition-all ${
               day.isSelected
                 ? "border-2 border-primary bg-surface-container-high shadow-xs"
                 : day.inCurrentMonth

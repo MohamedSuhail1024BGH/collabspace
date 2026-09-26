@@ -5,6 +5,8 @@ import type { DbUser } from "@/lib/db/schema";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { CommandPalette } from "@/components/ui/CommandPalette";
 
+import { Logo } from "@/components/ui/Logo";
+
 type HeaderProps = {
   title: string;
   user?: Omit<DbUser, "passwordHash"> | null;
@@ -27,13 +29,13 @@ export function Header({
   return (
     <>
       <header className="fixed top-0 md:left-60 left-0 right-0 h-14 bg-surface/90 backdrop-blur-xl z-40 border-b border-outline-variant/20 flex items-center justify-between px-3 sm:px-6 transition-all">
-        {/* Left: Mobile Toggle + Breadcrumbs */}
+        {/* Left: Mobile Toggle + Logo + Breadcrumbs */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           {/* Mobile hamburger menu toggle */}
           <button
             type="button"
             onClick={onToggleMobileMenu}
-            className="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all md:hidden focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+            className="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all md:hidden focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none min-h-[36px] min-w-[36px] flex items-center justify-center active:scale-95"
             aria-label="Open mobile menu"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -41,12 +43,17 @@ export function Header({
             </svg>
           </button>
 
+          {/* Stitch Mobile Brand Mark */}
+          <div className="md:hidden flex items-center shrink-0">
+            <Logo size={24} className="h-6 w-6" />
+          </div>
+
           <div className="flex items-center gap-1.5 sm:gap-2 text-xs text-on-surface-variant min-w-0">
-            <span className="truncate max-w-[120px] sm:max-w-none text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer font-medium">
+            <span className="truncate max-w-[90px] sm:max-w-[140px] text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer font-medium">
               {activeWorkspaceName || "Acme Corporation"}
             </span>
             <span className="text-on-surface-variant/40">/</span>
-            <h2 className="text-on-surface font-semibold truncate text-xs sm:text-sm font-headline-sm">{title}</h2>
+            <h2 className="text-on-surface font-semibold truncate text-xs sm:text-sm font-headline-sm max-w-[120px] sm:max-w-none">{title}</h2>
           </div>
         </div>
 
@@ -94,10 +101,17 @@ export function Header({
           )}
 
           {user && (
-            <div className="hidden sm:flex items-center gap-2 pl-1.5 pr-2.5 py-1 rounded-lg bg-surface-container border border-outline-variant/15 select-none">
-              <UserAvatar avatar={user.avatar} name={user.name} size="xs" showStatus />
-              <span className="text-xs font-medium text-on-surface truncate max-w-[120px]">{user.name}</span>
-            </div>
+            <>
+              {/* Desktop user badge */}
+              <div className="hidden sm:flex items-center gap-2 pl-1.5 pr-2.5 py-1 rounded-lg bg-surface-container border border-outline-variant/15 select-none">
+                <UserAvatar avatar={user.avatar} name={user.name} size="xs" showStatus />
+                <span className="text-xs font-medium text-on-surface truncate max-w-[120px]">{user.name}</span>
+              </div>
+              {/* Mobile user avatar (Stitch mobile header spec) */}
+              <div className="sm:hidden flex items-center shrink-0">
+                <UserAvatar avatar={user.avatar} name={user.name} size="xs" showStatus />
+              </div>
+            </>
           )}
         </div>
       </header>

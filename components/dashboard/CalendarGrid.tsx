@@ -115,7 +115,7 @@ export default function CalendarGrid({
             <div
               key={cell.date}
               onClick={() => onSelectDate(cell.date)}
-              className={`min-h-[100px] cursor-pointer rounded-lg p-2 text-xs transition-all ${
+              className={`min-h-[64px] sm:min-h-[100px] cursor-pointer rounded-lg p-1.5 sm:p-2 text-xs transition-all ${
                 isSelected
                   ? "border-2 border-primary bg-surface-high shadow-xs"
                   : isToday
@@ -127,7 +127,7 @@ export default function CalendarGrid({
             >
               <div className="flex items-center justify-between">
                 <span
-                  className={`flex h-5 w-5 items-center justify-center rounded text-[11px] font-mono transition ${
+                  className={`flex h-5 w-5 items-center justify-center rounded text-[10px] sm:text-[11px] font-mono transition ${
                     isToday
                       ? "bg-primary font-bold text-on-primary"
                       : isSelected
@@ -140,13 +140,14 @@ export default function CalendarGrid({
                   {cell.day}
                 </span>
                 {evs.length > 0 && (
-                  <span className="text-[10px] font-mono text-on-surface-variant">
+                  <span className="text-[9px] sm:text-[10px] font-mono text-on-surface-variant">
                     {evs.length}
                   </span>
                 )}
               </div>
 
-              <div className="mt-1 space-y-1">
+              {/* Desktop chips */}
+              <div className="hidden sm:block mt-1 space-y-1">
                 {evs.slice(0, 2).map((ev) => {
                   const style =
                     categoryChipStyles[ev.category] ||
@@ -174,6 +175,22 @@ export default function CalendarGrid({
                   <div className="text-[9px] font-mono text-on-surface-variant px-1">
                     +{evs.length - 2} more
                   </div>
+                )}
+              </div>
+
+              {/* Mobile event indicator dots */}
+              <div className="sm:hidden flex items-center justify-center gap-0.5 mt-1 flex-wrap">
+                {evs.slice(0, 3).map((ev) => (
+                  <span
+                    key={ev.id}
+                    className="w-1.5 h-1.5 rounded-full bg-primary"
+                    title={ev.title}
+                  />
+                ))}
+                {evs.length > 3 && (
+                  <span className="text-[8px] font-mono text-primary font-bold">
+                    +
+                  </span>
                 )}
               </div>
             </div>

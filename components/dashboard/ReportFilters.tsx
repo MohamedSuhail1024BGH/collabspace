@@ -17,15 +17,15 @@ export function ReportFilters({
 }: Props) {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between py-1">
-      <div className="flex flex-wrap items-center gap-2.5">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2.5 w-full sm:w-auto">
         <span className="font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
           Period:
         </span>
-        <div className="flex items-center p-0.5 bg-surface-container-lowest rounded border border-outline/20">
+        <div className="flex items-center p-0.5 bg-surface-container-lowest rounded border border-outline/20 w-full sm:w-auto">
           <button
             type="button"
             onClick={() => onPeriodChange("week")}
-            className={`font-label-sm text-xs px-3 py-1 rounded transition-colors ${
+            className={`flex-1 sm:flex-initial text-center font-label-sm text-xs px-2.5 sm:px-3 py-1.5 sm:py-1 rounded transition-colors active:scale-95 cursor-pointer ${
               period === "week"
                 ? "bg-surface-container text-on-surface font-medium shadow-sm"
                 : "text-on-surface-variant hover:text-on-surface"
@@ -36,7 +36,7 @@ export function ReportFilters({
           <button
             type="button"
             onClick={() => onPeriodChange("month")}
-            className={`font-label-sm text-xs px-3 py-1 rounded transition-colors ${
+            className={`flex-1 sm:flex-initial text-center font-label-sm text-xs px-2.5 sm:px-3 py-1.5 sm:py-1 rounded transition-colors active:scale-95 cursor-pointer ${
               period === "month"
                 ? "bg-surface-container text-on-surface font-medium shadow-sm"
                 : "text-on-surface-variant hover:text-on-surface"
@@ -47,7 +47,7 @@ export function ReportFilters({
           <button
             type="button"
             onClick={() => onPeriodChange("quarter")}
-            className={`font-label-sm text-xs px-3 py-1 rounded transition-colors ${
+            className={`flex-1 sm:flex-initial text-center font-label-sm text-xs px-2.5 sm:px-3 py-1.5 sm:py-1 rounded transition-colors active:scale-95 cursor-pointer ${
               period === "quarter"
                 ? "bg-surface-container text-on-surface font-medium shadow-sm"
                 : "text-on-surface-variant hover:text-on-surface"

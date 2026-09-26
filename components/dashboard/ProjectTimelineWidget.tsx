@@ -23,7 +23,7 @@ type TimelinePhase = {
 };
 
 export function ProjectTimelineWidget({
-  tasks = [],
+  tasks: _tasks = [],
   teamMembers = [],
 }: {
   tasks?: TimelineTask[];
@@ -94,11 +94,11 @@ export function ProjectTimelineWidget({
       </div>
 
       {/* Date Header Markers */}
-      <div className="border-b border-outline/10 pb-2 mb-3">
-        <div className="grid grid-cols-6 gap-2 text-[10px] font-mono text-on-surface-variant text-center font-medium">
+      <div className="border-b border-outline/10 pb-2 mb-3 overflow-x-auto scrollbar-none">
+        <div className="grid grid-cols-6 gap-1 sm:gap-2 text-[9px] sm:text-[10px] font-mono text-on-surface-variant text-center font-medium min-w-[280px]">
           {timelineDates.map((date, idx) => (
             <div key={idx} className="flex flex-col items-center">
-              <span>{date}</span>
+              <span className="truncate">{date}</span>
               <span className="mt-1 h-1.5 w-1.5 rounded-full bg-outline/40" />
             </div>
           ))}
@@ -106,7 +106,7 @@ export function ProjectTimelineWidget({
       </div>
 
       {/* Timeline Gantt Track */}
-      <div className="space-y-2 overflow-x-auto pb-1">
+      <div className="space-y-2 overflow-x-auto pb-1 min-w-0">
         {phases.map((phase) => (
           <div
             key={phase.id}

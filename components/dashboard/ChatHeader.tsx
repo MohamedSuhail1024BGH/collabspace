@@ -31,8 +31,9 @@ export default function ChatHeader({ conversation, onBack, memberCount = 8 }: Pr
           <button
             type="button"
             onClick={onBack}
-            className="p-1.5 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors md:hidden shrink-0"
+            className="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors md:hidden shrink-0 min-h-[36px] min-w-[36px] flex items-center justify-center active:scale-95 cursor-pointer"
             title="Back to conversation list"
+            aria-label="Back to conversation list"
           >
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />

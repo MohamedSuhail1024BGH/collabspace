@@ -311,8 +311,8 @@ export function ProjectsClient({
 
   return (
     <div className="space-y-4 sm:space-y-6 pb-12">
-      {/* Metrics Row */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      {/* Metrics Row (2x2 grid on mobile) */}
+      <section className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         {liveReportCards.map((report) => (
           <StatCard key={report.title} label={report.title} value={report.value} change={report.trend} />
         ))}
@@ -327,36 +327,39 @@ export function ProjectsClient({
               <p className="text-[11px] font-mono text-on-surface-variant">Active initiatives and engineering deliverables</p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
+              <div className="relative flex-1">
                 <input
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   type="search"
-                  placeholder="Search projects"
-                  className="rounded-lg bg-surface-lowest border border-outline-variant/25 px-3 py-1.5 text-xs text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 focus:outline-none transition-all"
+                  placeholder="Search projects..."
+                  className="w-full rounded-lg bg-surface-lowest border border-outline-variant/25 px-3 py-1.5 text-xs text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 focus:outline-none transition-all"
                 />
               </div>
-              <select
-                value={statusFilter}
-                onChange={(event) => setStatusFilter(event.target.value)}
-                className="rounded-lg bg-surface-lowest border border-outline-variant/25 px-3 py-1.5 text-xs text-on-surface focus:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 focus:outline-none font-mono transition-all"
-              >
-                {statusOptions.map((option) => (
-                  <option key={option} value={option} className="bg-surface-container-high text-on-surface">
-                    {option}
-                  </option>
-                ))}
-              </select>
-              {!isViewer && (
-                <button
-                  type="button"
-                  onClick={() => setShowNewProject((current) => !current)}
-                  className="rounded-lg bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-3.5 py-1.5 text-xs font-medium transition shadow-xs"
+              <div className="flex items-center gap-2">
+                <select
+                  value={statusFilter}
+                  onChange={(event) => setStatusFilter(event.target.value)}
+                  aria-label="Filter by project status"
+                  className="flex-1 sm:flex-initial rounded-lg bg-surface-lowest border border-outline-variant/25 px-3 py-1.5 text-xs text-on-surface focus:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 focus:outline-none font-mono transition-all"
                 >
-                  {showNewProject ? "Close" : "New project"}
-                </button>
-              )}
+                  {statusOptions.map((option) => (
+                    <option key={option} value={option} className="bg-surface-container-high text-on-surface">
+                      {option}
+                    </option>
+                  ))}
+                </select>
+                {!isViewer && (
+                  <button
+                    type="button"
+                    onClick={() => setShowNewProject((current) => !current)}
+                    className="rounded-lg bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-3.5 py-1.5 text-xs font-medium transition shadow-xs active:scale-95 shrink-0 cursor-pointer"
+                  >
+                    {showNewProject ? "Close" : "New project"}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 

@@ -182,10 +182,10 @@ export function ProjectDetailView({
               <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-on-surface font-headline-sm">{project.name}</h1>
 
               {/* Repo & Telemetry Pills */}
-              <div className="mt-2.5 flex flex-wrap items-center gap-2">
-                <div className="flex items-center gap-1.5 rounded-md bg-surface-lowest border border-outline-variant/20 px-2.5 py-1 text-[11px] font-mono text-on-surface-variant">
+              <div className="mt-2.5 flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <div className="flex items-center gap-1.5 rounded-md bg-surface-lowest border border-outline-variant/20 px-2.5 py-1 text-[11px] font-mono text-on-surface-variant max-w-full">
                   <span className="text-primary font-bold">git:</span>
-                  <span>github.com/collabspace/{project.id}</span>
+                  <span className="truncate max-w-[150px] sm:max-w-none">github.com/collabspace/{project.id}</span>
                 </div>
                 <div className="flex items-center gap-1.5 rounded-md bg-surface-lowest border border-outline-variant/20 px-2.5 py-1 text-[11px] font-mono text-on-surface-variant">
                   <span className="w-1.5 h-1.5 rounded-full bg-secondary"></span>
@@ -199,10 +199,10 @@ export function ProjectDetailView({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
             <Link
               href="/projects"
-              className="rounded-lg bg-surface-container hover:bg-surface-high border border-outline-variant/25 px-3 py-1.5 text-xs font-mono text-on-surface transition shadow-xs"
+              className="rounded-lg bg-surface-container hover:bg-surface-high border border-outline-variant/25 px-3 py-1.5 text-xs font-mono text-on-surface transition shadow-xs active:scale-95"
             >
               &larr; All projects
             </Link>
@@ -211,7 +211,7 @@ export function ProjectDetailView({
                 type="button"
                 data-testid="project-header-new-task-btn"
                 onClick={openCreateTaskModal}
-                className="flex items-center gap-1.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-3.5 py-1.5 text-xs font-medium shadow-xs transition"
+                className="flex items-center gap-1.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-3.5 py-1.5 text-xs font-medium shadow-xs transition active:scale-95 cursor-pointer"
               >
                 <span>+</span>
                 <span>New Task</span>

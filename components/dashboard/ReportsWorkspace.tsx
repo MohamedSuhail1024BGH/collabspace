@@ -73,7 +73,7 @@ export function ReportsWorkspace({
         onExport={handleExportReport}
       />
 
-      <section className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="mb-4 sm:mb-6 grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         {data.summaryCards.map((c) => (
           <StatCard key={c.title} label={c.title} value={c.value} change={c.trend} />
         ))}

@@ -84,6 +84,17 @@ export function MessagesClient({
     activeIdRef.current = activeId;
   }, [activeId]);
 
+  useEffect(() => {
+    if (!showListOnMobile) {
+      document.body.setAttribute("data-in-chat", "true");
+    } else {
+      document.body.removeAttribute("data-in-chat");
+    }
+    return () => {
+      document.body.removeAttribute("data-in-chat");
+    };
+  }, [showListOnMobile]);
+
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -401,7 +412,7 @@ export function MessagesClient({
     <div className="h-full w-full flex overflow-hidden bg-surface">
       {/* Left Sub-Pane: Channels & Peers Navigation (Telegram Desktop Sidebar) */}
       <aside
-        className={`w-full md:w-80 lg:w-84 xl:w-88 flex-shrink-0 flex flex-col bg-surface-container-low border-r border-outline/15 select-none ${
+        className={`w-full md:w-80 lg:w-84 xl:w-88 flex-shrink-0 flex flex-col bg-surface-container-low border-r border-outline/15 select-none pb-16 md:pb-0 ${
           showListOnMobile ? "flex" : "hidden md:flex"
         }`}
       >

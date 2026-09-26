@@ -124,7 +124,7 @@ export function Sidebar({
             <button
               type="button"
               onClick={onMobileClose}
-              className="p-1 rounded text-on-surface-variant hover:text-on-surface md:hidden"
+              className="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container md:hidden min-h-[36px] min-w-[36px] flex items-center justify-center active:scale-95 cursor-pointer"
               aria-label="Close sidebar"
             >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -201,7 +201,7 @@ export function Sidebar({
             className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
             onClick={onMobileClose}
           />
-          <div className="relative z-10 w-60 h-full shadow-2xl animate-in slide-in-from-left duration-200">
+          <div className="relative z-10 w-72 max-w-[85vw] h-full shadow-2xl animate-in slide-in-from-left duration-200">
             {sidebarContent}
           </div>
         </div>

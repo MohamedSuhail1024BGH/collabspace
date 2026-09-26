@@ -254,16 +254,16 @@ export function WorkspacePreferencesClient({
   return (
     <div className="space-y-6">
       {/* Top Utility Context Bar (Stitch Design Inspired) */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-2 border-b border-outline/10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-outline/10">
         <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-1.5 text-on-surface-variant font-mono text-[11px] uppercase tracking-wider">
+          <div className="flex flex-wrap items-center gap-1.5 text-on-surface-variant font-mono text-[10px] sm:text-[11px] uppercase tracking-wider">
             <span>Workspace</span>
             <span className="text-outline/60">/</span>
             <span className="text-primary font-medium">{workspace.name}</span>
             <span className="text-outline/60">/</span>
             <span className="text-on-surface">Preferences</span>
           </div>
-          <h1 className="text-xl font-bold text-on-surface font-headline-lg tracking-tight">
+          <h1 className="text-lg sm:text-xl font-bold text-on-surface font-headline-lg tracking-tight">
             Workspace Preferences
           </h1>
           <p className="text-xs text-on-surface-variant font-body-sm">
@@ -271,7 +271,7 @@ export function WorkspacePreferencesClient({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto shrink-0">
           <div className="flex items-center gap-1.5 px-2.5 py-1 bg-surface-container-low rounded border border-outline/15 font-mono text-[11px] text-on-surface-variant">
             <span className="w-2 h-2 rounded-full bg-secondary" />
             <span>Plan: {workspace.plan || "Pro"}</span>
@@ -572,8 +572,8 @@ export function WorkspacePreferencesClient({
             )}
 
             {/* Members Roster Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+            <div className="overflow-x-auto scrollbar-thin">
+              <table className="w-full text-left text-xs min-w-[500px]">
                 <thead>
                   <tr className="border-b border-outline/10 text-on-surface-variant font-mono text-[10px] uppercase">
                     <th className="pb-2">User</th>

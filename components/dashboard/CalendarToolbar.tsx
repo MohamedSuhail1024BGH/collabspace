@@ -37,45 +37,47 @@ export default function CalendarToolbar({
   onToday,
 }: Props) {
   return (
-    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex items-center gap-1.5">
-        <button
-          type="button"
-          onClick={onPrev}
-          className="rounded bg-surface-container hover:bg-surface-container-highest border border-outline/20 px-2.5 py-1 text-xs font-mono text-on-surface transition"
-        >
-          Prev
-        </button>
+    <div className="mb-4 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-center justify-between sm:justify-start gap-1.5 w-full sm:w-auto">
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={onPrev}
+            className="rounded bg-surface-container hover:bg-surface-container-highest border border-outline/20 px-2.5 py-1.5 text-xs font-mono text-on-surface transition active:scale-95 cursor-pointer"
+          >
+            Prev
+          </button>
 
-        <button
-          type="button"
-          onClick={onToday}
-          className="rounded bg-surface-container hover:bg-surface-container-highest border border-outline/20 px-3 py-1 text-xs font-mono text-primary transition"
-        >
-          Today
-        </button>
+          <button
+            type="button"
+            onClick={onToday}
+            className="rounded bg-surface-container hover:bg-surface-container-highest border border-outline/20 px-3 py-1.5 text-xs font-mono text-primary transition active:scale-95 cursor-pointer"
+          >
+            Today
+          </button>
 
-        <button
-          type="button"
-          onClick={onNext}
-          className="rounded bg-surface-container hover:bg-surface-container-highest border border-outline/20 px-2.5 py-1 text-xs font-mono text-on-surface transition"
-        >
-          Next
-        </button>
+          <button
+            type="button"
+            onClick={onNext}
+            className="rounded bg-surface-container hover:bg-surface-container-highest border border-outline/20 px-2.5 py-1.5 text-xs font-mono text-on-surface transition active:scale-95 cursor-pointer"
+          >
+            Next
+          </button>
+        </div>
 
-        <h3 className="ml-2 font-mono text-xs font-semibold uppercase tracking-wider text-on-surface">
+        <h3 className="font-mono text-xs font-semibold uppercase tracking-wider text-on-surface">
           {monthNames[month]} {year}
         </h3>
       </div>
 
       {/* View Mode Switching Controls */}
       {onViewModeChange && (
-        <div className="flex items-center rounded bg-surface-container-lowest border border-outline/20 p-0.5">
+        <div className="flex items-center rounded bg-surface-container-lowest border border-outline/20 p-0.5 w-full sm:w-auto">
           <button
             type="button"
             data-testid="calendar-view-month-btn"
             onClick={() => onViewModeChange("month")}
-            className={`rounded px-2.5 py-1 text-xs font-mono transition ${
+            className={`flex-1 sm:flex-initial text-center rounded px-3 py-1.5 text-xs font-mono transition active:scale-95 cursor-pointer ${
               viewMode === "month"
                 ? "bg-surface-container-highest text-on-surface font-semibold shadow-xs"
                 : "text-on-surface-variant hover:text-on-surface"
@@ -87,7 +89,7 @@ export default function CalendarToolbar({
             type="button"
             data-testid="calendar-view-week-btn"
             onClick={() => onViewModeChange("week")}
-            className={`rounded px-2.5 py-1 text-xs font-mono transition ${
+            className={`flex-1 sm:flex-initial text-center rounded px-3 py-1.5 text-xs font-mono transition active:scale-95 cursor-pointer ${
               viewMode === "week"
                 ? "bg-surface-container-highest text-on-surface font-semibold shadow-xs"
                 : "text-on-surface-variant hover:text-on-surface"
@@ -99,7 +101,7 @@ export default function CalendarToolbar({
             type="button"
             data-testid="calendar-view-agenda-btn"
             onClick={() => onViewModeChange("agenda")}
-            className={`rounded px-2.5 py-1 text-xs font-mono transition ${
+            className={`flex-1 sm:flex-initial text-center rounded px-3 py-1.5 text-xs font-mono transition active:scale-95 cursor-pointer ${
               viewMode === "agenda"
                 ? "bg-surface-container-highest text-on-surface font-semibold shadow-xs"
                 : "text-on-surface-variant hover:text-on-surface"

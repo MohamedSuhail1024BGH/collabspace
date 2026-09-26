@@ -124,7 +124,8 @@ export function TaskRow({ task, onEdit, onDelete, onStatusChange }: TaskRowProps
             <select
               value={status}
               onChange={(event) => onStatusChange?.(taskId, event.target.value)}
-              className="rounded-lg bg-surface-lowest border border-outline-variant/25 px-2.5 py-1 text-xs text-on-surface focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none cursor-pointer transition-all"
+              aria-label="Change task status"
+              className="rounded-lg bg-surface-lowest border border-outline-variant/25 px-2.5 py-1.5 text-xs text-on-surface focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none cursor-pointer transition-all font-mono"
             >
               {statusOptions.map((option) => (
                 <option key={option} value={option} className="bg-surface-container-high text-on-surface">
@@ -139,7 +140,7 @@ export function TaskRow({ task, onEdit, onDelete, onStatusChange }: TaskRowProps
               <button
                 type="button"
                 onClick={() => onEdit?.(task as DashboardTask)}
-                className="rounded bg-surface-container-high hover:bg-surface-container-highest px-2.5 py-1 text-xs font-medium text-on-surface transition"
+                className="rounded-lg bg-surface-container-high hover:bg-surface-container-highest px-3 py-1.5 text-xs font-medium text-on-surface transition active:scale-95 cursor-pointer"
               >
                 Edit
               </button>
@@ -148,7 +149,7 @@ export function TaskRow({ task, onEdit, onDelete, onStatusChange }: TaskRowProps
               <button
                 type="button"
                 onClick={() => onDelete?.(taskId)}
-                className="rounded bg-error-container/20 hover:bg-error-container/30 px-2.5 py-1 text-xs font-medium text-error transition"
+                className="rounded-lg bg-error-container/20 hover:bg-error-container/30 px-3 py-1.5 text-xs font-medium text-error transition active:scale-95 cursor-pointer"
               >
                 Delete
               </button>

@@ -1,6 +1,6 @@
 "use client";
 
-import type { DashboardTask, TaskPriority } from "@/data/mock-data";
+import type { DashboardTask } from "@/data/mock-data";
 import { EmptyState } from "@/components/ui/EmptyState";
 
 const COLUMNS = [
@@ -51,7 +51,7 @@ export function TaskBoard({
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 overflow-x-auto pb-4 scrollbar-thin">
+    <div className="flex md:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 overflow-x-auto pb-4 snap-x snap-mandatory md:snap-none scrollbar-thin">
       {COLUMNS.map((column) => {
         const columnTasks = tasks.filter((t) => {
           if (column.id === "In progress") {
@@ -63,7 +63,7 @@ export function TaskBoard({
         return (
           <div
             key={column.id}
-            className="flex flex-col bg-surface-lowest/70 border border-outline-variant/15 rounded-xl p-3 min-h-[420px]"
+            className="flex flex-col bg-surface-lowest/70 border border-outline-variant/15 rounded-xl p-3 min-h-[380px] sm:min-h-[420px] w-[85vw] sm:w-[320px] md:w-auto shrink-0 md:shrink snap-center md:snap-none"
           >
             {/* Column Header */}
             <div className="flex items-center justify-between pb-3 mb-3 border-b border-outline-variant/15">

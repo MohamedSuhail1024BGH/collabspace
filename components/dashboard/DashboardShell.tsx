@@ -9,6 +9,7 @@ import {
   SecondaryProjectsSidebar,
   type ProjectSidebarItem,
 } from "@/components/dashboard/SecondaryProjectsSidebar";
+import { MobileBottomNav } from "@/components/dashboard/MobileBottomNav";
 import { navItems } from "@/data/mock-data";
 import type { DbWorkspace, DbUser } from "@/lib/db/schema";
 
@@ -138,16 +139,19 @@ export function DashboardShell({
           <main
             className={`flex-1 min-w-0 transition-all ${
               isMessages
-                ? "p-0 overflow-hidden flex flex-col h-[calc(100vh-3.5rem)]"
+                ? "p-0 overflow-hidden flex flex-col h-[calc(100dvh-3.5rem)] md:h-[calc(100vh-3.5rem)]"
                 : density === "compact"
-                ? "p-2.5 sm:p-4 lg:p-5"
-                : "p-3.5 sm:p-6 lg:p-6"
+                ? "p-2.5 sm:p-4 lg:p-5 pb-20 md:pb-5"
+                : "p-3 sm:p-5 lg:p-6 pb-20 md:pb-6"
             }`}
           >
             {children}
           </main>
         </div>
       </div>
+
+      {/* Stitch-inspired Mobile Bottom Navigation Bar */}
+      <MobileBottomNav onOpenMenu={() => setIsMobileOpen(true)} />
     </div>
   );
 }

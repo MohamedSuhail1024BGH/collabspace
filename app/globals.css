@@ -270,4 +270,15 @@ html[data-density="compact"] section {
   animation: stitch-shimmer 1.8s infinite;
 }
 
+/* Mobile-specific Utilities */
+body[data-in-chat="true"] [data-testid="mobile-bottom-nav"] {
+  display: none !important;
+}
+
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
 

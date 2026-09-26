@@ -874,14 +874,14 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
                   <div
                     key={m.membershipId}
                     data-testid={`workspace-member-${m.user.username || m.user.id}`}
-                    className="flex items-center justify-between gap-3 py-3"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 py-3"
                   >
                     <div className="flex items-center gap-2.5 overflow-hidden">
                       <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded bg-gradient-to-br ${m.user.avatar || "from-violet-500 to-cyan-400"} font-bold text-white text-xs`}>
                         {m.user.name.charAt(0).toUpperCase()}
                       </div>
-                      <div className="truncate">
-                        <div className="flex items-center gap-2">
+                      <div className="truncate min-w-0">
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                           <p className="text-xs font-semibold text-on-surface truncate">{m.user.name}</p>
                           {isSelf && (
                             <span className="rounded bg-primary/15 text-primary border border-primary/30 px-1.5 py-0.2 font-label-sm text-[10px] font-semibold">
@@ -894,7 +894,7 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto pt-1 sm:pt-0 border-t border-outline/10 sm:border-t-0">
                       {canModifyRole ? (
                         <select
                           data-testid={`change-role-${m.user.username || m.user.id}`}
@@ -906,14 +906,15 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
                               e.target.value as "admin" | "member" | "viewer"
                             )
                           }
-                          className="rounded border border-outline/20 bg-surface-container-lowest px-2 py-1 text-xs font-medium text-on-surface focus:border-primary focus:outline-none"
+                          aria-label={`Change role for ${m.user.name}`}
+                          className="rounded border border-outline/20 bg-surface-container-lowest px-2.5 py-1.5 text-xs font-medium text-on-surface focus:border-primary focus:outline-none font-mono"
                         >
                           {isOwner && <option value="admin">Admin</option>}
                           <option value="member">Member</option>
                           <option value="viewer">Viewer</option>
                         </select>
                       ) : (
-                        <span className={`rounded px-2 py-0.5 text-xs font-semibold capitalize font-label-sm ${
+                        <span className={`rounded px-2.5 py-1 text-xs font-semibold capitalize font-label-sm ${
                           isTargetOwner
                             ? "bg-tertiary/15 text-tertiary border border-tertiary/30"
                             : isTargetAdmin
@@ -924,35 +925,37 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
                         </span>
                       )}
 
-                      {canTransferOwnership && (
-                        <button
-                          type="button"
-                          data-testid={`transfer-ownership-${m.user.username || m.user.id}`}
-                          disabled={isPending}
-                          onClick={() => setMemberToTransfer(m)}
-                          title="Transfer workspace ownership"
-                          className="rounded p-1 text-tertiary hover:bg-tertiary/10 transition"
-                        >
-                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                          </svg>
-                        </button>
-                      )}
+                      <div className="flex items-center gap-1">
+                        {canTransferOwnership && (
+                          <button
+                            type="button"
+                            data-testid={`transfer-ownership-${m.user.username || m.user.id}`}
+                            disabled={isPending}
+                            onClick={() => setMemberToTransfer(m)}
+                            title="Transfer workspace ownership"
+                            className="rounded-lg p-2 text-tertiary hover:bg-tertiary/10 transition active:scale-95 cursor-pointer"
+                          >
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                            </svg>
+                          </button>
+                        )}
 
-                      {canRemove && (
-                        <button
-                          type="button"
-                          data-testid={`remove-member-${m.user.username || m.user.id}`}
-                          disabled={isPending}
-                          onClick={() => setMemberToRemove(m)}
-                          title="Remove from workspace"
-                          className="rounded p-1 text-on-surface-variant hover:bg-error/10 hover:text-error transition"
-                        >
-                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                      )}
+                        {canRemove && (
+                          <button
+                            type="button"
+                            data-testid={`remove-member-${m.user.username || m.user.id}`}
+                            disabled={isPending}
+                            onClick={() => setMemberToRemove(m)}
+                            title="Remove from workspace"
+                            className="rounded-lg p-2 text-on-surface-variant hover:bg-error/10 hover:text-error transition active:scale-95 cursor-pointer"
+                          >
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );

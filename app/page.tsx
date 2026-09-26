@@ -51,31 +51,31 @@ export default async function Home() {
   return (
     <div className="space-y-4 sm:space-y-6 pb-12">
       {/* Top Command Action Bar (Stitch Precision Engineering Dark) */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-2 border-b border-outline/10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-outline/10">
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <div className="flex items-baseline gap-2">
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-on-surface">Welcome to {activeWorkspace.name}</h1>
-            <span className="font-mono text-[11px] text-on-surface-variant">SPRINT-34 · CYCLE ACTIVE</span>
+          <div className="flex flex-wrap items-baseline gap-1.5 sm:gap-2">
+            <h1 className="text-lg sm:text-2xl font-bold tracking-tight text-on-surface truncate">Welcome to {activeWorkspace.name}</h1>
+            <span className="font-mono text-[10px] sm:text-[11px] text-on-surface-variant">SPRINT-34 · CYCLE ACTIVE</span>
           </div>
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-surface-container-high text-secondary font-mono text-[11px]">
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-surface-container-high text-secondary font-mono text-[10px] sm:text-[11px]">
             <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />
             <span>All systems nominal</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 self-start md:self-auto text-xs">
+        <div className="flex items-center gap-2 self-start sm:self-auto text-xs">
           <Link
             href="/tasks"
-            className="flex items-center gap-1.5 bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-3 py-1 rounded font-medium text-xs transition shadow-sm"
+            className="flex items-center gap-1.5 bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-3 py-1.5 rounded font-medium text-xs transition shadow-sm active:scale-95"
           >
             <span>Quick Issue</span>
-            <kbd className="px-1 bg-surface-container-lowest text-primary text-[10px] rounded font-mono">C</kbd>
+            <kbd className="px-1 bg-surface-container-lowest text-primary text-[10px] rounded font-mono hidden sm:inline">C</kbd>
           </Link>
         </div>
       </div>
 
-      {/* Metric Strips (4 cards) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      {/* Metric Strips (2x2 grid on mobile, 4-col on desktop) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         {stats.map((stat) => (
           <StatCard
             key={stat.label}

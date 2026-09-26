@@ -51,14 +51,14 @@ export function TaskForm({
   }, [onCancel]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-fade-in">
-      <div className="w-full max-w-2xl rounded-2xl bg-surface-container border border-outline-variant/30 p-6 shadow-2xl">
-        <div className="mb-5 flex items-center justify-between gap-3 pb-4 border-b border-outline-variant/15">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 p-0 sm:p-4 backdrop-blur-md animate-fade-in">
+      <div className="w-full max-w-2xl rounded-t-2xl sm:rounded-2xl bg-surface-container border border-outline-variant/30 p-4 sm:p-6 shadow-2xl max-h-[92dvh] flex flex-col">
+        <div className="mb-4 sm:mb-5 flex items-center justify-between gap-3 pb-3 sm:pb-4 border-b border-outline-variant/15 shrink-0">
           <div>
             <p className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">
               {mode === "create" ? "New task" : "Edit task"}
             </p>
-            <h3 className="text-lg font-bold text-on-surface font-headline-sm">
+            <h3 className="text-base sm:text-lg font-bold text-on-surface font-headline-sm">
               {mode === "create" ? "Create a task" : "Update task details"}
             </h3>
           </div>
@@ -67,7 +67,8 @@ export function TaskForm({
           </span>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="overflow-y-auto flex-1 pr-1 custom-scrollbar">
+          <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
           <div className="md:col-span-2">
             <label className="mb-1.5 block text-xs font-mono text-on-surface-variant">Title</label>
             <input
@@ -169,25 +170,26 @@ export function TaskForm({
             />
           </div>
         </div>
+      </div>
 
-        <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-outline-variant/15">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="rounded-lg bg-surface-high hover:bg-surface-highest px-4 py-2 text-xs font-medium text-on-surface transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            disabled={isSaving}
-            onClick={onSave}
-            className="rounded-lg bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-5 py-2 text-xs font-medium transition-all shadow-sm disabled:opacity-50"
-          >
-            {isSaving ? "Saving..." : mode === "create" ? "Create task" : "Save changes"}
-          </button>
-        </div>
+      <div className="mt-3 sm:mt-6 flex justify-end gap-2.5 sm:gap-3 pt-3 sm:pt-4 border-t border-outline-variant/15 shrink-0">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-lg bg-surface-high hover:bg-surface-highest px-4 py-2 text-xs font-medium text-on-surface transition-colors active:scale-95 cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          disabled={isSaving}
+          onClick={onSave}
+          className="rounded-lg bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-5 py-2 text-xs font-medium transition-all shadow-sm disabled:opacity-50 active:scale-95 cursor-pointer"
+        >
+          {isSaving ? "Saving..." : mode === "create" ? "Create task" : "Save changes"}
+        </button>
       </div>
     </div>
-  );
+  </div>
+);
 }

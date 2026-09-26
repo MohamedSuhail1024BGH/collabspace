@@ -38,7 +38,7 @@ export default function MessageComposer({ onSend, disabled = false }: Props) {
   };
 
   return (
-    <div className="p-2.5 sm:p-3 bg-surface-container-low border-t border-outline/15 shrink-0 select-none">
+    <div className="p-2 sm:p-3 bg-surface-container-low border-t border-outline/15 shrink-0 select-none pb-[max(env(safe-area-inset-bottom,0px),0.5rem)]">
       <div className="flex flex-col rounded-2xl bg-surface-container-lowest border border-outline/20 p-2 shadow-md focus-within:border-primary/50 focus-within:bg-surface-container-lowest transition-all">
         {/* Main Input Row: Attachment clip + Textarea + Emoji + Send Button */}
         <div className="flex items-end gap-1.5 sm:gap-2">
@@ -47,7 +47,7 @@ export default function MessageComposer({ onSend, disabled = false }: Props) {
             type="button"
             title="Attach file"
             onClick={() => insertFormatting("[file](", ")")}
-            className="p-1.5 rounded-xl text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors shrink-0 mb-0.5"
+            className="p-1.5 rounded-xl text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors shrink-0 mb-0.5 active:scale-95 cursor-pointer"
           >
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
@@ -81,7 +81,7 @@ export default function MessageComposer({ onSend, disabled = false }: Props) {
             type="button"
             title="Add emoji"
             onClick={() => setText((prev) => prev + " 😊 ")}
-            className="p-1.5 rounded-xl text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors shrink-0 mb-0.5"
+            className="p-1.5 rounded-xl text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors shrink-0 mb-0.5 active:scale-95 cursor-pointer"
             aria-label="Add emoji"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -95,17 +95,17 @@ export default function MessageComposer({ onSend, disabled = false }: Props) {
             data-testid="send-message-btn"
             disabled={disabled || !text.trim()}
             onClick={handleSend}
-            className="flex items-center gap-1 rounded-xl bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-3 py-1.5 text-xs font-medium shadow-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0 mb-0.5"
+            className="flex items-center gap-1 rounded-xl bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-3 py-1.5 text-xs font-medium shadow-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0 mb-0.5 active:scale-95 cursor-pointer"
           >
-            <span>Send</span>
+            <span className="hidden sm:inline">Send</span>
             <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
             </svg>
           </button>
         </div>
 
-        {/* Formatting Shortcuts Sub-bar */}
-        <div className="flex items-center justify-between pt-1.5 mt-1 border-t border-outline/10 px-1">
+        {/* Formatting Shortcuts Sub-bar (hidden on narrow mobile screens) */}
+        <div className="hidden sm:flex items-center justify-between pt-1.5 mt-1 border-t border-outline/10 px-1">
           <div className="flex items-center gap-0.5 text-on-surface-variant">
             <button
               type="button"
