@@ -97,7 +97,7 @@ export function DashboardShell({
   const showProjectsSidebar = isProjectsSidebarOpen && pathname !== "/projects" && !isMessages;
 
   return (
-    <div className="min-h-screen bg-surface text-on-surface antialiased transition-colors duration-200">
+    <div className="min-h-screen bg-surface text-on-surface antialiased transition-colors duration-200 w-full max-w-full overflow-x-hidden">
       {/* Primary Navigation Sidebar */}
       <Sidebar
         navItems={navItems}
@@ -110,7 +110,7 @@ export function DashboardShell({
       />
 
       {/* Main Layout Container (offset by primary sidebar on desktop) */}
-      <div className="md:pl-60 flex flex-col min-h-screen">
+      <div className="md:pl-60 flex flex-col min-h-screen w-full max-w-full overflow-x-hidden">
         <Header
           title={title}
           user={user}
@@ -124,7 +124,7 @@ export function DashboardShell({
           }
         />
 
-        <div className="pt-14 flex-1 flex min-w-0">
+        <div className="pt-14 flex-1 flex min-w-0 w-full max-w-full">
           {/* Secondary Projects Sidebar (visible on overview and project detail views) */}
           {showProjectsSidebar && (
             <SecondaryProjectsSidebar
@@ -137,7 +137,7 @@ export function DashboardShell({
 
           {/* Main Content Area */}
           <main
-            className={`flex-1 min-w-0 transition-all ${
+            className={`flex-1 min-w-0 w-full max-w-full overflow-x-hidden transition-all ${
               isMessages
                 ? "p-0 overflow-hidden flex flex-col h-[calc(100dvh-3.5rem)] md:h-[calc(100vh-3.5rem)]"
                 : density === "compact"

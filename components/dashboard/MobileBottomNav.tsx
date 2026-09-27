@@ -90,14 +90,14 @@ export function MobileBottomNav({ onOpenMenu, unreadCount = 0 }: MobileBottomNav
     <nav
       data-testid="mobile-bottom-nav"
       aria-label="Mobile Navigation"
-      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-surface-container/95 backdrop-blur-xl border-t border-outline/20 px-2 py-1 flex items-center justify-around select-none transition-all duration-200"
-      style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px), 0.35rem)" }}
+      className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-surface-container/95 backdrop-blur-xl border-t border-outline/20 px-1 sm:px-2 py-1 flex items-center justify-around select-none transition-all duration-200 shadow-[0_-1px_8px_rgba(0,0,0,0.4)] translate-z-0 transform-gpu w-full max-w-full"
+      style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px), 0.45rem)" }}
     >
       {navLinks.map((item) => (
         <Link
           key={item.label}
           href={item.href}
-          className={`flex flex-col items-center justify-center min-w-[56px] py-1 px-2 rounded-lg transition-all active:scale-95 ${
+          className={`flex flex-col items-center justify-center flex-1 min-w-0 max-w-[72px] py-1 px-1 rounded-lg transition-all active:scale-95 ${
             item.isActive
               ? "text-primary font-semibold"
               : "text-on-surface-variant hover:text-on-surface"
@@ -111,7 +111,7 @@ export function MobileBottomNav({ onOpenMenu, unreadCount = 0 }: MobileBottomNav
               </span>
             ) : null}
           </div>
-          <span className="text-[10px] font-mono tracking-tight mt-0.5">{item.label}</span>
+          <span className="text-[10px] font-mono tracking-tight mt-0.5 truncate">{item.label}</span>
           {item.isActive && (
             <span className="w-1 h-1 rounded-full bg-primary mt-0.5 animate-in fade-in zoom-in" />
           )}
@@ -123,7 +123,7 @@ export function MobileBottomNav({ onOpenMenu, unreadCount = 0 }: MobileBottomNav
         type="button"
         onClick={onOpenMenu}
         aria-label="Open navigation menu"
-        className={`flex flex-col items-center justify-center min-w-[56px] py-1 px-2 rounded-lg transition-all active:scale-95 cursor-pointer ${
+        className={`flex flex-col items-center justify-center flex-1 min-w-0 max-w-[72px] py-1 px-1 rounded-lg transition-all active:scale-95 cursor-pointer ${
           isMoreActive
             ? "text-primary font-semibold"
             : "text-on-surface-variant hover:text-on-surface"
@@ -137,7 +137,7 @@ export function MobileBottomNav({ onOpenMenu, unreadCount = 0 }: MobileBottomNav
             d="M4 6h16M4 12h16M4 18h16"
           />
         </svg>
-        <span className="text-[10px] font-mono tracking-tight mt-0.5">More</span>
+        <span className="text-[10px] font-mono tracking-tight mt-0.5 truncate">More</span>
         {isMoreActive && (
           <span className="w-1 h-1 rounded-full bg-primary mt-0.5 animate-in fade-in zoom-in" />
         )}
@@ -145,4 +145,3 @@ export function MobileBottomNav({ onOpenMenu, unreadCount = 0 }: MobileBottomNav
     </nav>
   );
 }
-

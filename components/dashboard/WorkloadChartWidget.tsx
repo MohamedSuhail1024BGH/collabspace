@@ -38,7 +38,7 @@ export function WorkloadChartWidget({
   return (
     <div
       data-testid="workload-chart-widget"
-      className="rounded bg-surface-container-low border border-outline/20 p-4 flex flex-col text-on-surface h-full"
+      className="rounded-lg bg-surface-container-low border border-outline/20 p-3 sm:p-4 flex flex-col text-on-surface h-full w-full max-w-full min-w-0 overflow-hidden"
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-1">
@@ -47,16 +47,21 @@ export function WorkloadChartWidget({
           Details &rsaquo;
         </Link>
       </div>
-      <p className="text-[11px] text-on-surface-variant font-mono mb-4">
+      <p className="text-[10px] sm:text-[11px] text-on-surface-variant font-mono mb-3 sm:mb-4">
         Workload distribution across team this week
       </p>
 
       {/* Bar Chart Container */}
-      <div className="flex-1 flex items-end justify-between gap-3 px-2 pb-2 min-h-[140px]">
+      <div className="flex-1 flex items-end justify-between gap-2 sm:gap-3 px-1 sm:px-2 pb-1 min-h-[95px] sm:min-h-[130px]">
         {workloadList.map((member) => (
-          <div key={member.id} className="flex flex-col items-center gap-2 flex-1 group">
+          <div key={member.id} className="flex flex-col items-center gap-1.5 flex-1 min-w-0 group">
+            {/* Percentage Label */}
+            <span className="text-[9px] font-mono text-on-surface-variant group-hover:text-secondary transition-colors">
+              {member.loadPercentage}%
+            </span>
+
             {/* Vertical Bar Track */}
-            <div className="relative w-2.5 sm:w-3.5 h-28 sm:h-32 rounded-full bg-surface-container-highest overflow-hidden flex flex-col justify-end">
+            <div className="relative w-2.5 sm:w-3.5 h-16 sm:h-28 rounded-full bg-surface-container-highest overflow-hidden flex flex-col justify-end">
               <div
                 style={{ height: `${member.loadPercentage}%` }}
                 className="w-full rounded-full bg-secondary transition-all duration-500 group-hover:brightness-110"
@@ -65,14 +70,14 @@ export function WorkloadChartWidget({
 
             {/* Avatar Pill */}
             <div
-              className={`flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full text-[9px] sm:text-[10px] font-bold text-white shadow ring-1 ring-surface-container-lowest ${member.color}`}
+              className={`flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full text-[9px] sm:text-[10px] font-bold text-white shadow ring-1 ring-surface-container-lowest shrink-0 ${member.color}`}
               title={`${member.name} (${member.loadPercentage}% load)`}
             >
               {member.initials.slice(0, 1)}
             </div>
 
             {/* Member Name */}
-            <span className="text-[10px] font-mono text-on-surface-variant truncate max-w-[45px] text-center">
+            <span className="text-[9px] sm:text-[10px] font-mono text-on-surface-variant truncate max-w-[42px] text-center">
               {member.name}
             </span>
           </div>

@@ -57,7 +57,7 @@ export function TaskRow({ task, onEdit, onDelete, onStatusChange }: TaskRowProps
 
   return (
     <div
-      className={`rounded-xl bg-surface-container border p-4 hover:border-primary/40 hover:bg-surface-high transition-all duration-150 group shadow-xs ${
+      className={`rounded-lg bg-surface-container-low border p-2.5 sm:p-3.5 hover:border-primary/40 hover:bg-surface-container transition-all duration-150 group shadow-xs min-w-0 overflow-hidden w-full max-w-full ${
         priority === "High"
           ? "border-outline-variant/20 border-l-4 border-l-error"
           : "border-outline-variant/20"

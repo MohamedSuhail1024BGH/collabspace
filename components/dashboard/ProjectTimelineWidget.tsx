@@ -80,22 +80,22 @@ export function ProjectTimelineWidget({
   return (
     <div
       data-testid="project-timeline-widget"
-      className="rounded bg-surface-container-low border border-outline/20 p-4 flex flex-col text-on-surface h-full"
+      className="rounded-lg bg-surface-container-low border border-outline/20 p-3 sm:p-4 flex flex-col text-on-surface h-full w-full max-w-full min-w-0 overflow-hidden"
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-2.5 sm:mb-3">
         <div>
           <h3 className="text-sm font-semibold tracking-tight text-on-surface">Project timeline</h3>
-          <p className="text-[11px] text-on-surface-variant font-mono">Sprint stages and milestone tracking</p>
+          <p className="text-[10px] sm:text-[11px] text-on-surface-variant font-mono">Sprint stages and milestone tracking</p>
         </div>
         <span className="text-xs text-primary font-mono cursor-pointer hover:underline">
           Details &rsaquo;
         </span>
       </div>
 
-      {/* Date Header Markers */}
-      <div className="border-b border-outline/10 pb-2 mb-3 overflow-x-auto scrollbar-none">
-        <div className="grid grid-cols-6 gap-1 sm:gap-2 text-[9px] sm:text-[10px] font-mono text-on-surface-variant text-center font-medium min-w-[280px]">
+      {/* Date Header Markers (desktop/tablet only to eliminate mobile horizontal expansion) */}
+      <div className="hidden sm:block border-b border-outline/10 pb-2 mb-3">
+        <div className="grid grid-cols-6 gap-2 text-[10px] font-mono text-on-surface-variant text-center font-medium">
           {timelineDates.map((date, idx) => (
             <div key={idx} className="flex flex-col items-center">
               <span className="truncate">{date}</span>
@@ -106,18 +106,23 @@ export function ProjectTimelineWidget({
       </div>
 
       {/* Timeline Gantt Track */}
-      <div className="space-y-2 overflow-x-auto pb-1 min-w-0">
+      <div className="space-y-1.5 sm:space-y-2 min-w-0 w-full">
         {phases.map((phase) => (
           <div
             key={phase.id}
-            className={`rounded border p-2.5 transition-colors ${phase.colorClass}`}
+            className={`rounded-lg border p-2 sm:p-2.5 transition-colors ${phase.colorClass}`}
           >
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className={`text-xs font-semibold truncate ${phase.textClass}`}>
-                  {phase.name}
-                </p>
-                <p className="text-[11px] text-on-surface-variant mt-0.5 truncate max-w-sm">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <p className={`text-xs font-semibold truncate ${phase.textClass}`}>
+                    {phase.name}
+                  </p>
+                  <span className="text-[9px] sm:text-[10px] font-mono text-on-surface-variant px-1 rounded bg-surface-container-highest/60 shrink-0">
+                    {phase.startDate} – {phase.endDate}
+                  </span>
+                </div>
+                <p className="text-[10px] sm:text-[11px] text-on-surface-variant mt-0.5 truncate">
                   {phase.subtitle}
                 </p>
               </div>

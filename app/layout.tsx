@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { getActiveWorkspace, getAllWorkspaces } from "@/lib/db/workspace";
@@ -8,6 +8,14 @@ import { getProjects } from "@/lib/db/queries";
 export const metadata: Metadata = {
   title: "CollabSpace",
   description: "A collaborative workspace dashboard for product teams.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: "cover",
+  themeColor: "#111319",
 };
 
 export default async function RootLayout({
@@ -20,12 +28,10 @@ export default async function RootLayout({
   const allWorkspaces = await getAllWorkspaces();
   const projects = activeWorkspace ? await getProjects(activeWorkspace.id) : [];
 
-
-
   return (
     <html
       lang="en"
-      className="h-full antialiased"
+      className="h-full antialiased overflow-x-hidden"
       data-accent="violet"
       data-density="comfortable"
       suppressHydrationWarning
@@ -46,7 +52,7 @@ export default async function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col font-sans">
+      <body className="min-h-full flex flex-col font-sans overflow-x-hidden w-full max-w-full">
         <DashboardShell
           user={user}
           activeWorkspace={activeWorkspace ?? undefined}
