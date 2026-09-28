@@ -175,7 +175,10 @@ export function Sidebar({
       </div>
 
       {/* Bottom Section: Expandable Workspace & Account Switcher */}
-      <div className="p-2.5 bg-surface-container-lowest border-t border-outline/20">
+      <div
+        className="p-2.5 sm:p-3 bg-surface-container-lowest border-t border-outline/20"
+        style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px), 0.75rem)" }}
+      >
         <WorkspaceSwitcher
           activeWorkspace={activeWorkspace}
           workspaces={workspaces}
@@ -196,9 +199,9 @@ export function Sidebar({
 
       {/* Mobile Off-canvas Drawer */}
       {isMobileOpen && (
-        <div className="fixed inset-0 z-50 md:hidden flex animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-[70] md:hidden flex animate-in fade-in duration-150">
           <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+            className="fixed inset-0 bg-black/70 backdrop-blur-xs transition-opacity"
             onClick={onMobileClose}
           />
           <div className="relative z-10 w-72 max-w-[85vw] h-full shadow-2xl animate-in slide-in-from-left duration-200">

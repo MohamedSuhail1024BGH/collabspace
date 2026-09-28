@@ -91,7 +91,7 @@ export function WorkspaceSwitcher({
     <div className="relative flex flex-col gap-1.5" ref={dropdownRef}>
       {/* Upward Expandable Options Menu */}
       {isOpen && (
-        <div className="absolute bottom-full left-0 right-0 mb-2 z-50 rounded bg-surface-container-high border border-outline/20 p-2 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-bottom-2 duration-150 select-none">
+        <div className="absolute bottom-full left-0 right-0 mb-2 z-50 rounded-lg bg-surface-container-high border border-outline/20 p-2 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-bottom-2 duration-150 select-none max-h-[60vh] overflow-y-auto">
           {/* Header */}
           <div className="px-2 py-1 text-[10px] font-mono font-medium uppercase tracking-wider text-on-surface-variant flex items-center justify-between">
             <span>Workspaces ({workspaces.length})</span>

@@ -151,7 +151,10 @@ export function DashboardShell({
       </div>
 
       {/* Stitch-inspired Mobile Bottom Navigation Bar */}
-      <MobileBottomNav onOpenMenu={() => setIsMobileOpen(true)} />
+      <MobileBottomNav
+        onOpenMenu={() => setIsMobileOpen(true)}
+        isDrawerOpen={isMobileOpen}
+      />
     </div>
   );
 }

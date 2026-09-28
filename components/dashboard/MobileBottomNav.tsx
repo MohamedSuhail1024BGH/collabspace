@@ -6,9 +6,14 @@ import { usePathname } from "next/navigation";
 type MobileBottomNavProps = {
   onOpenMenu: () => void;
   unreadCount?: number;
+  isDrawerOpen?: boolean;
 };
 
-export function MobileBottomNav({ onOpenMenu, unreadCount = 0 }: MobileBottomNavProps) {
+export function MobileBottomNav({
+  onOpenMenu,
+  unreadCount = 0,
+  isDrawerOpen = false,
+}: MobileBottomNavProps) {
   const pathname = usePathname();
 
   // If on auth or start pages, do not render bottom nav
@@ -90,7 +95,9 @@ export function MobileBottomNav({ onOpenMenu, unreadCount = 0 }: MobileBottomNav
     <nav
       data-testid="mobile-bottom-nav"
       aria-label="Mobile Navigation"
-      className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-surface-container/95 backdrop-blur-xl border-t border-outline/20 px-1 sm:px-2 py-1 flex items-center justify-around select-none transition-all duration-200 shadow-[0_-1px_8px_rgba(0,0,0,0.4)] translate-z-0 transform-gpu w-full max-w-full"
+      className={`md:hidden fixed bottom-0 inset-x-0 z-40 bg-surface-container/95 backdrop-blur-xl border-t border-outline/20 px-1 sm:px-2 py-1 flex items-center justify-around select-none transition-all duration-200 shadow-[0_-1px_8px_rgba(0,0,0,0.4)] translate-z-0 transform-gpu w-full max-w-full ${
+        isDrawerOpen ? "opacity-0 pointer-events-none -translate-y-[-100%]" : "opacity-100"
+      }`}
       style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px), 0.45rem)" }}
     >
       {navLinks.map((item) => (
