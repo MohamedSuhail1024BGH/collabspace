@@ -13,7 +13,7 @@ import {
   changePasswordAction,
   addWorkspaceMemberAction,
   removeWorkspaceMemberAction,
-  searchUsersAction,
+  searchUsersForInviteAction,
 } from "@/app/actions";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 
@@ -222,7 +222,7 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
     }
 
     setIsSearchingMembers(true);
-    const results = await searchUsersAction(q);
+    const results = await searchUsersForInviteAction(q, workspace?.id);
 
     // Prevent race conditions where an older query completes after a newer one
     if (latestSearchQueryRef.current === q) {
@@ -813,9 +813,7 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
                       className="flex items-center justify-between gap-3 rounded border border-outline/10 bg-surface-container-low p-2.5"
                     >
                       <div className="flex items-center gap-2.5 overflow-hidden">
-                        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded bg-gradient-to-br ${u.avatar || "from-violet-500 to-cyan-400"} text-xs font-bold text-white`}>
-                          {u.name.charAt(0).toUpperCase()}
-                        </div>
+                        <UserAvatar avatar={u.avatar} name={u.name} size="xs" />
                         <div className="truncate">
                           <span className="text-xs font-semibold text-on-surface">{u.name}</span>
                           <span className="ml-2 font-label-sm text-[11px] text-primary">@{u.username || "user"}</span>
@@ -877,9 +875,7 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
                     className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 py-3"
                   >
                     <div className="flex items-center gap-2.5 overflow-hidden">
-                      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded bg-gradient-to-br ${m.user.avatar || "from-violet-500 to-cyan-400"} font-bold text-white text-xs`}>
-                        {m.user.name.charAt(0).toUpperCase()}
-                      </div>
+                      <UserAvatar avatar={m.user.avatar} name={m.user.name} size="sm" />
                       <div className="truncate min-w-0">
                         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                           <p className="text-xs font-semibold text-on-surface truncate">{m.user.name}</p>

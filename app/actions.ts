@@ -4,7 +4,16 @@ import { and, eq } from "drizzle-orm";
 import { cookies, headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { getConversations, searchUsers, searchWorkspaces } from "@/lib/db/queries";
+import {
+  getConversations,
+  searchUsers,
+  searchUsersForInvite,
+  searchWorkspaces,
+  getUserNotifications,
+  createNotification,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+} from "@/lib/db/queries";
 import { messageBus } from "@/lib/events/message-bus";
 import {
   users,
@@ -570,6 +579,25 @@ export async function addWorkspaceMemberAction(data: {
       role: data.role,
       joinedAt: now,
     });
+
+    try {
+      const [ws] = await db
+        .select({ name: workspaces.name })
+        .from(workspaces)
+        .where(eq(workspaces.id, data.workspaceId))
+        .limit(1);
+      const wsName = ws?.name || "a workspace";
+      await createNotification({
+        userId: data.userId,
+        workspaceId: data.workspaceId,
+        type: "invite",
+        title: `Invited to ${wsName}`,
+        message: `${currentUser.name} added you to workspace "${wsName}" as ${data.role}.`,
+        link: "/start",
+      });
+    } catch (notifErr) {
+      console.error("Failed to send invite notification:", notifErr);
+    }
   }
 
   safeRevalidatePath("/");
@@ -1097,6 +1125,40 @@ export async function searchUsersAction(query: string, workspaceId?: string) {
   }
 }
 
+export async function searchUsersForInviteAction(query: string, workspaceId?: string) {
+  try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) return [];
+
+    let targetWsId = workspaceId;
+    if (!targetWsId) {
+      const activeWs = await getActiveWorkspace();
+      if (!activeWs) return [];
+      targetWsId = activeWs.id;
+    }
+
+    // Verify caller is an active owner/admin of this workspace
+    const [membership] = await db
+      .select()
+      .from(workspaceMembers)
+      .where(
+        and(
+          eq(workspaceMembers.workspaceId, targetWsId),
+          eq(workspaceMembers.userId, currentUser.id)
+        )
+      )
+      .limit(1);
+
+    if (!membership || (membership.role !== "owner" && membership.role !== "admin")) {
+      return [];
+    }
+
+    return searchUsersForInvite(query, targetWsId);
+  } catch {
+    return [];
+  }
+}
+
 export async function searchWorkspacesAction(query: string) {
   return searchWorkspaces(query);
 }
@@ -1215,6 +1277,21 @@ export async function createTaskAction(data: {
     createdAt: now,
   });
 
+  if (resolved.assigneeUserId && resolved.assigneeUserId !== currentUser.id) {
+    try {
+      await createNotification({
+        userId: resolved.assigneeUserId,
+        workspaceId: wsId,
+        type: "task_assigned",
+        title: "New Task Assigned",
+        message: `${currentUser.name} assigned you to "${data.title.trim() || "Untitled task"}" (${projectName}).`,
+        link: "/tasks",
+      });
+    } catch (notifErr) {
+      console.error("Failed to send task notification:", notifErr);
+    }
+  }
+
   safeRevalidatePath("/tasks");
   safeRevalidatePath("/");
   if (projectId) safeRevalidatePath(`/projects/${projectId}`);
@@ -1302,6 +1379,26 @@ export async function updateTaskAction(
       ...(data.projectName !== undefined || projectId ? { projectName } : {}),
     })
     .where(eq(tasks.id, id));
+
+  if (
+    resolvedAssignee?.assigneeUserId &&
+    resolvedAssignee.assigneeUserId !== task.assigneeUserId &&
+    resolvedAssignee.assigneeUserId !== currentUser.id
+  ) {
+    try {
+      const finalTitle = data.title?.trim() || task.title;
+      await createNotification({
+        userId: resolvedAssignee.assigneeUserId,
+        workspaceId: task.workspaceId,
+        type: "task_assigned",
+        title: "Task Assigned",
+        message: `${currentUser.name} assigned you to "${finalTitle}".`,
+        link: "/tasks",
+      });
+    } catch (notifErr) {
+      console.error("Failed to send task update notification:", notifErr);
+    }
+  }
 
   safeRevalidatePath("/tasks");
   safeRevalidatePath("/");
@@ -2175,6 +2272,11 @@ export async function updateUserProfileAction(data: {
 
     safeRevalidatePath("/");
     safeRevalidatePath("/settings");
+    safeRevalidatePath("/preferences");
+    safeRevalidatePath("/start");
+    safeRevalidatePath("/projects");
+    safeRevalidatePath("/tasks");
+    safeRevalidatePath("/messages");
     return { success: true };
   } catch (error) {
     console.error("Failed to update user profile:", error);
@@ -2228,4 +2330,41 @@ export async function changePasswordAction(data: {
     return { success: false, error: "Failed to change password." };
   }
 }
+
+export async function getNotificationsAction() {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { success: false, notifications: [] };
+    const notifs = await getUserNotifications(user.id);
+    return { success: true, notifications: notifs };
+  } catch (error) {
+    console.error("Failed to get notifications:", error);
+    return { success: false, notifications: [] };
+  }
+}
+
+export async function markNotificationReadAction(id: string) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { success: false, error: "Unauthorized." };
+    await markNotificationAsRead(id, user.id);
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to mark notification read:", error);
+    return { success: false, error: "Failed to mark notification read." };
+  }
+}
+
+export async function markAllNotificationsReadAction() {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { success: false, error: "Unauthorized." };
+    await markAllNotificationsAsRead(user.id);
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to mark all notifications read:", error);
+    return { success: false, error: "Failed to mark all notifications read." };
+  }
+}
+
 

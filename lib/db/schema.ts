@@ -277,6 +277,41 @@ export const messagesRelations = relations(messages, ({ one }) => ({
   }),
 }));
 
+// --- Notifications ---
+export const notifications = sqliteTable(
+  "notifications",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    workspaceId: text("workspace_id")
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    type: text("type").notNull(), // "invite" | "task_assigned" | "info" | "system"
+    title: text("title").notNull(),
+    message: text("message").notNull(),
+    link: text("link"),
+    data: text("data"), // optional JSON metadata
+    isRead: integer("is_read", { mode: "boolean" }).notNull().default(false),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    index("idx_notifications_user_id").on(table.userId),
+    index("idx_notifications_is_read").on(table.isRead),
+  ]
+);
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  workspace: one(workspaces, {
+    fields: [notifications.workspaceId],
+    references: [workspaces.id],
+  }),
+}));
+
 // --- Inferred Types ---
 export const USER_ROLES = ["owner", "admin", "member", "viewer"] as const;
 export type UserRole = (typeof USER_ROLES)[number];
@@ -297,6 +332,7 @@ export type DbConversation = typeof conversations.$inferSelect;
 export type DbMessage = typeof messages.$inferSelect;
 export type DbCalendarEvent = typeof calendarEvents.$inferSelect;
 export type DbAuthRateLimit = typeof authRateLimits.$inferSelect;
+export type DbNotification = typeof notifications.$inferSelect;
 
 export type InsertUser = typeof users.$inferInsert;
 export type InsertSession = typeof sessions.$inferInsert;
@@ -306,3 +342,4 @@ export type InsertProject = typeof projects.$inferInsert;
 export type InsertMessage = typeof messages.$inferInsert;
 export type InsertCalendarEvent = typeof calendarEvents.$inferInsert;
 export type InsertAuthRateLimit = typeof authRateLimits.$inferInsert;
+export type InsertNotification = typeof notifications.$inferInsert;

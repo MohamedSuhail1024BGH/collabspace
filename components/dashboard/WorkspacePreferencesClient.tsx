@@ -10,8 +10,9 @@ import {
   transferWorkspaceOwnershipAction,
   addWorkspaceMemberAction,
   removeWorkspaceMemberAction,
-  searchUsersAction,
+  searchUsersForInviteAction,
 } from "@/app/actions";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 export type WorkspaceMemberItem = {
   membershipId: string;
@@ -132,7 +133,7 @@ export function WorkspacePreferencesClient({
     }
 
     setIsSearchingMembers(true);
-    const results = await searchUsersAction(q);
+    const results = await searchUsersForInviteAction(q, workspace?.id);
 
     if (latestSearchQueryRef.current === q) {
       const existingUserIds = new Set(members.map((m) => m.user.id));
@@ -549,9 +550,7 @@ export function WorkspacePreferencesClient({
                         className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 rounded hover:bg-surface-container text-xs"
                       >
                         <div className="flex items-center gap-2 min-w-0">
-                          <div className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center font-mono text-[10px] font-bold shrink-0">
-                            {u.name.charAt(0).toUpperCase()}
-                          </div>
+                          <UserAvatar avatar={u.avatar} name={u.name} size="xs" />
                           <div className="min-w-0">
                             <p className="font-medium text-on-surface truncate">{u.name}</p>
                             <p className="text-[10px] font-mono text-on-surface-variant truncate">{u.email}</p>
@@ -584,9 +583,7 @@ export function WorkspacePreferencesClient({
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-8 h-8 rounded-full bg-surface-container-highest text-on-surface flex items-center justify-center font-mono text-xs font-semibold shrink-0">
-                          {m.user.name.charAt(0).toUpperCase()}
-                        </div>
+                        <UserAvatar avatar={m.user.avatar} name={m.user.name} size="sm" />
                         <div className="min-w-0">
                           <p className="font-medium text-xs text-on-surface flex items-center gap-1.5 truncate">
                             <span className="truncate">{m.user.name}</span>
@@ -640,7 +637,7 @@ export function WorkspacePreferencesClient({
 
             {/* Desktop Members Roster Table (>= sm) */}
             <div className="hidden sm:block overflow-x-auto scrollbar-thin">
-              <table className="w-full text-left text-xs min-w-[500px]">
+              <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="border-b border-outline/10 text-on-surface-variant font-mono text-[10px] uppercase">
                     <th className="pb-2">User</th>
@@ -658,9 +655,7 @@ export function WorkspacePreferencesClient({
                       <tr key={m.membershipId} className="hover:bg-surface-container/50 transition-colors">
                         <td className="py-2.5">
                           <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-surface-container-highest text-on-surface flex items-center justify-center font-mono text-[10px] font-semibold">
-                              {m.user.name.charAt(0).toUpperCase()}
-                            </div>
+                            <UserAvatar avatar={m.user.avatar} name={m.user.name} size="xs" />
                             <div>
                               <p className="font-medium text-on-surface flex items-center gap-1.5">
                                 <span>{m.user.name}</span>

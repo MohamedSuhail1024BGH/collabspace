@@ -205,6 +205,25 @@ export function ensureTablesBasic(sqliteInstance = sqlite): void {
       description TEXT DEFAULT '',
       attendees TEXT NOT NULL DEFAULT '[]'
     );
+
+    CREATE TABLE IF NOT EXISTS notifications (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      workspace_id TEXT REFERENCES workspaces(id) ON DELETE CASCADE,
+      type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      message TEXT NOT NULL,
+      link TEXT,
+      data TEXT,
+      is_read INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_notifications_user_id
+    ON notifications(user_id);
+
+    CREATE INDEX IF NOT EXISTS idx_notifications_is_read
+    ON notifications(is_read);
   `);
 
   const safeAlter = (sql: string) => {
@@ -238,6 +257,7 @@ export function ensureTables(sqliteInstance = sqlite) {
  */
 export function resetDatabase(sqliteInstance = sqlite) {
   sqliteInstance.exec(`
+    DROP TABLE IF EXISTS notifications;
     DROP TABLE IF EXISTS messages;
     DROP TABLE IF EXISTS conversations;
     DROP TABLE IF EXISTS project_activity;

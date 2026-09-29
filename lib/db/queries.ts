@@ -11,12 +11,14 @@ import {
   users,
   workspaceMembers,
   workspaces,
+  notifications,
   type DbCalendarEvent,
   type DbConversation,
   type DbMessage,
   type DbProject,
   type DbTask,
   type DbTeamMember,
+  type DbNotification,
 } from "./schema";
 import { ensureTables } from "./seed";
 import { getActiveWorkspaceId } from "./workspace";
@@ -488,3 +490,84 @@ export async function getUserWorkspacesWithDetails(userId: string) {
     projectCount: allProjects.filter((p) => p.workspaceId === workspace.id).length,
   }));
 }
+
+export async function searchUsersForInvite(query: string, workspaceId: string) {
+  const cleanQuery = query.trim().toLowerCase().replace(/^@/, "");
+  if (!cleanQuery || !workspaceId) return [];
+
+  const currentMembers = await db
+    .select({ userId: workspaceMembers.userId })
+    .from(workspaceMembers)
+    .where(eq(workspaceMembers.workspaceId, workspaceId));
+
+  const existingMemberIds = new Set(currentMembers.map((m) => m.userId));
+
+  const allUsers = await db
+    .select({
+      id: users.id,
+      name: users.name,
+      username: users.username,
+      email: users.email,
+      avatar: users.avatar,
+      bio: users.bio,
+    })
+    .from(users);
+
+  return allUsers.filter(
+    (u) =>
+      !existingMemberIds.has(u.id) &&
+      (u.name.toLowerCase().includes(cleanQuery) ||
+        (u.username && u.username.toLowerCase().includes(cleanQuery)) ||
+        u.email.toLowerCase().includes(cleanQuery))
+  );
+}
+
+export async function getUserNotifications(userId: string): Promise<DbNotification[]> {
+  if (!userId) return [];
+  return db
+    .select()
+    .from(notifications)
+    .where(eq(notifications.userId, userId))
+    .orderBy(desc(notifications.createdAt));
+}
+
+export async function createNotification(data: {
+  userId: string;
+  workspaceId?: string;
+  type: "invite" | "task_assigned" | "info" | "system";
+  title: string;
+  message: string;
+  link?: string;
+  data?: string;
+}) {
+  const notifId = `notif-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  const now = new Date().toISOString();
+  await db.insert(notifications).values({
+    id: notifId,
+    userId: data.userId,
+    workspaceId: data.workspaceId,
+    type: data.type,
+    title: data.title,
+    message: data.message,
+    link: data.link,
+    data: data.data,
+    isRead: false,
+    createdAt: now,
+  });
+  return notifId;
+}
+
+export async function markNotificationAsRead(notificationId: string, userId: string) {
+  await db
+    .update(notifications)
+    .set({ isRead: true })
+    .where(and(eq(notifications.id, notificationId), eq(notifications.userId, userId)));
+}
+
+export async function markAllNotificationsAsRead(userId: string) {
+  await db
+    .update(notifications)
+    .set({ isRead: true })
+    .where(eq(notifications.userId, userId));
+}
+

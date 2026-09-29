@@ -13,6 +13,7 @@ import {
 import type { DbUser } from "@/lib/db/schema";
 import { FloatingSettingsModal } from "@/components/dashboard/FloatingSettingsModal";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import { NotificationCenter } from "@/components/ui/NotificationCenter";
 import { Logo } from "@/components/ui/Logo";
 
 type UserWorkspaceItem = {
@@ -188,8 +189,11 @@ export function StartClient({
             </div>
           </div>
 
-          {/* Expandable User Account Menu */}
-          <div className="relative" ref={userMenuRef}>
+          <div className="flex items-center gap-2">
+            <NotificationCenter />
+
+            {/* Expandable User Account Menu */}
+            <div className="relative" ref={userMenuRef}>
             <button
               type="button"
               data-testid="start-user-dropdown-trigger"
@@ -263,6 +267,7 @@ export function StartClient({
                 </div>
               </div>
             )}
+          </div>
           </div>
         </div>
       </header>

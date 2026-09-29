@@ -1,6 +1,6 @@
 import { resetDatabase } from "./seed";
 import { db } from "./index";
-import { users, workspaces, teamMembers, workspaceMembers, projects, projectMembers, projectActivity, tasks, conversations, messages, calendarEvents } from "./schema";
+import { users, workspaces, teamMembers, workspaceMembers, projects, projectMembers, projectActivity, tasks, conversations, messages, calendarEvents, notifications } from "./schema";
 import { team, projectDirectory, taskBoard, conversations as initialConversations, calendarEvents as initialEvents } from "../../data/mock-data";
 import { hashPasswordSync } from "./auth";
 import { clearAllRateLimits } from "@/lib/auth/rate-limiter";
@@ -23,7 +23,8 @@ async function seedTestData() {
     { id: "usr-useradm1", email: "useradm1@cspace.com", name: "USER_ADMIN1", username: "useradm1", passwordHash: defaultPasswordHash, createdAt: now },
     { id: "usr-usermem1", email: "usermem1@cspace.com", name: "USER_MEMBER_1", username: "usermem1", passwordHash: defaultPasswordHash, createdAt: now },
     { id: "usr-usermem2", email: "usermem2@cspace.com", name: "USER_MEMBER_2", username: "usermem2", passwordHash: defaultPasswordHash, createdAt: now },
-    { id: "usr-userview1", email: "userview1@cspace.com", name: "USER_VIEW_1", username: "userview1", passwordHash: defaultPasswordHash, createdAt: now }
+    { id: "usr-userview1", email: "userview1@cspace.com", name: "USER_VIEW_1", username: "userview1", passwordHash: defaultPasswordHash, createdAt: now },
+    { id: "usr-anand", email: "anand@cspace.com", name: "Anand Verma", username: "anand", passwordHash: defaultPasswordHash, createdAt: now }
   ]);
 
   await db.insert(workspaces).values([
@@ -185,6 +186,42 @@ async function seedTestData() {
   await db.insert(projects).values([
     { id: "mobile-app-launch", workspaceId: "ws-starlight", name: "Mobile App Launch", progress: 85, due: "Next Friday", owner: "Ava Thompson", ownerUserId: "usr-ava", status: "On track", overview: "Launch the native iOS and Android companion app with offline sync.", createdAt: now },
     { id: "design-system-v2", workspaceId: "ws-starlight", name: "Design System v2", progress: 42, due: "End of month", owner: "Leo Martin", ownerUserId: "usr-leo", status: "Review", overview: "Upgrade component library to Tailwind v4 and unified dark mode theme.", createdAt: now },
+  ]);
+
+  await db.insert(notifications).values([
+    {
+      id: "notif-seed-1",
+      userId: "usr-ava",
+      workspaceId: "ws-acme",
+      type: "invite",
+      title: "Added to Acme Corporation",
+      message: "Leo Martin added you to workspace Acme Corporation as owner.",
+      link: "/start",
+      isRead: false,
+      createdAt: now,
+    },
+    {
+      id: "notif-seed-2",
+      userId: "usr-ava",
+      workspaceId: "ws-acme",
+      type: "task_assigned",
+      title: "New Task Assigned",
+      message: "Leo Martin assigned you to 'Design System audit' (Platform Infrastructure).",
+      link: "/tasks",
+      isRead: false,
+      createdAt: now,
+    },
+    {
+      id: "notif-seed-3",
+      userId: "usr-ava",
+      workspaceId: "ws-starlight",
+      type: "info",
+      title: "System Maintenance Notice",
+      message: "CollabSpace scheduled maintenance will occur at 02:00 UTC.",
+      link: "/",
+      isRead: true,
+      createdAt: now,
+    },
   ]);
 
   console.log("Test database seeded!");

@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { DbUser } from "@/lib/db/schema";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { CommandPalette } from "@/components/ui/CommandPalette";
+import { NotificationCenter } from "@/components/ui/NotificationCenter";
 
 import { Logo } from "@/components/ui/Logo";
 
@@ -99,6 +100,8 @@ export function Header({
               <span>{isProjectsSidebarOpen ? "Hide Projects" : "Show Projects"}</span>
             </button>
           )}
+
+          <NotificationCenter />
 
           {user && (
             <>
