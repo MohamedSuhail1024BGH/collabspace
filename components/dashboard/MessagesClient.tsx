@@ -412,7 +412,7 @@ export function MessagesClient({
     <div className="h-full w-full flex overflow-hidden bg-surface">
       {/* Left Sub-Pane: Channels & Peers Navigation (Telegram Desktop Sidebar) */}
       <aside
-        className={`w-full md:w-80 lg:w-84 xl:w-88 flex-shrink-0 flex flex-col bg-surface-container-low border-r border-outline/15 select-none pb-16 md:pb-0 ${
+        className={`w-full md:w-80 lg:w-84 xl:w-88 flex-shrink-0 flex flex-col bg-surface-container-low border-r border-outline/15 select-none pb-0 ${
           showListOnMobile ? "flex" : "hidden md:flex"
         }`}
       >
@@ -422,9 +422,6 @@ export function MessagesClient({
             <h1 className="text-sm sm:text-base font-bold text-on-surface font-headline-sm tracking-tight truncate">
               Messages
             </h1>
-            <span className="font-mono text-[9px] text-secondary bg-surface-container-high px-1.5 py-0.5 rounded border border-outline/10 shrink-0">
-              HUB
-            </span>
           </div>
 
           <button
@@ -437,7 +434,7 @@ export function MessagesClient({
             <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            <span>+ New chat</span>
+            <span>New chat</span>
           </button>
         </div>
 
@@ -591,38 +588,6 @@ export function MessagesClient({
               </div>
             </div>
           )}
-        </div>
-
-        {/* Bottom Stream Telemetry & Throughput Widget */}
-        <div className="p-3 bg-surface-container/70 border-t border-outline/10 select-none shrink-0">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="font-mono text-[9px] uppercase tracking-wider text-on-surface-variant">
-              Stream Throughput
-            </span>
-            <span className="font-mono text-[10px] font-bold text-secondary">
-              99.98%
-            </span>
-          </div>
-          {/* Mini SVG Sparkline */}
-          <svg className="w-full h-5 overflow-visible" fill="none" viewBox="0 0 200 20">
-            <path
-              className="text-secondary"
-              d="M0 16 L25 14 L50 17 L75 8 L100 11 L125 4 L150 7 L175 2 L200 5"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="1.5"
-            />
-            <path
-              className="text-secondary/15"
-              d="M0 16 L25 14 L50 17 L75 8 L100 11 L125 4 L150 7 L175 2 L200 5 V20 H0 Z"
-              fill="currentColor"
-            />
-          </svg>
-          <div className="flex justify-between items-center font-mono text-[9px] text-on-surface-variant mt-1.5">
-            <span>Core RPC</span>
-            <span className="text-secondary">SSE Connected</span>
-          </div>
         </div>
       </aside>
 
