@@ -115,10 +115,7 @@ export function Sidebar({
         <div className="h-14 px-4 flex items-center justify-between border-b border-outline/20 bg-surface-container-low">
           <div className="flex items-center gap-2.5">
             <Logo size={32} className="h-8 w-8" />
-            <div className="flex items-baseline gap-1.5">
-              <span className="font-semibold text-sm tracking-tight text-on-surface font-headline-sm">CollabSpace</span>
-              <span className="font-mono text-[9px] text-secondary bg-surface-container-high px-1 py-0.2 rounded">v2</span>
-            </div>
+            <span className="font-semibold text-sm tracking-tight text-on-surface font-headline-sm">CollabSpace</span>
           </div>
           {onMobileClose && (
             <button

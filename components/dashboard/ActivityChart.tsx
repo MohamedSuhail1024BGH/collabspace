@@ -11,7 +11,8 @@ export function ActivityChart({
 }) {
   if (!visible) return null;
 
-  const max = Math.max(...points.map((p) => p.value), 1);
+  const actualPeak = Math.max(...points.map((p) => p.value), 0);
+  const scaleMax = Math.max(actualPeak, 1);
 
   return (
     <section className="rounded-xl border border-outline-variant/20 bg-surface-container p-4 sm:p-5 shadow-xs">
@@ -28,13 +29,13 @@ export function ActivityChart({
         </div>
         <div className="flex items-center gap-1.5 font-mono text-[11px] text-secondary bg-surface-lowest px-2 py-0.5 rounded-md border border-outline-variant/20">
           <span className="w-1.5 h-1.5 rounded-full bg-secondary"></span>
-          <span>Peak: {max} tasks</span>
+          <span>Peak: {actualPeak} tasks</span>
         </div>
       </div>
 
       <div className="relative flex items-end justify-between gap-2 overflow-x-auto pt-6 pb-2 px-3 bg-surface-lowest rounded-xl border border-outline-variant/20">
         {points.map((p) => {
-          const heightPct = Math.round((p.value / max) * 100);
+          const heightPct = Math.round((p.value / scaleMax) * 100);
           return (
             <div key={p.label} className="relative flex flex-1 flex-col items-center group min-w-[2.5rem]">
               {/* Stitch Tooltip */}
@@ -48,7 +49,7 @@ export function ActivityChart({
               <div className="h-28 w-7 sm:w-9 rounded-lg bg-surface-container p-0.5 flex items-end">
                 <div
                   className="w-full rounded-xs bg-primary transition-all duration-300 group-hover:bg-primary-container"
-                  style={{ height: `${Math.max(heightPct, 6)}%` }}
+                  style={{ height: p.value > 0 ? `${Math.max(heightPct, 6)}%` : "0%" }}
                   title={`${p.label}: ${p.value} tasks`}
                 />
               </div>

@@ -4,12 +4,10 @@ type ActivityItemProps = {
   time?: string;
 };
 
-const relativeTimes = ["2m ago", "18m ago", "1h ago", "3h ago", "Yesterday"];
-
-export function ActivityItem({ item, index = 0, time }: ActivityItemProps) {
+export function ActivityItem({ item, time }: ActivityItemProps) {
   const isApproval = item.toLowerCase().includes("approved") || item.toLowerCase().includes("closed");
   const isShipment = item.toLowerCase().includes("shipped") || item.toLowerCase().includes("commit");
-  const displayTime = time || relativeTimes[index % relativeTimes.length];
+  const displayTime = time || "Recently";
 
   return (
     <div className="flex items-start gap-2.5 p-1.5 sm:p-2 rounded-lg hover:bg-surface-container transition-colors group">

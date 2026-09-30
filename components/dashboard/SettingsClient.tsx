@@ -632,7 +632,7 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
                   disabled={!isAdmin || isPending}
                   value={workspaceName}
                   onChange={(e) => setWorkspaceName(e.target.value)}
-                  placeholder="e.g. Acme Corporation"
+                  placeholder="e.g. Product Engineering, Design Studio"
                   className="w-full rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:border-primary focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
                   required
                 />

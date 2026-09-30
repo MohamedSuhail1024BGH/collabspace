@@ -283,7 +283,8 @@ export async function getDashboardOverview(workspaceId: string, userName?: strin
     projects: allProjects.slice(0, 3),
     team: members,
     tasks: priorityTasks.slice(0, 4),
-    activity: activities.map((a) => a.content),
+    allTasks,
+    activity: activities.map((a) => ({ content: a.content, createdAt: a.createdAt })),
   };
 }
 
@@ -384,13 +385,25 @@ export async function getWorkspaceReportsData(workspaceId?: string): Promise<Wor
     };
   });
 
-  const activityTrends = [
-    { label: "Mon", value: Math.min(allTasks.length, 2) },
-    { label: "Tue", value: Math.min(allTasks.length, 3) },
-    { label: "Wed", value: Math.min(allTasks.length, 5) },
-    { label: "Thu", value: Math.min(allTasks.length, 4) },
-    { label: "Fri", value: completedTasks },
-  ];
+  const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+  const dayCounts: Record<string, number> = { Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0 };
+
+  for (const t of allTasks) {
+    if (t.status.toLowerCase() === "completed" && t.createdAt) {
+      const d = new Date(t.createdAt);
+      if (!isNaN(d.getTime())) {
+        const dayKey = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d.getDay()];
+        if (dayKey in dayCounts) {
+          dayCounts[dayKey] = (dayCounts[dayKey] || 0) + 1;
+        }
+      }
+    }
+  }
+
+  const activityTrends = weekdays.map((label) => ({
+    label,
+    value: dayCounts[label] || 0,
+  }));
 
   return {
     summaryCards,

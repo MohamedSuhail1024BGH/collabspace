@@ -11,6 +11,7 @@ import { getDashboardOverview } from "@/lib/db/queries";
 import { getActiveWorkspace } from "@/lib/db/workspace";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/db/auth";
+import { formatTimeShort } from "@/lib/format-time";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,7 @@ export default async function Home() {
     redirect("/start");
   }
 
-  const { stats, projects, team, tasks, activity } = await getDashboardOverview(
+  const { stats, projects, team, tasks, allTasks, activity } = await getDashboardOverview(
     activeWorkspace.id,
     user.name
   );
@@ -52,28 +53,21 @@ export default async function Home() {
     <div className="space-y-3 sm:space-y-5 pb-8 sm:pb-12 w-full max-w-full overflow-hidden">
       {/* Top Command Action Bar (Stitch Precision Engineering Dark) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 pb-3 border-b border-outline/10 w-full min-w-0">
-        <div className="flex flex-col gap-1.5 min-w-0">
-          <div className="flex flex-wrap items-baseline gap-1.5 sm:gap-2">
-            <h1 className="text-lg sm:text-2xl font-bold tracking-tight text-on-surface truncate">
-              Welcome to {activeWorkspace.name}
-            </h1>
-            <span className="font-mono text-[10px] sm:text-[11px] text-on-surface-variant">
-              SPRINT-34 · CYCLE ACTIVE
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-surface-container-high text-secondary font-mono text-[10px] sm:text-[11px] self-start">
-            <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />
-            <span>All systems nominal</span>
-          </div>
+        <div className="flex flex-col gap-1 min-w-0">
+          <h1 className="text-lg sm:text-2xl font-bold tracking-tight text-on-surface truncate">
+            Welcome to {activeWorkspace.name}
+          </h1>
+          <p className="text-xs font-mono text-on-surface-variant truncate">
+            Workspace overview and active team progress
+          </p>
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-auto text-xs shrink-0">
           <Link
             href="/tasks"
-            className="flex items-center gap-1.5 bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-3 py-1.5 rounded-lg font-medium text-xs transition shadow-xs active:scale-95"
+            className="flex items-center gap-1.5 bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-3.5 py-1.5 rounded-lg font-medium text-xs transition shadow-xs active:scale-95"
           >
             <span>Quick Issue</span>
-            <kbd className="px-1 bg-surface-container-lowest text-primary text-[10px] rounded font-mono hidden sm:inline">C</kbd>
           </Link>
         </div>
       </div>
@@ -93,7 +87,7 @@ export default async function Home() {
       {/* Primary Row: Project Timeline Gantt & Workload Distribution */}
       <section className="grid gap-3 sm:gap-4 lg:grid-cols-[1.5fr_1fr] w-full min-w-0">
         <ProjectTimelineWidget
-          tasks={tasks.map((t) => ({
+          tasks={allTasks.map((t) => ({
             id: t.id,
             title: t.title,
             assignee: t.assignee,
@@ -103,7 +97,7 @@ export default async function Home() {
           }))}
           teamMembers={mappedTeam}
         />
-        <WorkloadChartWidget members={mappedTeam} />
+        <WorkloadChartWidget members={mappedTeam} tasks={allTasks} />
       </section>
 
       {/* Secondary Row: Priority Tasks & Featured Projects */}
@@ -215,7 +209,11 @@ export default async function Home() {
           <div className="space-y-1">
             {activity.length > 0 ? (
               activity.slice(0, 5).map((item, idx) => (
-                <ActivityItem key={`${item}-${idx}`} item={item} index={idx} />
+                <ActivityItem
+                  key={`${item.content}-${idx}`}
+                  item={item.content}
+                  time={item.createdAt ? formatTimeShort(item.createdAt) : undefined}
+                />
               ))
             ) : (
               <div

@@ -181,19 +181,19 @@ export function ProjectDetailView({
               </div>
               <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-on-surface font-headline-sm">{project.name}</h1>
 
-              {/* Repo & Telemetry Pills */}
+              {/* Project Meta Chips */}
               <div className="mt-2.5 flex flex-wrap items-center gap-1.5 sm:gap-2">
-                <div className="flex items-center gap-1.5 rounded-md bg-surface-lowest border border-outline-variant/20 px-2.5 py-1 text-[11px] font-mono text-on-surface-variant max-w-full">
-                  <span className="text-primary font-bold">git:</span>
-                  <span className="truncate max-w-[150px] sm:max-w-none">github.com/collabspace/{project.id}</span>
+                <div className="flex items-center gap-1.5 rounded-md bg-surface-lowest border border-outline-variant/20 px-2.5 py-1 text-[11px] font-mono text-on-surface-variant">
+                  <span className="text-primary font-medium">Due:</span>
+                  <span>{project.due}</span>
                 </div>
                 <div className="flex items-center gap-1.5 rounded-md bg-surface-lowest border border-outline-variant/20 px-2.5 py-1 text-[11px] font-mono text-on-surface-variant">
-                  <span className="w-1.5 h-1.5 rounded-full bg-secondary"></span>
-                  <span>branch: main</span>
+                  <span className="text-secondary font-medium">Tasks:</span>
+                  <span>{completedTasksCount} / {project.tasks.length} completed</span>
                 </div>
                 <div className="flex items-center gap-1.5 rounded-md bg-surface-lowest border border-outline-variant/20 px-2.5 py-1 text-[11px] font-mono text-on-surface-variant">
-                  <span className="text-on-surface-variant/70">commit:</span>
-                  <span>7f8b92a</span>
+                  <span className="text-tertiary font-medium">Lead:</span>
+                  <span>{project.owner}</span>
                 </div>
               </div>
             </div>
@@ -233,14 +233,7 @@ export function ProjectDetailView({
               <p className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">
                 Progress
               </p>
-              {project.progress >= 80 && (
-                <span className="inline-flex items-center gap-1 text-[10px] font-mono text-tertiary">
-                  <svg className="w-3 h-3 text-tertiary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  <span>80%+ Cap</span>
-                </span>
-              )}
+              {/* Clean progress display */}
             </div>
             <div className="mt-1 flex items-center gap-2">
               <div className="flex-1 h-1.5 rounded-full bg-surface-lowest overflow-hidden">

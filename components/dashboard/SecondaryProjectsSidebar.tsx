@@ -320,9 +320,11 @@ export function SecondaryProjectsSidebar({
       </div>
 
       {/* Footer telemetry */}
+      {/* Footer status summary */}
       <div className="p-3 border-t border-outline/10 bg-surface-container-lowest flex items-center justify-between text-[11px] font-mono text-on-surface-variant">
         <span>Active: {ongoingProjects.length}</span>
         <span className="text-secondary font-medium">Synced</span>
+        <span>Total: {projects.length}</span>
       </div>
     </aside>
   );

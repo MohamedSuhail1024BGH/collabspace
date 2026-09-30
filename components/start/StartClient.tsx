@@ -175,18 +175,7 @@ export function StartClient({
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
             <Logo size={36} className="h-9 w-9 shadow-xs" />
-            <div className="flex items-baseline gap-2">
-              <span className="text-base font-bold tracking-tight text-on-surface">CollabSpace</span>
-              <span className="rounded bg-surface-container-high border border-outline-variant/20 px-2 py-0.5 text-[10px] font-mono font-medium text-secondary">
-                LAUNCHPAD
-              </span>
-            </div>
-
-            {/* Real-time SSE Network Status Chip */}
-            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-lowest border border-outline-variant/20 font-mono text-[11px] text-on-surface-variant select-none">
-              <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse ring-2 ring-secondary/25"></span>
-              <span className="text-secondary font-medium">SSE Connected</span>
-            </div>
+            <span className="text-base font-bold tracking-tight text-on-surface">CollabSpace</span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -282,8 +271,6 @@ export function StartClient({
                 <span className="text-[10px] font-mono uppercase tracking-wider text-secondary font-medium">
                   Welcome to CollabSpace
                 </span>
-                <span className="text-on-surface-variant text-[10px]">·</span>
-                <span className="text-[10px] font-mono text-on-surface-variant">SYS-ONLINE</span>
               </div>
               <h1 className="text-lg sm:text-2xl font-bold tracking-tight text-on-surface">
                 Ready to collaborate, {user.name}?
@@ -402,7 +389,7 @@ export function StartClient({
                       </h3>
                       <p className="text-[11px] font-mono text-on-surface-variant">#{ws.slug}</p>
                       <p className="mt-1.5 line-clamp-2 text-xs text-on-surface-variant leading-relaxed font-body-sm">
-                        {ws.description || "Shared collaborative workspace for high-velocity teams."}
+                        {ws.description || "Workspace for team collaboration and project tracking."}
                       </p>
                     </div>
 
