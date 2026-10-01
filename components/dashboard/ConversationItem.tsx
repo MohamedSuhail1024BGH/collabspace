@@ -54,8 +54,8 @@ export default function ConversationItem({ conversation, selected, onSelect }: P
             avatar={conversation.avatar}
             name={conversation.name}
             size="sm"
-            showStatus={conversation.online}
-            statusColor={conversation.online ? "bg-secondary" : "bg-outline/50"}
+            showStatus={true}
+            statusColor={conversation.online ? "bg-secondary" : "bg-outline/40"}
           />
         )}
 

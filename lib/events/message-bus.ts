@@ -7,13 +7,28 @@ export type RealtimeMessage = {
   timestamp: string;
 };
 
-export type MessageEventPayload = {
-  type: "new_message";
-  workspaceId: string;
-  conversationId: string;
-  message: RealtimeMessage;
-  participantIds?: string[];
-};
+export type MessageEventPayload =
+  | {
+      type: "new_message";
+      workspaceId: string;
+      conversationId: string;
+      message: RealtimeMessage;
+      participantIds?: string[];
+    }
+  | {
+      type: "new_conversation";
+      workspaceId: string;
+      conversationId?: string;
+      conversation: unknown;
+      participantIds?: string[];
+    }
+  | {
+      type: "presence";
+      workspaceId: string;
+      userId: string;
+      online: boolean;
+      conversationId?: string;
+    };
 
 class MessageBus {
   private emitter: EventEmitter;

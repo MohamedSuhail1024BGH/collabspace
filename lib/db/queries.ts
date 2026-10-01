@@ -20,12 +20,9 @@ import {
   type DbTeamMember,
   type DbNotification,
 } from "./schema";
-import { ensureTables } from "./seed";
 import { getActiveWorkspaceId } from "./workspace";
 import { classifyConversation, validateDirectConversation } from "@/lib/auth/dm-validator";
-
-// Ensure tables exist whenever queries are initialized
-ensureTables();
+import { presenceTracker } from "@/lib/events/presence";
 
 export async function getTeamMembers(workspaceId?: string): Promise<DbTeamMember[]> {
   const wsId = workspaceId ?? (await getActiveWorkspaceId());
@@ -44,7 +41,7 @@ export async function getTeamMembers(workspaceId?: string): Promise<DbTeamMember
     role: r.role,
     initials: r.user.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() || "TM",
     color: r.user.avatar || "bg-violet-500",
-    online: true,
+    online: presenceTracker.isUserOnline(wsId, r.user.id),
   }));
 }
 
@@ -190,12 +187,13 @@ export async function getConversations(workspaceId?: string, currentUserId?: str
           initials: cpInitials,
           role: displayRole,
           color: displayColor,
-          online: true,
+          online: presenceTracker.isUserOnline(wsId, counterpartyId),
           messages: allMessages.filter((m) => m.conversationId === c.id),
         });
       } else {
         results.push({
           ...c,
+          online: counterpartyId ? presenceTracker.isUserOnline(wsId, counterpartyId) : false,
           messages: allMessages.filter((m) => m.conversationId === c.id),
         });
       }
@@ -203,6 +201,7 @@ export async function getConversations(workspaceId?: string, currentUserId?: str
       // 3. Channels are visible to all workspace members
       results.push({
         ...c,
+        online: false,
         messages: allMessages.filter((m) => m.conversationId === c.id),
       });
     }

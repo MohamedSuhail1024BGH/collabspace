@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { conversations, workspaceMembers } from "@/lib/db/schema";
 import { messageBus, MessageEventPayload } from "@/lib/events/message-bus";
 import { classifyConversation, validateDirectConversation } from "@/lib/auth/dm-validator";
+import { presenceTracker } from "@/lib/events/presence";
 
 export const dynamic = "force-dynamic";
 
@@ -44,16 +45,35 @@ export async function GET(req: Request) {
 
   const stream = new ReadableStream({
     start(controller) {
+      // Register presence for this active user
+      presenceTracker.addConnection(workspaceId, currentUser.id);
+
       // Send initial connection confirmation
       controller.enqueue(
         encoder.encode(`data: ${JSON.stringify({ type: "connected" })}\n\n`)
       );
 
-      // Subscribe to message events for this workspace
+      // Send initial presence snapshot for the workspace
+      const onlineUserIds = presenceTracker.getOnlineUserIds(workspaceId);
+      controller.enqueue(
+        encoder.encode(
+          `data: ${JSON.stringify({ type: "presence_snapshot", onlineUserIds })}\n\n`
+        )
+      );
+
+      // Subscribe to message & presence events for this workspace
       const unsubscribe = messageBus.subscribe(
         workspaceId,
         async (payload: MessageEventPayload) => {
           try {
+            // Forward presence events directly to workspace members
+            if (payload.type === "presence") {
+              controller.enqueue(
+                encoder.encode(`data: ${JSON.stringify(payload)}\n\n`)
+              );
+              return;
+            }
+
             if (!payload.conversationId) return;
 
             // Never trust event payload metadata alone; verify against authoritative DB
@@ -94,9 +114,10 @@ export async function GET(req: Request) {
         }
       );
 
-      // Keep connection alive with periodic comments
+      // Keep connection alive with periodic comments and presence touch
       heartbeat = setInterval(() => {
         try {
+          presenceTracker.touchPresence(workspaceId, currentUser.id);
           controller.enqueue(encoder.encode(": ping\n\n"));
         } catch {
           // Stream might be closed
@@ -106,6 +127,7 @@ export async function GET(req: Request) {
       cleanup = () => {
         unsubscribe();
         if (heartbeat) clearInterval(heartbeat);
+        presenceTracker.removeConnection(workspaceId, currentUser.id);
       };
 
       // Handle client disconnect

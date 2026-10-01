@@ -11,6 +11,7 @@ const nextConfig: NextConfig = {
     "127.0.0.1",
     "127.0.0.1:3000",
     "*.loca.lt",
+    "172.*.*.*",
     "*.ngrok-free.app",
   ],
   experimental: {
@@ -25,6 +26,7 @@ const nextConfig: NextConfig = {
         "127.0.0.1",
         "127.0.0.1:3000",
         "*.loca.lt",
+        "172.*.*.*",
         "*.ngrok-free.app",
       ],
     },

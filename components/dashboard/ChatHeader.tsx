@@ -47,8 +47,8 @@ export default function ChatHeader({ conversation, onBack, memberCount }: Props)
               avatar={conversation.avatar}
               name={conversation.name}
               size="md"
-              showStatus={conversation.online}
-              statusColor={conversation.online ? "bg-secondary" : "bg-outline/50"}
+              showStatus={true}
+              statusColor={conversation.online ? "bg-secondary" : "bg-outline/40"}
             />
           )}
         </div>
@@ -58,15 +58,38 @@ export default function ChatHeader({ conversation, onBack, memberCount }: Props)
             {conversation.name}
           </h2>
 
-          <p className="text-[11px] font-mono text-on-surface-variant truncate">
-            {isChannel
-              ? memberCount
+          {isChannel ? (
+            <p className="text-[11px] font-mono text-on-surface-variant truncate">
+              {memberCount
                 ? `${memberCount} member${memberCount === 1 ? "" : "s"}`
-                : "Workspace channel"
-              : conversation.online
-              ? "Online"
-              : conversation.role || "Offline"}
-          </p>
+                : "Workspace channel"}
+            </p>
+          ) : (
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span
+                className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${
+                  conversation.online ? "bg-secondary" : "bg-outline/40"
+                }`}
+              />
+              <span
+                className={`text-[11px] font-mono truncate ${
+                  conversation.online
+                    ? "text-secondary font-medium"
+                    : "text-on-surface-variant/70 font-medium"
+                }`}
+              >
+                {conversation.online ? "Online" : "Offline"}
+              </span>
+              {conversation.role && (
+                <>
+                  <span className="text-outline/30 text-[10px]">•</span>
+                  <span className="text-[11px] font-mono text-on-surface-variant/60 truncate">
+                    {conversation.role}
+                  </span>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

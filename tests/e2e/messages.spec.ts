@@ -166,4 +166,46 @@ test.describe("Messages & Chat Threads", () => {
     await contextAva.close();
     await contextLeo.close();
   });
+
+  test("should enforce two-sided authentic presence in DMs (shows Offline when counterparty is inactive, live updates to Online when active, and vice-versa)", async ({ browser }) => {
+    // Session 1: Ava opens /messages
+    const contextAva = await browser.newContext();
+    const pageAva = await contextAva.newPage();
+    await loginAs(pageAva, "ava@acme.com", "password123");
+    await pageAva.goto("/messages");
+
+    // Select Leo Martin DM
+    const avaLeoDm = pageAva.getByTestId("conversation-item-conv-dm-leo");
+    await expect(avaLeoDm).toBeVisible();
+    await avaLeoDm.click();
+
+    // Since Leo is NOT logged in or active on /messages, ChatHeader must show "Offline"
+    await expect(pageAva.getByRole("heading", { name: "Leo Martin" })).toBeVisible();
+    await expect(pageAva.getByText("Offline").first()).toBeVisible();
+
+    // Session 2: Leo opens /messages in a separate browser context
+    const contextLeo = await browser.newContext();
+    const pageLeo = await contextLeo.newPage();
+    await loginAs(pageLeo, "leo@starlight.com", "password123");
+    await pageLeo.goto("/messages");
+    const leoAvaDm = pageLeo.getByTestId("conversation-item-conv-dm-leo");
+    await expect(leoAvaDm).toBeVisible();
+    await leoAvaDm.click();
+
+    // In Leo's session: Ava is actively on /messages, so Leo sees Ava as "Online"
+    await expect(pageLeo.getByRole("heading", { name: "Ava Thompson" })).toBeVisible();
+    await expect(pageLeo.getByText("Online").first()).toBeVisible({ timeout: 8000 });
+
+    // In Ava's session: Ava should now see Leo update to "Online" live via SSE without reloading!
+    await expect(pageAva.getByText("Online").first()).toBeVisible({ timeout: 8000 });
+
+    // Now Leo leaves / closes /messages
+    await pageLeo.goto("/projects");
+    // After grace period, Ava's session should see Leo update to "Offline"
+    await expect(pageAva.getByText("Offline").first()).toBeVisible({ timeout: 10000 });
+
+    await contextAva.close();
+    await contextLeo.close();
+  });
 });
+

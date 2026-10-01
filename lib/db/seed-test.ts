@@ -1,3 +1,7 @@
+import * as dotenv from "dotenv";
+dotenv.config({ path: ".env.local" });
+dotenv.config();
+
 import { resetDatabase } from "./seed";
 import { db } from "./index";
 import { users, workspaces, teamMembers, workspaceMembers, projects, projectMembers, projectActivity, tasks, conversations, messages, calendarEvents, notifications } from "./schema";
@@ -7,8 +11,8 @@ import { clearAllRateLimits } from "@/lib/auth/rate-limiter";
 
 async function seedTestData() {
   console.log("Setting up E2E test database...");
-  resetDatabase();
-  clearAllRateLimits();
+  await resetDatabase();
+  await clearAllRateLimits();
 
   const now = new Date().toISOString();
   const defaultPasswordHash = hashPasswordSync("password123");
@@ -138,7 +142,7 @@ async function seedTestData() {
         initials: "LM",
         color: "bg-cyan-500",
         role: "Full-stack Architect",
-        online: true,
+        online: false,
         lastMessage: "Ready to test the sync engine!",
         lastTimestamp: "2026-08-18T13:00:00.000Z",
         unread: 0,
@@ -159,7 +163,7 @@ async function seedTestData() {
         initials: "MC",
         color: "bg-violet-500",
         role: "Lead Product Designer",
-        online: true,
+        online: false,
         lastMessage: "The new UI components look awesome.",
         lastTimestamp: "2026-08-18T14:10:00.000Z",
         unread: 1,

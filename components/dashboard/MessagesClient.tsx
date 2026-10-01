@@ -183,6 +183,36 @@ export function MessagesClient({
               if (prev.some((c) => c.id === mapped.id)) return prev;
               return [mapped, ...prev];
             });
+          } else if (data.type === "presence_snapshot" && Array.isArray(data.onlineUserIds)) {
+            const onlineSet = new Set<string>(data.onlineUserIds);
+            setConversations((prev) =>
+              prev.map((c) => {
+                if (c.type === "direct") {
+                  const counterpartyId =
+                    c.participantIds?.find((id) => id !== currentUser?.id) ||
+                    c.participantIds?.[0];
+                  if (counterpartyId) {
+                    return { ...c, online: onlineSet.has(counterpartyId) };
+                  }
+                }
+                return c;
+              })
+            );
+          } else if (data.type === "presence" && data.userId) {
+            const isUserOnline = Boolean(data.online);
+            setConversations((prev) =>
+              prev.map((c) => {
+                if (c.type === "direct") {
+                  const counterpartyId =
+                    c.participantIds?.find((id) => id !== currentUser?.id) ||
+                    c.participantIds?.[0];
+                  if (counterpartyId === data.userId) {
+                    return { ...c, online: isUserOnline };
+                  }
+                }
+                return c;
+              })
+            );
           }
         } catch {
           // ignore malformed SSE frames
@@ -204,7 +234,7 @@ export function MessagesClient({
         eventSource.close();
       }
     };
-  }, [workspaceId]);
+  }, [workspaceId, currentUser?.id]);
 
   const activeConversation = useMemo(
     () => conversations.find((c) => c.id === activeId) ?? conversations[0] ?? null,
@@ -335,7 +365,7 @@ export function MessagesClient({
         initials,
         color: "bg-primary",
         role: member.role === "owner" ? "Owner" : member.role === "admin" ? "Admin" : "Team Member",
-        online: true,
+        online: false,
         lastMessage: "Conversation started.",
         lastTimestamp: new Date().toISOString(),
         unread: 0,
@@ -379,7 +409,7 @@ export function MessagesClient({
         initials: "#",
         color: "bg-secondary",
         role: newChannelDescription.trim() || "Team Channel",
-        online: true,
+        online: false,
         lastMessage: newChannelInitialMessage.trim() || "Channel created.",
         lastTimestamp: new Date().toISOString(),
         unread: 0,
