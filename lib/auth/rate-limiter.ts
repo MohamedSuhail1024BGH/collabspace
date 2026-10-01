@@ -1,4 +1,6 @@
-import { sqlite } from "@/lib/db";
+import { db } from "@/lib/db";
+import { authRateLimits } from "@/lib/db/schema";
+import { eq, inArray } from "drizzle-orm";
 
 export interface RateLimitCheckResult {
   allowed: boolean;
@@ -47,31 +49,28 @@ export function extractClientIp(headers: Headers): string {
 
 /**
  * Pre-auth check evaluating both per-account and per-IP thresholds.
- * Fail-Closed: If any SQLite error occurs, it denies login.
+ * Fail-Closed: If any error occurs, it denies login.
  */
-export function checkLoginRateLimit(
+export async function checkLoginRateLimit(
   email: string,
   clientIp: string
-): RateLimitCheckResult {
+): Promise<RateLimitCheckResult> {
   try {
     const now = Date.now();
     const accountKey = `account:${normalizeEmail(email)}`;
     const ipKey = `ip:${clientIp.trim()}`;
 
-    const stmt = sqlite.prepare(`
-      SELECT key, locked_until
-      FROM auth_rate_limits
-      WHERE key IN (?, ?)
-    `);
-
-    const rows = stmt.all(accountKey, ipKey) as {
-      key: string;
-      locked_until: string | null;
-    }[];
+    const rows = await db
+      .select({
+        key: authRateLimits.key,
+        lockedUntil: authRateLimits.lockedUntil,
+      })
+      .from(authRateLimits)
+      .where(inArray(authRateLimits.key, [accountKey, ipKey]));
 
     for (const row of rows) {
-      if (row.locked_until) {
-        const lockedTime = new Date(row.locked_until).getTime();
+      if (row.lockedUntil) {
+        const lockedTime = new Date(row.lockedUntil).getTime();
         if (lockedTime > now) {
           const retryAfterSeconds = Math.ceil((lockedTime - now) / 1000);
           return {
@@ -85,7 +84,6 @@ export function checkLoginRateLimit(
     return { allowed: true };
   } catch (error) {
     console.error("[RateLimiter] Fail-closed check error:", error);
-    // Fail-closed on storage error
     return { allowed: false, retryAfterSeconds: 60 };
   }
 }
@@ -95,7 +93,7 @@ export function checkLoginRateLimit(
  * Enforces sliding window logic from first_attempt_at and sets lockout if threshold reached.
  * Fail-Closed: Throws on failure so the caller cannot ignore storage integrity.
  */
-export function recordFailedLogin(email: string, clientIp: string): void {
+export async function recordFailedLogin(email: string, clientIp: string): Promise<void> {
   const now = Date.now();
   const nowIso = new Date(now).toISOString();
   const accountKey = `account:${normalizeEmail(email)}`;
@@ -116,86 +114,75 @@ export function recordFailedLogin(email: string, clientIp: string): void {
     },
   ];
 
-  const updateTx = sqlite.transaction(() => {
+  await db.transaction(async (tx) => {
     for (const t of targets) {
-      const existing = sqlite
-        .prepare(`
-          SELECT key, attempt_count, first_attempt_at, locked_until
-          FROM auth_rate_limits
-          WHERE key = ?
-        `)
-        .get(t.key) as
-        | {
-            key: string;
-            attempt_count: number;
-            first_attempt_at: string;
-            locked_until: string | null;
-          }
-        | undefined;
+      const [existing] = await tx
+        .select()
+        .from(authRateLimits)
+        .where(eq(authRateLimits.key, t.key));
 
       if (!existing) {
-        sqlite
-          .prepare(`
-            INSERT INTO auth_rate_limits (key, type, identifier, attempt_count, first_attempt_at, last_attempt_at, locked_until)
-            VALUES (?, ?, ?, 1, ?, ?, NULL)
-          `)
-          .run(t.key, t.type, t.identifier, nowIso, nowIso);
+        await tx.insert(authRateLimits).values({
+          key: t.key,
+          type: t.type,
+          identifier: t.identifier,
+          attemptCount: 1,
+          firstAttemptAt: nowIso,
+          lastAttemptAt: nowIso,
+          lockedUntil: null,
+        });
         continue;
       }
 
-      const firstAttemptTime = new Date(existing.first_attempt_at).getTime();
+      const firstAttemptTime = new Date(existing.firstAttemptAt).getTime();
       const isWindowExpired = now - firstAttemptTime > RATE_LIMIT_CONFIG.WINDOW_MS;
       const isLockExpired =
-        !existing.locked_until ||
-        new Date(existing.locked_until).getTime() <= now;
+        !existing.lockedUntil ||
+        new Date(existing.lockedUntil).getTime() <= now;
 
       if (isWindowExpired && isLockExpired) {
-        // Window expired: slide and reset counter
-        sqlite
-          .prepare(`
-            UPDATE auth_rate_limits
-            SET attempt_count = 1, first_attempt_at = ?, last_attempt_at = ?, locked_until = NULL
-            WHERE key = ?
-          `)
-          .run(nowIso, nowIso, t.key);
+        await tx
+          .update(authRateLimits)
+          .set({
+            attemptCount: 1,
+            firstAttemptAt: nowIso,
+            lastAttemptAt: nowIso,
+            lockedUntil: null,
+          })
+          .where(eq(authRateLimits.key, t.key));
       } else {
-        // Within window: increment counter
-        const newCount = existing.attempt_count + 1;
+        const newCount = existing.attemptCount + 1;
         const lockedUntil =
           newCount >= t.max
             ? new Date(now + RATE_LIMIT_CONFIG.LOCKOUT_MS).toISOString()
-            : existing.locked_until && new Date(existing.locked_until).getTime() > now
-            ? existing.locked_until
+            : existing.lockedUntil && new Date(existing.lockedUntil).getTime() > now
+            ? existing.lockedUntil
             : null;
 
-        sqlite
-          .prepare(`
-            UPDATE auth_rate_limits
-            SET attempt_count = ?, last_attempt_at = ?, locked_until = ?
-            WHERE key = ?
-          `)
-          .run(newCount, nowIso, lockedUntil, t.key);
+        await tx
+          .update(authRateLimits)
+          .set({
+            attemptCount: newCount,
+            lastAttemptAt: nowIso,
+            lockedUntil,
+          })
+          .where(eq(authRateLimits.key, t.key));
       }
     }
   });
-
-  updateTx();
 }
 
 /**
  * Resets both the account and IP rate-limiting counters upon successful authentication.
  */
-export function resetLoginRateLimit(email: string, clientIp: string): void {
+export async function resetLoginRateLimit(email: string, clientIp: string): Promise<void> {
   try {
     const accountKey = `account:${normalizeEmail(email)}`;
     const ipKey = `ip:${clientIp.trim()}`;
 
-    sqlite
-      .prepare(`
-        DELETE FROM auth_rate_limits
-        WHERE key IN (?, ?)
-      `)
-      .run(accountKey, ipKey);
+    await db
+      .delete(authRateLimits)
+      .where(inArray(authRateLimits.key, [accountKey, ipKey]));
   } catch (error) {
     console.error("[RateLimiter] Error resetting rate limits:", error);
   }
@@ -204,9 +191,8 @@ export function resetLoginRateLimit(email: string, clientIp: string): void {
 /**
  * Clears all rate limits (used by seed-test and explicit test cleanup).
  */
-export function clearAllRateLimits(): void {
+export async function clearAllRateLimits(): Promise<void> {
   try {
-    sqlite.exec("DELETE FROM auth_rate_limits;");
+    await db.delete(authRateLimits);
   } catch {}
 }
-

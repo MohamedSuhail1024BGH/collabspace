@@ -2,7 +2,7 @@ import crypto from "crypto";
 import { cookies } from "next/headers";
 import { AsyncLocalStorage } from "async_hooks";
 import { eq, and, gt, ne, lte } from "drizzle-orm";
-import { db, sqlite } from "./index";
+import { db, sql } from "./index";
 import {
   users,
   sessions,
@@ -183,25 +183,18 @@ export async function cleanupExpiredSessions(): Promise<number> {
     const result = await db
       .delete(sessions)
       .where(lte(sessions.expiresAt, nowIso));
-    return result.changes ?? 0;
+    return (result as unknown as { rowCount?: number })?.rowCount ?? 0;
   } catch {
     return 0;
   }
 }
 
 /**
- * Synchronous version of expired session cleanup for startup / CLI seeds.
+ * Synchronous version of expired session cleanup (deprecated, falls back to async call).
  */
 export function cleanupExpiredSessionsSync(): number {
-  try {
-    const nowIso = new Date().toISOString();
-    const info = sqlite
-      .prepare("DELETE FROM sessions WHERE expires_at <= ?")
-      .run(nowIso);
-    return info.changes;
-  } catch {
-    return 0;
-  }
+  cleanupExpiredSessions().catch(() => {});
+  return 0;
 }
 
 export async function getUserWorkspaces(userId: string): Promise<DbWorkspace[]> {

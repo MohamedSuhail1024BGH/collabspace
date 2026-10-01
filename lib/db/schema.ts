@@ -1,19 +1,19 @@
 import { relations, sql } from "drizzle-orm";
-import { integer, sqliteTable, text, uniqueIndex, index } from "drizzle-orm/sqlite-core";
+import { boolean, integer, pgTable, text, uniqueIndex, index } from "drizzle-orm/pg-core";
 
 // --- Workspaces (Organizations) ---
-export const workspaces = sqliteTable("workspaces", {
+export const workspaces = pgTable("workspaces", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
   description: text("description").default(""),
   plan: text("plan").notNull().default("Pro"), // "Free" | "Pro" | "Enterprise"
-  isPublic: integer("is_public", { mode: "boolean" }).notNull().default(true),
+  isPublic: boolean("is_public").notNull().default(true),
   createdAt: text("created_at").notNull(),
 });
 
 // --- Users & Authentication ---
-export const users = sqliteTable("users", {
+export const users = pgTable("users", {
   id: text("id").primaryKey(),
   email: text("email").notNull().unique(),
   username: text("username").unique(),
@@ -24,7 +24,7 @@ export const users = sqliteTable("users", {
   createdAt: text("created_at").notNull(),
 });
 
-export const sessions = sqliteTable(
+export const sessions = pgTable(
   "sessions",
   {
     id: text("id").primaryKey(),
@@ -41,7 +41,7 @@ export const sessions = sqliteTable(
 );
 
 // --- Auth Rate Limits (Brute-Force & Lockout Protection) ---
-export const authRateLimits = sqliteTable("auth_rate_limits", {
+export const authRateLimits = pgTable("auth_rate_limits", {
   key: text("key").primaryKey(), // "account:<email>" | "ip:<ip>"
   type: text("type").notNull(), // "account" | "ip"
   identifier: text("identifier").notNull(),
@@ -52,17 +52,17 @@ export const authRateLimits = sqliteTable("auth_rate_limits", {
 });
 
 // --- Team Members ---
-export const teamMembers = sqliteTable("team_members", {
+export const teamMembers = pgTable("team_members", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   role: text("role").notNull(),
   initials: text("initials").notNull(),
   color: text("color").notNull(),
-  online: integer("online", { mode: "boolean" }).notNull().default(false),
+  online: boolean("online").notNull().default(false),
 });
 
 // --- Workspace Membership & RBAC ---
-export const workspaceMembers = sqliteTable(
+export const workspaceMembers = pgTable(
   "workspace_members",
   {
     id: text("id").primaryKey(),
@@ -85,7 +85,7 @@ export const workspaceMembers = sqliteTable(
 );
 
 // --- Projects ---
-export const projects = sqliteTable("projects", {
+export const projects = pgTable("projects", {
   id: text("id").primaryKey(),
   workspaceId: text("workspace_id")
     .notNull()
@@ -100,7 +100,7 @@ export const projects = sqliteTable("projects", {
   createdAt: text("created_at").notNull(),
 });
 
-export const projectMembers = sqliteTable(
+export const projectMembers = pgTable(
   "project_members",
   {
     id: text("id").primaryKey(),
@@ -120,7 +120,7 @@ export const projectMembers = sqliteTable(
   ]
 );
 
-export const projectActivity = sqliteTable("project_activity", {
+export const projectActivity = pgTable("project_activity", {
   id: text("id").primaryKey(),
   projectId: text("project_id")
     .notNull()
@@ -130,7 +130,7 @@ export const projectActivity = sqliteTable("project_activity", {
 });
 
 // --- Tasks ---
-export const tasks = sqliteTable("tasks", {
+export const tasks = pgTable("tasks", {
   id: text("id").primaryKey(),
   workspaceId: text("workspace_id")
     .notNull()
@@ -148,7 +148,7 @@ export const tasks = sqliteTable("tasks", {
 });
 
 // --- Conversations & Messages ---
-export const conversations = sqliteTable("conversations", {
+export const conversations = pgTable("conversations", {
   id: text("id").primaryKey(),
   workspaceId: text("workspace_id")
     .notNull()
@@ -159,13 +159,13 @@ export const conversations = sqliteTable("conversations", {
   initials: text("initials").notNull(),
   color: text("color").notNull(),
   role: text("role").notNull(),
-  online: integer("online", { mode: "boolean" }).notNull().default(false),
+  online: boolean("online").notNull().default(false),
   lastMessage: text("last_message").notNull().default(""),
   lastTimestamp: text("last_timestamp").notNull(),
   unread: integer("unread").notNull().default(0),
 });
 
-export const messages = sqliteTable("messages", {
+export const messages = pgTable("messages", {
   id: text("id").primaryKey(),
   conversationId: text("conversation_id")
     .notNull()
@@ -176,11 +176,10 @@ export const messages = sqliteTable("messages", {
 });
 
 // --- Calendar Events ---
-export const calendarEvents = sqliteTable("calendar_events", {
+export const calendarEvents = pgTable("calendar_events", {
   id: text("id").primaryKey(),
   workspaceId: text("workspace_id")
     .notNull()
-    
     .references(() => workspaces.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   date: text("date").notNull(), // YYYY-MM-DD
@@ -279,7 +278,7 @@ export const messagesRelations = relations(messages, ({ one }) => ({
 }));
 
 // --- Notifications ---
-export const notifications = sqliteTable(
+export const notifications = pgTable(
   "notifications",
   {
     id: text("id").primaryKey(),
@@ -293,7 +292,7 @@ export const notifications = sqliteTable(
     message: text("message").notNull(),
     link: text("link"),
     data: text("data"), // optional JSON metadata
-    isRead: integer("is_read", { mode: "boolean" }).notNull().default(false),
+    isRead: boolean("is_read").notNull().default(false),
     createdAt: text("created_at").notNull(),
   },
   (table) => [

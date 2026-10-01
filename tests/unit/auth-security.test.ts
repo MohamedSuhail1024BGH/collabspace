@@ -167,25 +167,25 @@ async function runAuthSecurityTests() {
       locked_until TEXT
     );
   `);
-  clearAllRateLimits();
+  await clearAllRateLimits();
 
   const testEmail = "victim_user@collabspace.test";
   const attackerIp = "198.51.100.25";
 
   // 2.1 Initial check allows login
-  const initialCheck = checkLoginRateLimit(testEmail, attackerIp);
+  const initialCheck = await checkLoginRateLimit(testEmail, attackerIp);
   assert(initialCheck.allowed === true, "Initial rate limit check allows login");
 
   // 2.2 Record 4 failed attempts (under account threshold of 5)
   for (let i = 1; i <= 4; i++) {
-    recordFailedLogin(testEmail, attackerIp);
+    await recordFailedLogin(testEmail, attackerIp);
   }
-  const checkAfter4 = checkLoginRateLimit(testEmail, attackerIp);
+  const checkAfter4 = await checkLoginRateLimit(testEmail, attackerIp);
   assert(checkAfter4.allowed === true, "Account still allowed after 4 failed attempts");
 
   // 2.3 5th failed attempt locks the account
-  recordFailedLogin(testEmail, attackerIp);
-  const checkAfter5 = checkLoginRateLimit(testEmail, attackerIp);
+  await recordFailedLogin(testEmail, attackerIp);
+  const checkAfter5 = await checkLoginRateLimit(testEmail, attackerIp);
   assert(checkAfter5.allowed === false, "5th failed attempt triggers account lockout");
   assert(
     typeof checkAfter5.retryAfterSeconds === "number" && checkAfter5.retryAfterSeconds > 0,
@@ -194,34 +194,34 @@ async function runAuthSecurityTests() {
 
   // 2.4 Attacker from different IP cannot log in to locked account (per-account primary defense)
   const diffIp = "203.0.113.88";
-  const crossIpCheck = checkLoginRateLimit(testEmail, diffIp);
+  const crossIpCheck = await checkLoginRateLimit(testEmail, diffIp);
   assert(
     crossIpCheck.allowed === false,
     "Per-account lockout applies across any client IP (primary defense)"
   );
 
   // 2.5 Reset on successful login restores access
-  resetLoginRateLimit(testEmail, attackerIp);
-  const resetCheck = checkLoginRateLimit(testEmail, attackerIp);
+  await resetLoginRateLimit(testEmail, attackerIp);
+  const resetCheck = await checkLoginRateLimit(testEmail, attackerIp);
   assert(resetCheck.allowed === true, "resetLoginRateLimit immediately restores access");
 
   // 2.6 Per-IP rate limiting across multiple distinct usernames
-  clearAllRateLimits();
+  await clearAllRateLimits();
   const stuffingIp = "192.0.2.100";
   for (let i = 1; i <= 9; i++) {
-    recordFailedLogin(`user_${i}@example.com`, stuffingIp);
+    await recordFailedLogin(`user_${i}@example.com`, stuffingIp);
   }
   assert(
-    checkLoginRateLimit("fresh_user@example.com", stuffingIp).allowed === true,
+    (await checkLoginRateLimit("fresh_user@example.com", stuffingIp)).allowed === true,
     "IP allowed under threshold of 10 attempts"
   );
 
   // 10th attempt triggers IP lock
-  recordFailedLogin("user_10@example.com", stuffingIp);
-  const ipLockCheck = checkLoginRateLimit("any_user@example.com", stuffingIp);
+  await recordFailedLogin("user_10@example.com", stuffingIp);
+  const ipLockCheck = await checkLoginRateLimit("any_user@example.com", stuffingIp);
   assert(ipLockCheck.allowed === false, "10th failed attempt triggers per-IP lockout");
 
-  clearAllRateLimits();
+  await clearAllRateLimits();
 
   // 2.7 Client IP Extraction & Rightmost Trusted Hop Defense
   const hSpoofed = new Headers({ "x-forwarded-for": "attacker.spoofed.ip, 203.0.113.195" });
@@ -239,7 +239,7 @@ async function runAuthSecurityTests() {
   // 2.8 Fail-Closed Storage Error Path 1: checkLoginRateLimit SQLite error denies login
   sqlite.exec("ALTER TABLE auth_rate_limits RENAME TO auth_rate_limits_temp_err;");
   try {
-    const failedStorageCheck = checkLoginRateLimit("any_user@collabspace.test", "1.2.3.4");
+    const failedStorageCheck = await checkLoginRateLimit("any_user@collabspace.test", "1.2.3.4");
     assert(
       failedStorageCheck.allowed === false,
       "checkLoginRateLimit fails closed (allowed: false) upon SQLite error"
