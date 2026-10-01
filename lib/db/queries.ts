@@ -36,7 +36,7 @@ export async function getTeamMembers(workspaceId?: string): Promise<DbTeamMember
     })
     .from(workspaceMembers)
     .innerJoin(users, eq(workspaceMembers.userId, users.id))
-    .where(eq(workspaceMembers.workspaceId, wsId));
+    .where(and(eq(workspaceMembers.workspaceId, wsId), eq(workspaceMembers.status, "active")));
 
   return members.map((r) => ({
     id: r.user.id,
@@ -466,6 +466,7 @@ export async function getWorkspaceMembers(workspaceId: string) {
     .select({
       membershipId: workspaceMembers.id,
       role: workspaceMembers.role,
+      status: workspaceMembers.status,
       joinedAt: workspaceMembers.joinedAt,
       user: {
         id: users.id,
@@ -491,7 +492,7 @@ export async function getUserWorkspacesWithDetails(userId: string) {
     })
     .from(workspaceMembers)
     .innerJoin(workspaces, eq(workspaceMembers.workspaceId, workspaces.id))
-    .where(eq(workspaceMembers.userId, userId));
+    .where(and(eq(workspaceMembers.userId, userId), eq(workspaceMembers.status, "active")));
 
   const allMembers = await db.select().from(workspaceMembers);
   const allProjects = await db.select().from(projects);
@@ -499,7 +500,7 @@ export async function getUserWorkspacesWithDetails(userId: string) {
   return userMemberships.map(({ workspace, role }) => ({
     ...workspace,
     userRole: role,
-    memberCount: allMembers.filter((m) => m.workspaceId === workspace.id).length,
+    memberCount: allMembers.filter((m) => m.workspaceId === workspace.id && m.status === "active").length,
     projectCount: allProjects.filter((p) => p.workspaceId === workspace.id).length,
   }));
 }

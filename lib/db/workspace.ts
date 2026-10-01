@@ -52,9 +52,10 @@ export async function getActiveWorkspace(): Promise<DbWorkspace | null> {
 
 export async function getUserRoleInWorkspace(workspaceId: string, userId: string): Promise<UserRole | null> {
   const [membership] = await db
-    .select({ role: workspaceMembers.role })
+    .select({ role: workspaceMembers.role, status: workspaceMembers.status })
     .from(workspaceMembers)
     .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, userId)))
     .limit(1);
+  if (!membership || membership.status !== "active") return null;
   return (membership?.role as UserRole) ?? null;
 }

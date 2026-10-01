@@ -26,6 +26,7 @@ import {
   tasks,
   workspaces,
   workspaceMembers,
+  notifications,
 } from "@/lib/db/schema";
 import {
   ACTIVE_WORKSPACE_COOKIE,
@@ -578,6 +579,7 @@ export async function addWorkspaceMemberAction(data: {
       userId: data.userId,
       role: data.role,
       joinedAt: now,
+      status: "pending",
     });
 
     try {
@@ -592,8 +594,15 @@ export async function addWorkspaceMemberAction(data: {
         workspaceId: data.workspaceId,
         type: "invite",
         title: `Invited to ${wsName}`,
-        message: `${currentUser.name} added you to workspace "${wsName}" as ${data.role}.`,
+        message: `${currentUser.name} invited you to join workspace "${wsName}" as ${data.role}.`,
         link: "/start",
+        data: JSON.stringify({
+          workspaceId: data.workspaceId,
+          workspaceName: wsName,
+          inviterName: currentUser.name,
+          role: data.role,
+          status: "pending",
+        }),
       });
     } catch (notifErr) {
       console.error("Failed to send invite notification:", notifErr);
@@ -2364,6 +2373,129 @@ export async function markAllNotificationsReadAction() {
   } catch (error) {
     console.error("Failed to mark all notifications read:", error);
     return { success: false, error: "Failed to mark all notifications read." };
+  }
+}
+
+export async function acceptWorkspaceInviteAction(notificationId: string) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { success: false, error: "Unauthorized." };
+
+    const [notif] = await db
+      .select()
+      .from(notifications)
+      .where(and(eq(notifications.id, notificationId), eq(notifications.userId, user.id)))
+      .limit(1);
+
+    if (!notif) return { success: false, error: "Notification not found." };
+    if (notif.type !== "invite") return { success: false, error: "This notification is not an invitation." };
+
+    let notifData: { workspaceId?: string; role?: string; status?: string; workspaceName?: string } = {};
+    try {
+      if (notif.data) notifData = JSON.parse(notif.data);
+    } catch {}
+
+    const wsId = notif.workspaceId || notifData.workspaceId;
+    if (!wsId) return { success: false, error: "Workspace information missing." };
+
+    const [membership] = await db
+      .select()
+      .from(workspaceMembers)
+      .where(and(eq(workspaceMembers.workspaceId, wsId), eq(workspaceMembers.userId, user.id)))
+      .limit(1);
+
+    const now = new Date().toISOString();
+    if (membership) {
+      await db
+        .update(workspaceMembers)
+        .set({ status: "active", joinedAt: now })
+        .where(eq(workspaceMembers.id, membership.id));
+    } else {
+      await db.insert(workspaceMembers).values({
+        id: `wm-${wsId}-${user.id}`,
+        workspaceId: wsId,
+        userId: user.id,
+        role: (notifData.role as "admin" | "member" | "viewer") || "member",
+        joinedAt: now,
+        status: "active",
+      });
+    }
+
+    const updatedData = { ...notifData, status: "accepted" };
+    await db
+      .update(notifications)
+      .set({
+        isRead: true,
+        data: JSON.stringify(updatedData),
+      })
+      .where(eq(notifications.id, notif.id));
+
+    safeRevalidatePath("/");
+    safeRevalidatePath("/start");
+    safeRevalidatePath("/settings");
+    safeRevalidatePath("/preferences");
+
+    return {
+      success: true,
+      workspaceId: wsId,
+      workspaceName: notifData.workspaceName || "the workspace",
+    };
+  } catch (error) {
+    console.error("Failed to accept invitation:", error);
+    return { success: false, error: "Failed to accept invitation." };
+  }
+}
+
+export async function declineWorkspaceInviteAction(notificationId: string) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { success: false, error: "Unauthorized." };
+
+    const [notif] = await db
+      .select()
+      .from(notifications)
+      .where(and(eq(notifications.id, notificationId), eq(notifications.userId, user.id)))
+      .limit(1);
+
+    if (!notif) return { success: false, error: "Notification not found." };
+    if (notif.type !== "invite") return { success: false, error: "This notification is not an invitation." };
+
+    let notifData: { workspaceId?: string; role?: string; status?: string; workspaceName?: string } = {};
+    try {
+      if (notif.data) notifData = JSON.parse(notif.data);
+    } catch {}
+
+    const wsId = notif.workspaceId || notifData.workspaceId;
+    if (wsId) {
+      await db
+        .delete(workspaceMembers)
+        .where(
+          and(
+            eq(workspaceMembers.workspaceId, wsId),
+            eq(workspaceMembers.userId, user.id),
+            eq(workspaceMembers.status, "pending")
+          )
+        );
+    }
+
+    const updatedData = { ...notifData, status: "declined" };
+    await db
+      .update(notifications)
+      .set({
+        isRead: true,
+        data: JSON.stringify(updatedData),
+      })
+      .where(eq(notifications.id, notif.id));
+
+    safeRevalidatePath("/");
+    safeRevalidatePath("/start");
+    safeRevalidatePath("/settings");
+    safeRevalidatePath("/preferences");
+
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to decline invitation:", error);
+    return { success: false, error: "Failed to decline invitation." };
   }
 }
 

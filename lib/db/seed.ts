@@ -114,7 +114,8 @@ export function ensureTablesBasic(sqliteInstance = sqlite): void {
       workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
       user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       role TEXT NOT NULL DEFAULT 'member',
-      joined_at TEXT NOT NULL
+      joined_at TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'active'
     );
 
     CREATE TABLE IF NOT EXISTS team_members (
@@ -239,6 +240,7 @@ export function ensureTablesBasic(sqliteInstance = sqlite): void {
   safeAlter("ALTER TABLE project_members ADD COLUMN user_id TEXT REFERENCES users(id) ON DELETE CASCADE;");
   safeAlter("ALTER TABLE conversations ADD COLUMN type TEXT NOT NULL DEFAULT 'channel';");
   safeAlter("ALTER TABLE conversations ADD COLUMN participant_ids TEXT DEFAULT '[]';");
+  safeAlter("ALTER TABLE workspace_members ADD COLUMN status TEXT NOT NULL DEFAULT 'active';");
 }
 
 /**

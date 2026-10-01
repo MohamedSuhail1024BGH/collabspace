@@ -17,6 +17,7 @@ import { UserAvatar } from "@/components/ui/UserAvatar";
 export type WorkspaceMemberItem = {
   membershipId: string;
   role: string;
+  status?: string;
   joinedAt: string;
   user: {
     id: string;
@@ -150,6 +151,7 @@ export function WorkspacePreferencesClient({
       const optimisticMember: WorkspaceMemberItem = {
         membershipId: `temp-${targetUserId}-${members.length}`,
         role: selectedRoleForNewMember,
+        status: "pending",
         joinedAt: "Just now",
         user: {
           id: targetUser.id,
@@ -171,7 +173,7 @@ export function WorkspacePreferencesClient({
       role: selectedRoleForNewMember,
     });
     if (res.success) {
-      setFeedback({ type: "success", message: "Member added successfully." });
+      setFeedback({ type: "success", message: "Invitation sent successfully." });
       router.refresh();
     } else {
       setFeedback({ type: "error", message: res.error || "Failed to add member." });
@@ -596,17 +598,24 @@ export function WorkspacePreferencesClient({
                           <p className="text-[10px] font-mono text-on-surface-variant truncate">{m.user.email}</p>
                         </div>
                       </div>
-                      <span
-                        className={`font-mono text-[10px] px-2 py-0.5 rounded capitalize shrink-0 ${
-                          m.role === "owner"
-                            ? "bg-primary/20 text-primary font-semibold"
-                            : m.role === "admin"
-                            ? "bg-secondary/20 text-secondary"
-                            : "bg-surface-container-high text-on-surface-variant"
-                        }`}
-                      >
-                        {m.role}
-                      </span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {m.status === "pending" && (
+                          <span className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-tertiary/15 text-tertiary border border-tertiary/25">
+                            Pending
+                          </span>
+                        )}
+                        <span
+                          className={`font-mono text-[10px] px-2 py-0.5 rounded capitalize shrink-0 ${
+                            m.role === "owner"
+                              ? "bg-primary/20 text-primary font-semibold"
+                              : m.role === "admin"
+                              ? "bg-secondary/20 text-secondary"
+                              : "bg-surface-container-high text-on-surface-variant"
+                          }`}
+                        >
+                          {m.role}
+                        </span>
+                      </div>
                     </div>
 
                     <div className="flex items-center justify-between pt-1.5 border-t border-outline/10 text-[10px] font-mono text-on-surface-variant">
@@ -671,17 +680,24 @@ export function WorkspacePreferencesClient({
                         </td>
 
                         <td className="py-2.5">
-                          <span
-                            className={`font-mono text-[10px] px-2 py-0.5 rounded capitalize ${
-                              m.role === "owner"
-                                ? "bg-primary/20 text-primary font-semibold"
-                                : m.role === "admin"
-                                ? "bg-secondary/20 text-secondary"
-                                : "bg-surface-container-high text-on-surface-variant"
-                            }`}
-                          >
-                            {m.role}
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className={`font-mono text-[10px] px-2 py-0.5 rounded capitalize ${
+                                m.role === "owner"
+                                  ? "bg-primary/20 text-primary font-semibold"
+                                  : m.role === "admin"
+                                  ? "bg-secondary/20 text-secondary"
+                                  : "bg-surface-container-high text-on-surface-variant"
+                              }`}
+                            >
+                              {m.role}
+                            </span>
+                            {m.status === "pending" && (
+                              <span className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-tertiary/15 text-tertiary border border-tertiary/25">
+                                Pending
+                              </span>
+                            )}
+                          </div>
                         </td>
 
                         <td className="py-2.5 font-mono text-[10px] text-on-surface-variant">

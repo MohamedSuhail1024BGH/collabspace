@@ -55,7 +55,7 @@ export async function requireWorkspaceMember(workspaceId: string): Promise<{
     )
     .limit(1);
 
-  if (!membership) {
+  if (!membership || membership.status !== "active") {
     throw new AuthError("You are not a member of this workspace.", 403);
   }
 

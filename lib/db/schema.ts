@@ -74,6 +74,7 @@ export const workspaceMembers = sqliteTable(
       .references(() => users.id, { onDelete: "cascade" }),
     role: text("role").notNull().default("member"), // "owner" | "admin" | "member" | "viewer"
     joinedAt: text("joined_at").notNull(),
+    status: text("status").notNull().default("active"), // "active" | "pending"
   },
   (table) => [
     uniqueIndex("idx_workspace_members_ws_user").on(

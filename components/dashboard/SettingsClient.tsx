@@ -20,6 +20,7 @@ import { UserAvatar } from "@/components/ui/UserAvatar";
 export type WorkspaceMemberItem = {
   membershipId: string;
   role: string;
+  status?: string;
   joinedAt: string;
   user: {
     id: string;
@@ -241,6 +242,7 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
       const optimisticMember: WorkspaceMemberItem = {
         membershipId: `temp-${targetUser.id}-${members.length}`,
         role: selectedRoleForNewMember,
+        status: "pending",
         joinedAt: "Just now",
         user: {
           id: targetUser.id,
@@ -262,7 +264,7 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
       });
 
       if (res.success) {
-        setFeedback({ type: "success", message: "Member successfully added to workspace." });
+        setFeedback({ type: "success", message: "Invitation sent to member." });
         setMemberSearchQuery("");
         router.refresh();
       } else {
@@ -882,6 +884,11 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
                           {isSelf && (
                             <span className="rounded bg-primary/15 text-primary border border-primary/30 px-1.5 py-0.2 font-label-sm text-[10px] font-semibold">
                               You
+                            </span>
+                          )}
+                          {m.status === "pending" && (
+                            <span className="rounded bg-tertiary/15 text-tertiary border border-tertiary/30 px-1.5 py-0.2 font-label-sm text-[10px] font-semibold">
+                              Pending
                             </span>
                           )}
                           <span className="font-label-sm text-[11px] text-primary">@{m.user.username || "user"}</span>
