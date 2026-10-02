@@ -4,6 +4,9 @@ import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { getActiveWorkspace, getAllWorkspaces } from "@/lib/db/workspace";
 import { getCurrentUser } from "@/lib/db/auth";
 import { getProjects } from "@/lib/db/queries";
+import type { DbWorkspace } from "@/lib/db/schema";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "CollabSpace",
@@ -23,10 +26,20 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const user = await getCurrentUser();
-  const activeWorkspace = await getActiveWorkspace();
-  const allWorkspaces = await getAllWorkspaces();
-  const projects = activeWorkspace ? await getProjects(activeWorkspace.id) : [];
+  let user = null;
+  let activeWorkspace = null;
+  let allWorkspaces: DbWorkspace[] = [];
+  let projects: Awaited<ReturnType<typeof getProjects>> = [];
+
+  try {
+    user = await getCurrentUser();
+    activeWorkspace = await getActiveWorkspace();
+    allWorkspaces = await getAllWorkspaces();
+    projects = activeWorkspace ? await getProjects(activeWorkspace.id) : [];
+  } catch {
+    // Database credentials are provided at runtime by the deployment platform;
+    // gracefully fallback during build-time static prerendering.
+  }
 
   return (
     <html
