@@ -51,7 +51,6 @@ export function Header({
 
           <div className="flex items-center gap-1.5 sm:gap-2 text-xs text-on-surface-variant min-w-0">
             <span className="truncate max-w-[90px] sm:max-w-[140px] text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer font-medium">
-              {activeWorkspaceName || "Acme Corporation"}
               {activeWorkspaceName || "Workspace"}
             </span>
             <span className="text-on-surface-variant/40">/</span>
