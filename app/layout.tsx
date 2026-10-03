@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
+import { NavigationProgress } from "@/components/ui/NavigationProgress";
 import { getActiveWorkspace, getAllWorkspaces } from "@/lib/db/workspace";
 import { getCurrentUser } from "@/lib/db/auth";
 import { getProjects } from "@/lib/db/queries";
@@ -70,6 +71,7 @@ export default async function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col font-sans overflow-x-hidden w-full max-w-full">
+        <NavigationProgress />
         <DashboardShell
           user={user}
           activeWorkspace={activeWorkspace ?? undefined}

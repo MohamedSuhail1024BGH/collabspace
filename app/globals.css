@@ -281,4 +281,98 @@ body[data-in-chat="true"] [data-testid="mobile-bottom-nav"] {
   }
 }
 
+/* Inspired CollabSpace Loader */
+.collab-loader-track {
+  width: 100px;
+  height: 3px;
+  background-color: rgb(15, 15, 15);
+  border-radius: 20px;
+  overflow: hidden;
+  position: relative;
+}
+
+html[data-theme="light"] .collab-loader-track {
+  background-color: rgb(226, 232, 240);
+}
+
+.collab-loader-child {
+  width: 60px;
+  height: 3px;
+  background-color: rgb(107, 27, 255);
+  border-radius: 20px;
+  position: relative;
+  z-index: 0;
+  margin-left: -60px;
+  animation: collab-loader-go 1s 0s infinite;
+  box-shadow: 0 0 8px rgba(107, 27, 255, 0.6);
+}
+
+@keyframes collab-loader-go {
+  from {
+    margin-left: -100px;
+    width: 80px;
+  }
+  to {
+    width: 30px;
+    margin-left: 110px;
+  }
+}
+
+.collab-loader-text {
+  width: 100px;
+  height: 30px;
+  background-color: transparent;
+  margin-top: 16px;
+  text-align: center;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.025em;
+}
+
+.collab-loader-text::before {
+  content: "Loading";
+  color: #e2e2eb;
+  animation: collab-loader-text 1.2s 0s infinite;
+}
+
+html[data-theme="light"] .collab-loader-text::before {
+  color: #1e293b;
+}
+
+@keyframes collab-loader-text {
+  0%, 25% {
+    content: "Loading";
+  }
+  50% {
+    content: "Loading.";
+  }
+  75% {
+    content: "Loading..";
+  }
+  100% {
+    content: "Loading...";
+  }
+}
+
+/* Global Top Navigation Progress Bar */
+@keyframes nav-progress-bar {
+  0% {
+    transform: translateX(-100%);
+    width: 30%;
+  }
+  50% {
+    transform: translateX(120%);
+    width: 55%;
+  }
+  100% {
+    transform: translateX(350%);
+    width: 30%;
+  }
+}
+
+.animate-nav-progress {
+  animation: nav-progress-bar 1.2s ease-in-out infinite;
+}
+
+
 
