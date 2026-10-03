@@ -33,9 +33,13 @@ export default async function RootLayout({
 
   try {
     user = await getCurrentUser();
-    activeWorkspace = await getActiveWorkspace();
-    allWorkspaces = await getAllWorkspaces();
-    projects = activeWorkspace ? await getProjects(activeWorkspace.id) : [];
+    if (user) {
+      [activeWorkspace, allWorkspaces] = await Promise.all([
+        getActiveWorkspace(),
+        getAllWorkspaces(),
+      ]);
+      projects = activeWorkspace ? await getProjects(activeWorkspace.id) : [];
+    }
   } catch {
     // Database credentials are provided at runtime by the deployment platform;
     // gracefully fallback during build-time static prerendering.

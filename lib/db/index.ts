@@ -18,7 +18,7 @@ function getConnectionString(): string {
 }
 
 export function getClient(): postgres.Sql {
-  if (process.env.NODE_ENV !== "production" && globalForDb.postgresClient) {
+  if (globalForDb.postgresClient) {
     return globalForDb.postgresClient;
   }
 
@@ -30,25 +30,19 @@ export function getClient(): postgres.Sql {
     connect_timeout: 10,
   });
 
-  if (process.env.NODE_ENV !== "production") {
-    globalForDb.postgresClient = client;
-  }
-
+  globalForDb.postgresClient = client;
   return client;
 }
 
 export function getDrizzleInstance() {
-  if (process.env.NODE_ENV !== "production" && globalForDb.drizzleDb) {
+  if (globalForDb.drizzleDb) {
     return globalForDb.drizzleDb;
   }
 
   const client = getClient();
   const instance = drizzle(client, { schema });
 
-  if (process.env.NODE_ENV !== "production") {
-    globalForDb.drizzleDb = instance;
-  }
-
+  globalForDb.drizzleDb = instance;
   return instance;
 }
 
