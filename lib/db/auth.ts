@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { AsyncLocalStorage } from "async_hooks";
 import { eq, and, gt, ne, lte } from "drizzle-orm";
@@ -80,7 +81,7 @@ export async function createSession(userId: string): Promise<string> {
   return token;
 }
 
-export async function getCurrentUser(): Promise<Omit<DbUser, "passwordHash"> | null> {
+export const getCurrentUser = cache(async (): Promise<Omit<DbUser, "passwordHash"> | null> => {
   if (process.env.NODE_ENV !== "production" && testAuthStorage) {
     const testStore = testAuthStorage.getStore();
     if (testStore?.userId) {
@@ -134,7 +135,7 @@ export async function getCurrentUser(): Promise<Omit<DbUser, "passwordHash"> | n
   } catch {
     return null;
   }
-}
+});
 
 /**
  * Destroys the current active session in SQLite and clears the authentication cookies.
@@ -197,7 +198,7 @@ export function cleanupExpiredSessionsSync(): number {
   return 0;
 }
 
-export async function getUserWorkspaces(userId: string): Promise<DbWorkspace[]> {
+export const getUserWorkspaces = cache(async (userId: string): Promise<DbWorkspace[]> => {
   const memberships = await db
     .select({
       workspace: workspaces,
@@ -207,7 +208,7 @@ export async function getUserWorkspaces(userId: string): Promise<DbWorkspace[]> 
     .where(eq(workspaceMembers.userId, userId));
 
   return memberships.map((m) => m.workspace);
-}
+});
 
 export {
   AuthError,

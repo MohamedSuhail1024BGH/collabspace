@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { and, eq } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { db } from "./index";
@@ -7,7 +8,7 @@ import { getCurrentUser, getUserWorkspaces } from "./auth";
 export const ACTIVE_WORKSPACE_COOKIE = "collabspace_active_workspace";
 export const DEFAULT_WORKSPACE_ID = "ws-acme";
 
-export async function getActiveWorkspaceId(): Promise<string> {
+export const getActiveWorkspaceId = cache(async (): Promise<string> => {
   try {
     const cookieStore = await cookies();
     const cookieVal = cookieStore.get(ACTIVE_WORKSPACE_COOKIE)?.value;
@@ -16,18 +17,18 @@ export async function getActiveWorkspaceId(): Promise<string> {
     // Non-request context fallback (CLI/tests)
   }
   return DEFAULT_WORKSPACE_ID;
-}
+});
 
-export async function getAllWorkspaces(): Promise<DbWorkspace[]> {
+export const getAllWorkspaces = cache(async (): Promise<DbWorkspace[]> => {
   const user = await getCurrentUser();
   if (user) {
     const userWs = await getUserWorkspaces(user.id);
     if (userWs.length > 0) return userWs;
   }
   return db.select().from(workspaces);
-}
+});
 
-export async function getActiveWorkspace(): Promise<DbWorkspace | null> {
+export const getActiveWorkspace = cache(async (): Promise<DbWorkspace | null> => {
   const user = await getCurrentUser();
 
   if (user) {
@@ -48,7 +49,7 @@ export async function getActiveWorkspace(): Promise<DbWorkspace | null> {
   }
 
   return null;
-}
+});
 
 export async function getUserRoleInWorkspace(workspaceId: string, userId: string): Promise<UserRole | null> {
   const [membership] = await db
