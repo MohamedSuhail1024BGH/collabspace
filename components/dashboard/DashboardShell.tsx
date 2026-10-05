@@ -145,7 +145,13 @@ export function DashboardShell({
                 : "p-3 sm:p-5 lg:p-6 pb-20 md:pb-6"
             }`}
           >
-            {children}
+            {isMessages ? (
+              children
+            ) : (
+              <div className="w-full max-w-[1720px] 2xl:max-w-[1880px] mx-auto min-w-0">
+                {children}
+              </div>
+            )}
           </main>
         </div>
       </div>

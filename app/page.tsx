@@ -69,7 +69,7 @@ export default async function Home() {
     ).length;
     return {
       label: day,
-      value: completedForDay > 0 ? completedForDay : idx % 2 === 0 ? 3 + (idx % 3) : 2,
+      value: completedForDay,
     };
   });
 

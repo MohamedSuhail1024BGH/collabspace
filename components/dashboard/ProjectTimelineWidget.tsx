@@ -45,59 +45,61 @@ export function ProjectTimelineWidget({
   const phases = useMemo<TimelinePhase[]>(() => {
     if (!hasTasks) return [];
 
-    const now = new Date();
-    const formatShortDate = (d: Date) =>
-      d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    const formatShortDate = (d: Date) => {
+      if (isNaN(d.getTime())) return "TBD";
+      return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    };
 
-    const d0 = new Date(now);
-    d0.setDate(now.getDate() - 7);
-    const d1 = new Date(now);
-    const d2 = new Date(now);
-    d2.setDate(now.getDate() + 7);
-    const d3 = new Date(now);
-    d3.setDate(now.getDate() + 14);
-    const d4 = new Date(now);
-    d4.setDate(now.getDate() + 21);
+    const statusGroups: Record<string, TimelineTask[]> = {};
+    for (const task of tasks) {
+      const groupKey = task.status || "In progress";
+      if (!statusGroups[groupKey]) statusGroups[groupKey] = [];
+      statusGroups[groupKey].push(task);
+    }
 
-    return [
-      {
-        id: "p1",
-        name: "Planning & Scoping",
-        subtitle: "Define goals, Research, Scope outline",
-        startDate: formatShortDate(d0),
-        endDate: formatShortDate(d1),
-        badgeVariant: "warning",
-        members: teamMembers.slice(0, 3),
-      },
-      {
-        id: "p2",
-        name: "Design & UX Prototyping",
-        subtitle: "Wireframes, UI/UX, Component specs",
-        startDate: formatShortDate(d1),
-        endDate: formatShortDate(d2),
-        badgeVariant: "default",
-        members: teamMembers.slice(1, 4),
-      },
-      {
-        id: "p3",
-        name: "Core Development",
-        subtitle: "Frontend, Backend, Integration",
-        startDate: formatShortDate(d2),
-        endDate: formatShortDate(d3),
-        badgeVariant: "info",
-        members: teamMembers.slice(0, 2),
-      },
-      {
-        id: "p4",
-        name: "Testing & Bug Fixes",
-        subtitle: "Unit tests, E2E QA, Regression",
-        startDate: formatShortDate(d3),
-        endDate: formatShortDate(d4),
-        badgeVariant: "success",
-        members: teamMembers.slice(2, 5),
-      },
-    ];
-  }, [hasTasks, teamMembers]);
+    const stageConfig: Record<string, { badgeVariant: TimelinePhase["badgeVariant"] }> = {
+      "Not started": { badgeVariant: "warning" },
+      "In progress": { badgeVariant: "default" },
+      "Review": { badgeVariant: "info" },
+      "Completed": { badgeVariant: "success" },
+      "Blocked": { badgeVariant: "outline" },
+      "Pending": { badgeVariant: "secondary" },
+    };
+
+    return Object.entries(statusGroups).map(([statusName, stageTasks], idx) => {
+      const taskTitles = stageTasks.slice(0, 3).map((t) => t.title).join(", ");
+      const config = stageConfig[statusName] || { badgeVariant: "default" };
+
+      const assignees = Array.from(new Set(stageTasks.map((t) => t.assignee).filter(Boolean)));
+      const members = assignees.map((assigneeName) => {
+        const found = teamMembers.find((m) => m.name.toLowerCase() === assigneeName.toLowerCase());
+        return found || {
+          name: assigneeName,
+          initials: assigneeName.slice(0, 2).toUpperCase(),
+          color: "bg-primary",
+          avatar: null,
+        };
+      });
+
+      const validDues = stageTasks
+        .map((t) => new Date(t.due))
+        .filter((d) => !isNaN(d.getTime()))
+        .sort((a, b) => a.getTime() - b.getTime());
+
+      const startDate = validDues.length > 0 ? formatShortDate(validDues[0]) : formatShortDate(new Date());
+      const endDate = validDues.length > 0 ? formatShortDate(validDues[validDues.length - 1]) : formatShortDate(new Date());
+
+      return {
+        id: `phase-${idx}`,
+        name: `${statusName} Stage`,
+        subtitle: `${stageTasks.length} work item${stageTasks.length > 1 ? "s" : ""}: ${taskTitles}`,
+        startDate,
+        endDate,
+        badgeVariant: config.badgeVariant,
+        members: members.slice(0, 4),
+      };
+    });
+  }, [hasTasks, tasks, teamMembers]);
 
   const timelineDateMarkers = useMemo(() => {
     const now = new Date();

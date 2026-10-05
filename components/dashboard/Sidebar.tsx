@@ -55,10 +55,10 @@ const navIconMap: Record<string, React.ComponentType<{ className?: string }>> = 
 };
 
 const defaultWorkspace: DbWorkspace = {
-  id: "ws-acme",
-  name: "Acme Corporation",
-  slug: "acme",
-  description: "Primary company workspace.",
+  id: "ws-default",
+  name: "Workspace",
+  slug: "workspace",
+  description: "Collaborative workspace.",
   plan: "Pro",
   isPublic: true,
   createdAt: new Date().toISOString(),

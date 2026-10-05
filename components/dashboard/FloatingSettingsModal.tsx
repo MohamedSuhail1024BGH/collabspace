@@ -323,7 +323,7 @@ export function FloatingSettingsModal({
     >
       <Card
         data-testid="floating-settings-modal"
-        className="w-full max-w-2xl shadow-2xl p-5 sm:p-6 space-y-5 max-h-[90vh] overflow-y-auto border-border/80"
+        className="w-full max-w-2xl shadow-2xl p-4 sm:p-6 space-y-4 sm:space-y-5 max-h-[88dvh] overflow-y-auto border-border/80"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
@@ -348,6 +348,7 @@ export function FloatingSettingsModal({
             onClick={onClose}
             className="h-8 w-8 text-muted-foreground hover:text-foreground cursor-pointer"
             title="Close modal"
+            aria-label="Close settings dialog"
           >
             <X className="size-4" />
           </Button>

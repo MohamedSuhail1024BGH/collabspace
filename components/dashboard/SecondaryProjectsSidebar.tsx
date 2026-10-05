@@ -80,7 +80,7 @@ export function SecondaryProjectsSidebar({
   return (
     <aside
       data-testid="secondary-projects-sidebar"
-      className="w-60 shrink-0 bg-card border-r border-border flex flex-col h-[calc(100vh-3.5rem)] sticky top-14 select-none hidden lg:flex"
+      className="w-60 shrink-0 bg-card border-r border-border flex flex-col h-[calc(100vh-3.5rem)] sticky top-14 select-none hidden xl:flex"
     >
       {/* Header */}
       <div className="p-3 border-b border-border flex items-center justify-between">

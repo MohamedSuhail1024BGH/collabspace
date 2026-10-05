@@ -642,7 +642,7 @@ export function MessagesClient({
             <ChatHeader
               conversation={activeConversation}
               onBack={() => setShowListOnMobile(true)}
-              memberCount={workspaceMembers.length || 8}
+              memberCount={workspaceMembers.length || 1}
             />
 
             <MessageList

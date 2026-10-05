@@ -342,7 +342,7 @@ export function ProjectsClient({
       </section>
 
       {/* Main Portfolio Grid */}
-      <section className="grid gap-5 xl:grid-cols-[1.8fr_1fr]">
+      <section className="grid gap-5 xl:grid-cols-1 2xl:grid-cols-[1.7fr_1fr]">
         <Card className="p-4 sm:p-5 border-border/60 shadow-xs">
           <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between pb-3.5 border-b border-border/60">
             <div>

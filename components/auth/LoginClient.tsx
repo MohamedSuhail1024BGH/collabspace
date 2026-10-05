@@ -38,8 +38,8 @@ export function LoginClient() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background p-4 text-foreground">
-      <div className="w-full max-w-md">
+    <main className="flex min-h-screen flex-col justify-start sm:justify-center items-center bg-background px-4 py-8 sm:px-6 overflow-y-auto text-foreground">
+      <div className="w-full max-w-md my-auto">
         {/* Brand Header */}
         <div className="mb-6 text-center">
           <div className="mx-auto mb-3 flex items-center justify-center">
@@ -81,13 +81,16 @@ export function LoginClient() {
 
             <form onSubmit={handleLogin} className="space-y-4">
               <Field>
-                <FieldLabel className="text-xs uppercase tracking-wider text-muted-foreground font-mono">
+                <FieldLabel htmlFor="login-email" className="text-xs uppercase tracking-wider text-muted-foreground font-mono">
                   Email address
                 </FieldLabel>
                 <div className="relative">
                   <Mail className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                   <Input
+                    id="login-email"
+                    name="email"
                     type="email"
+                    autoComplete="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -98,13 +101,16 @@ export function LoginClient() {
               </Field>
 
               <Field>
-                <FieldLabel className="text-xs uppercase tracking-wider text-muted-foreground font-mono">
+                <FieldLabel htmlFor="login-password" className="text-xs uppercase tracking-wider text-muted-foreground font-mono">
                   Password
                 </FieldLabel>
                 <div className="relative">
                   <Lock className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                   <Input
+                    id="login-password"
+                    name="password"
                     type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}

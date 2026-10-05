@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
+  createTaskAction,
   deleteTaskAction,
   updateTaskAction,
   updateTaskStatusAction,
@@ -13,9 +14,10 @@ import { TaskList } from "@/components/dashboard/TaskList";
 import { TaskBoard } from "@/components/dashboard/TaskBoard";
 import { TaskSummary } from "@/components/dashboard/TaskSummary";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { List, Kanban } from "lucide-react";
+import { List, Kanban, Plus } from "lucide-react";
 import type { DashboardTask, TaskPriority } from "@/data/mock-data";
 import type { DbTask } from "@/lib/db/schema";
 
@@ -59,9 +61,9 @@ export function TasksClient({
   initialTasks,
   workspaceMembers = [],
   projects = [],
-  currentUser: _currentUser,
+  currentUser,
   userRole = "member",
-  workspaceId: _workspaceId,
+  workspaceId,
 }: {
   initialTasks: DbTask[];
   workspaceMembers?: WorkspaceMemberItem[];
@@ -117,6 +119,20 @@ export function TasksClient({
     });
   }, [assigneeFilter, priorityFilter, search, statusFilter, tasks]);
 
+  const openCreateTask = () => {
+    setDraftTask({
+      title: "",
+      description: "",
+      assignee: currentUser?.name ?? workspaceMembers[0]?.user.name ?? "Unassigned",
+      priority: "Medium",
+      status: "Not started",
+      due: getTodayValue(),
+      project: "General",
+      projectId: undefined,
+    });
+    setIsFormOpen(true);
+  };
+
   const openEditTask = (task: DashboardTask) => {
     const matchedProj = projects.find((p) => p.name === task.project);
     setDraftTask({
@@ -149,7 +165,7 @@ export function TasksClient({
   };
 
   const handleSaveTask = async () => {
-    if (!draftTask || !draftTask.id) return;
+    if (!draftTask) return;
 
     const normalizedTask = {
       title: draftTask.title.trim() || "Untitled task",
@@ -163,29 +179,53 @@ export function TasksClient({
     };
 
     setIsSaving(true);
-    const taskId = draftTask.id;
-    setTasks((current) =>
-      current.map((task) =>
-        task.id === taskId
-          ? {
-              ...task,
-              ...normalizedTask,
-              project: normalizedTask.projectName,
-            }
-          : task,
-      ),
-    );
+    if (draftTask.id) {
+      const taskId = draftTask.id;
+      setTasks((current) =>
+        current.map((task) =>
+          task.id === taskId
+            ? {
+                ...task,
+                ...normalizedTask,
+                project: normalizedTask.projectName,
+              }
+            : task,
+        ),
+      );
 
-    await updateTaskAction(taskId, {
-      title: normalizedTask.title,
-      description: normalizedTask.description,
-      assignee: normalizedTask.assignee,
-      priority: normalizedTask.priority,
-      status: normalizedTask.status,
-      due: normalizedTask.due,
-      projectId: normalizedTask.projectId,
-      projectName: normalizedTask.projectName,
-    });
+      await updateTaskAction(taskId, {
+        title: normalizedTask.title,
+        description: normalizedTask.description,
+        assignee: normalizedTask.assignee,
+        priority: normalizedTask.priority,
+        status: normalizedTask.status,
+        due: normalizedTask.due,
+        projectId: normalizedTask.projectId,
+        projectName: normalizedTask.projectName,
+      });
+    } else {
+      const res = await createTaskAction({
+        workspaceId,
+        title: normalizedTask.title,
+        description: normalizedTask.description,
+        assignee: normalizedTask.assignee,
+        priority: normalizedTask.priority,
+        status: normalizedTask.status,
+        due: normalizedTask.due,
+        projectId: normalizedTask.projectId,
+        projectName: normalizedTask.projectName,
+      });
+      if (res && res.id) {
+        setTasks((current) => [
+          {
+            id: res.id,
+            ...normalizedTask,
+            project: normalizedTask.projectName,
+          },
+          ...current,
+        ]);
+      }
+    }
     router.refresh();
 
     setIsSaving(false);
@@ -228,7 +268,19 @@ export function TasksClient({
             </CardDescription>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
+            {!isViewer && (
+              <Button
+                size="sm"
+                data-testid="tasks-new-task-btn"
+                onClick={openCreateTask}
+                className="gap-1.5 h-8 rounded-full shadow-xs cursor-pointer font-semibold"
+              >
+                <Plus className="size-3.5" />
+                <span>New Task</span>
+              </Button>
+            )}
+
             <Badge variant="secondary" className="font-mono text-xs">
               {filteredTasks.length} items
             </Badge>
@@ -274,6 +326,8 @@ export function TasksClient({
               onDelete={!isViewer ? handleDeleteTask : undefined}
               onStatusChange={!isViewer ? handleStatusChange : undefined}
               onResetFilters={handleResetFilters}
+              onCreateTask={!isViewer ? openCreateTask : undefined}
+              hasActiveFilters={Boolean(search.trim() || statusFilter !== "All" || priorityFilter !== "All" || assigneeFilter !== "All")}
             />
           ) : (
             <TaskBoard
@@ -282,6 +336,8 @@ export function TasksClient({
               onDelete={!isViewer ? handleDeleteTask : undefined}
               onStatusChange={!isViewer ? handleStatusChange : undefined}
               onResetFilters={handleResetFilters}
+              onCreateTask={!isViewer ? openCreateTask : undefined}
+              hasActiveFilters={Boolean(search.trim() || statusFilter !== "All" || priorityFilter !== "All" || assigneeFilter !== "All")}
             />
           )}
         </CardContent>

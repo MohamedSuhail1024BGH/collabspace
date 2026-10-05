@@ -19,7 +19,7 @@ export default async function PreferencesPage() {
   const members = await getWorkspaceMembers(activeWorkspace.id);
 
   return (
-    <div className="space-y-6 px-4 py-6 lg:px-8">
+    <div className="space-y-6 pb-12 w-full max-w-full">
       <WorkspacePreferencesClient user={user} workspace={activeWorkspace} initialMembers={members} />
     </div>
   );

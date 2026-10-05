@@ -66,6 +66,7 @@ export const sql = new Proxy((() => {}) as unknown as postgres.Sql, {
   },
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const sqlite: any = sql;
 
 export function setDatabaseForTesting(_customSqlite?: unknown) {

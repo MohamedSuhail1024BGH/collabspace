@@ -19,7 +19,7 @@ const formatDate = (value: string) => {
   if (!value) return "No due date";
   const date = new Date(`${value}T12:00:00`);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(date);
+  return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(date);
 };
 
 type TaskBoardProps = {
@@ -28,6 +28,8 @@ type TaskBoardProps = {
   onDelete?: (taskId: string) => void;
   onStatusChange?: (taskId: string, status: string) => void;
   onResetFilters: () => void;
+  onCreateTask?: () => void;
+  hasActiveFilters?: boolean;
 };
 
 export function TaskBoard({
@@ -36,20 +38,32 @@ export function TaskBoard({
   onDelete,
   onStatusChange,
   onResetFilters,
+  onCreateTask,
+  hasActiveFilters,
 }: TaskBoardProps) {
   if (tasks.length === 0) {
+    if (hasActiveFilters) {
+      return (
+        <EmptyState
+          title="No tasks match your filters"
+          description="Try another search term or clear active filters to view all board columns."
+          actionLabel="Clear filters"
+          onAction={onResetFilters}
+        />
+      );
+    }
     return (
       <EmptyState
-        title="No tasks match your filters"
-        description="Try another search term or clear active filters to view all board columns."
-        actionLabel="Clear filters"
-        onAction={onResetFilters}
+        title="No tasks in this workspace yet"
+        description="Get started by creating work items, assigning team members, and setting target deadlines."
+        actionLabel={onCreateTask ? "+ Create your first task" : undefined}
+        onAction={onCreateTask}
       />
     );
   }
 
   return (
-    <div className="flex md:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 overflow-x-auto pb-4 snap-x snap-mandatory md:snap-none">
+    <div className="flex 2xl:grid 2xl:grid-cols-5 gap-3 sm:gap-4 overflow-x-auto pb-4 snap-x snap-mandatory 2xl:snap-none custom-scrollbar">
       {COLUMNS.map((column) => {
         const columnTasks = tasks.filter((t) => {
           if (column.id === "In progress") {
@@ -61,7 +75,7 @@ export function TaskBoard({
         return (
           <div
             key={column.id}
-            className="flex flex-col bg-secondary/20 border border-border/80 rounded-2xl p-3 sm:p-3.5 min-h-[380px] sm:min-h-[420px] w-[85vw] sm:w-[320px] md:w-auto shrink-0 md:shrink snap-center md:snap-none"
+            className="flex flex-col bg-secondary/20 border border-border/80 rounded-2xl p-3 sm:p-3.5 min-h-[320px] sm:min-h-[420px] w-[280px] sm:w-[300px] 2xl:w-auto shrink-0 2xl:shrink snap-center 2xl:snap-none"
           >
             {/* Column Header */}
             <div className="flex items-center justify-between pb-3 mb-3 border-b border-border/80">

@@ -274,10 +274,15 @@ export async function getDashboardOverview(workspaceId: string, userName?: strin
     { label: "Completion Rate", value: `${completionRate}%`, change: "Overall progress" },
   ];
 
-  // Filter tasks for the dashboard Priority Tasks section
+  // Filter tasks for the dashboard Priority Tasks section: prefer user's tasks, fallback to workspace priority tasks
   let priorityTasks = allTasks;
   if (userName) {
-    priorityTasks = allTasks.filter((t) => t.assignee === userName);
+    const userAssigned = allTasks.filter(
+      (t) => t.assignee.toLowerCase() === userName.toLowerCase()
+    );
+    if (userAssigned.length > 0) {
+      priorityTasks = userAssigned;
+    }
   }
   // Sort by High priority first, then by due date
   priorityTasks.sort((a, b) => {

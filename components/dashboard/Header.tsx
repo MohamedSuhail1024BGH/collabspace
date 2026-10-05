@@ -71,7 +71,7 @@ export function Header({
         <button
           type="button"
           onClick={() => setIsCommandPaletteOpen(true)}
-          className="hidden md:flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-secondary/60 border border-border/80 text-xs text-muted-foreground hover:border-muted-foreground/40 hover:text-foreground transition-all w-60 lg:w-72 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
+          className="hidden md:flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-secondary/60 border border-border/80 text-xs text-muted-foreground hover:border-muted-foreground/40 hover:text-foreground transition-all w-44 lg:w-60 xl:w-72 max-w-xs shrink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
           title="Open Command Palette (Cmd+K)"
         >
           <Search className="size-3.5 shrink-0 text-muted-foreground" />
@@ -92,6 +92,7 @@ export function Header({
             onClick={() => setIsCommandPaletteOpen(true)}
             className="md:hidden size-8"
             title="Search (Cmd+K)"
+            aria-label="Search documentation and commands"
           >
             <Search className="size-4" />
           </Button>
@@ -103,7 +104,7 @@ export function Header({
               data-testid="header-toggle-projects-btn"
               onClick={onToggleProjectsSidebar}
               title={isProjectsSidebarOpen ? "Collapse projects panel" : "Expand projects panel"}
-              className="hidden lg:flex items-center gap-1.5 h-8 text-xs font-medium rounded-full border-border/80 cursor-pointer"
+              className="hidden xl:flex items-center gap-1.5 h-8 text-xs font-medium rounded-full border-border/80 cursor-pointer"
             >
               {isProjectsSidebarOpen ? (
                 <PanelLeftClose className="size-3.5" />

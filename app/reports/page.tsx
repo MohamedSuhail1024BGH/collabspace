@@ -20,7 +20,7 @@ export default async function ReportsPage() {
   const reportsData = await getWorkspaceReportsData(activeWorkspace.id);
 
   return (
-    <div className="space-y-6 px-4 py-6 lg:px-8">
+    <div className="space-y-6 pb-12 w-full max-w-full">
       <ReportsWorkspace data={reportsData} workspaceName={activeWorkspace.name} />
     </div>
   );

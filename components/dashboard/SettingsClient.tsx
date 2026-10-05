@@ -556,7 +556,7 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-5xl 2xl:max-w-6xl mx-auto">
       {/* Tab Navigation */}
       <div className="flex items-center gap-1.5 border-b border-border pb-3 overflow-x-auto no-scrollbar">
         <Button
@@ -1489,7 +1489,7 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
           data-testid="settings-delete-modal"
           className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
         >
-          <div className="w-full max-w-md rounded-xl border border-destructive/30 bg-card p-6 shadow-2xl">
+          <div className="w-full max-w-md rounded-xl border border-destructive/30 bg-card p-4 sm:p-6 shadow-2xl max-h-[88dvh] overflow-y-auto">
             <div className="flex items-center gap-3 text-destructive">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/15">
                 <AlertTriangle className="h-5 w-5" />
@@ -1537,7 +1537,7 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
           data-testid="delete-workspace-modal"
           className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
         >
-          <div className="w-full max-w-md rounded-xl border border-destructive/30 bg-card p-6 shadow-2xl">
+          <div className="w-full max-w-md rounded-xl border border-destructive/30 bg-card p-4 sm:p-6 shadow-2xl max-h-[88dvh] overflow-y-auto">
             <div className="flex items-center gap-3 text-destructive">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/15">
                 <Trash2 className="h-5 w-5" />
@@ -1578,7 +1578,7 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
           data-testid="leave-workspace-modal"
           className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
         >
-          <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-2xl">
+          <div className="w-full max-w-md rounded-xl border border-border bg-card p-4 sm:p-6 shadow-2xl max-h-[88dvh] overflow-y-auto">
             <div className="flex items-center gap-3 text-amber-600 dark:text-amber-400">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/15">
                 <LogOut className="h-5 w-5" />
@@ -1619,7 +1619,7 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
           data-testid="confirm-remove-member-modal"
           className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
         >
-          <div className="w-full max-w-md rounded-xl border border-destructive/30 bg-card p-6 shadow-2xl">
+          <div className="w-full max-w-md rounded-xl border border-destructive/30 bg-card p-4 sm:p-6 shadow-2xl max-h-[88dvh] overflow-y-auto">
             <div className="flex items-center gap-3 text-destructive">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/15">
                 <Trash2 className="h-5 w-5" />
@@ -1660,7 +1660,7 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
           data-testid="transfer-ownership-modal"
           className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
         >
-          <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-2xl">
+          <div className="w-full max-w-md rounded-xl border border-border bg-card p-4 sm:p-6 shadow-2xl max-h-[88dvh] overflow-y-auto">
             <div className="flex items-center gap-3 text-amber-600 dark:text-amber-400">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/15">
                 <ArrowRightLeft className="h-5 w-5" />

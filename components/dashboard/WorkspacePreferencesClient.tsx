@@ -318,7 +318,7 @@ export function WorkspacePreferencesClient({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-5xl 2xl:max-w-6xl mx-auto">
       {/* Top Utility Context Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/60">
         <div className="flex flex-col gap-1">
@@ -654,14 +654,14 @@ export function WorkspacePreferencesClient({
                           <div className="flex items-center gap-2">
                             <UserAvatar avatar={m.user.avatar} name={m.user.name} size="xs" />
                             <div>
-                              <p className="font-medium text-foreground flex items-center gap-1.5">
+                              <div className="font-medium text-foreground flex items-center gap-1.5">
                                 <span>{m.user.name}</span>
                                 {isSelf && (
                                   <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">
                                     You
                                   </Badge>
                                 )}
-                              </p>
+                              </div>
                               <p className="text-[10px] font-mono text-muted-foreground">{m.user.email}</p>
                             </div>
                           </div>
@@ -669,12 +669,30 @@ export function WorkspacePreferencesClient({
 
                         <td className="py-2.5">
                           <div className="flex items-center gap-1.5">
-                            <Badge
-                              variant={m.role === "owner" ? "default" : m.role === "admin" ? "secondary" : "outline"}
-                              className="text-[10px] font-mono capitalize"
-                            >
-                              {m.role}
-                            </Badge>
+                            {canManage && m.role !== "owner" ? (
+                              <select
+                                value={m.role}
+                                onChange={(e) =>
+                                  handleUpdateMemberRole(
+                                    m.user.id,
+                                    e.target.value as "admin" | "member" | "viewer"
+                                  )
+                                }
+                                aria-label={`Change role for ${m.user.name}`}
+                                className="h-6 rounded-md border border-input bg-card px-2 text-[10px] font-mono text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer capitalize"
+                              >
+                                <option value="admin">Admin</option>
+                                <option value="member">Member</option>
+                                <option value="viewer">Viewer</option>
+                              </select>
+                            ) : (
+                              <Badge
+                                variant={m.role === "owner" ? "default" : m.role === "admin" ? "secondary" : "outline"}
+                                className="text-[10px] font-mono capitalize"
+                              >
+                                {m.role}
+                              </Badge>
+                            )}
                             {m.status === "pending" && (
                               <Badge variant="outline" className="text-[9px] font-mono text-amber-500 border-amber-500/30">
                                 Pending
@@ -724,7 +742,7 @@ export function WorkspacePreferencesClient({
       {/* Delete Workspace Confirmation Modal */}
       {showDeleteWorkspaceModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
-          <Card className="w-full max-w-md p-5 shadow-2xl space-y-4 border-destructive/40">
+          <Card className="w-full max-w-md p-4 sm:p-5 shadow-2xl space-y-4 border-destructive/40 max-h-[88dvh] overflow-y-auto">
             <h3 className="text-base font-semibold text-destructive">Delete Workspace?</h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
               Are you sure you want to delete <span className="font-semibold text-foreground">{workspace.name}</span>?
@@ -756,7 +774,7 @@ export function WorkspacePreferencesClient({
       {/* Leave Workspace Confirmation Modal */}
       {showLeaveWorkspaceModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
-          <Card className="w-full max-w-md p-5 shadow-2xl space-y-4 border-destructive/40">
+          <Card className="w-full max-w-md p-4 sm:p-5 shadow-2xl space-y-4 border-destructive/40 max-h-[88dvh] overflow-y-auto">
             <h3 className="text-base font-semibold text-destructive">Leave Workspace?</h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
               Are you sure you want to leave <span className="font-semibold text-foreground">{workspace.name}</span>? You will lose access until re-invited.
@@ -787,7 +805,7 @@ export function WorkspacePreferencesClient({
       {/* Remove Member Confirmation Modal */}
       {memberToRemove && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
-          <Card className="w-full max-w-md p-5 shadow-2xl space-y-4 border-destructive/40">
+          <Card className="w-full max-w-md p-4 sm:p-5 shadow-2xl space-y-4 border-destructive/40 max-h-[88dvh] overflow-y-auto">
             <h3 className="text-base font-semibold text-destructive">Remove Member?</h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
               Are you sure you want to revoke access for <span className="font-semibold text-foreground">{memberToRemove.user.name}</span>?
@@ -817,7 +835,7 @@ export function WorkspacePreferencesClient({
       {/* Transfer Ownership Confirmation Modal */}
       {memberToTransfer && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
-          <Card className="w-full max-w-md p-5 shadow-2xl space-y-4 border-border/80">
+          <Card className="w-full max-w-md p-4 sm:p-5 shadow-2xl space-y-4 border-border/80 max-h-[88dvh] overflow-y-auto">
             <h3 className="text-base font-semibold text-foreground">Transfer Ownership?</h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
               Transferring workspace ownership to <span className="font-semibold text-foreground">{memberToTransfer.user.name}</span> will demote your account to Admin. Are you sure?

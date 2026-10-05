@@ -273,7 +273,7 @@ export function StartClient({
       </header>
 
       {/* Main Container */}
-      <main className="mx-auto max-w-7xl flex-1 px-4 py-6 sm:px-6 lg:px-8 w-full">
+      <main className="mx-auto max-w-7xl 2xl:max-w-[1600px] flex-1 px-4 py-6 sm:px-6 lg:px-8 w-full">
         {/* Welcome Command Strip */}
         <Card className="mb-6 p-4 sm:p-6 border-border/60 shadow-xs">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -573,7 +573,7 @@ export function StartClient({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs animate-in fade-in duration-150">
           <Card
             data-testid="create-workspace-modal"
-            className="w-full max-w-md p-5 sm:p-6 shadow-2xl max-h-[90dvh] overflow-y-auto border-border/80"
+            className="w-full max-w-md p-4 sm:p-6 shadow-2xl max-h-[88dvh] overflow-y-auto border-border/80"
           >
             <div className="mb-4 flex items-center justify-between pb-3 border-b border-border/60">
               <div>
@@ -585,6 +585,7 @@ export function StartClient({
                 size="icon"
                 onClick={() => setShowCreateModal(false)}
                 className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                aria-label="Close create workspace dialog"
               >
                 <X className="size-4" />
               </Button>

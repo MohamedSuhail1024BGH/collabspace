@@ -16,7 +16,7 @@ const formatDate = (value: string) => {
     return value;
   }
 
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(date);
+  return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(date);
 };
 
 type LegacyTask = {
