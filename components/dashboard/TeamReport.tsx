@@ -1,9 +1,10 @@
-"use client";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 type TeamMemberMinimal = {
   name: string;
   role: string;
   initials?: string;
+  avatar?: string | null;
   color?: string;
   assigned?: number;
   completed?: number;
@@ -20,33 +21,40 @@ export function TeamReport({ team, visible = true }: { team: TeamMemberMinimal[]
 
       {team.length > 0 ? (
         <div className="space-y-2.5">
-          {team.map((m) => (
-            <div key={m.name} className="flex items-center justify-between gap-3 rounded-xl border border-outline-variant/15 bg-surface-container-lowest p-3 hover:bg-surface-high/60 transition shadow-xs">
-              <div className="flex items-center gap-2.5">
-                <div className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold text-on-primary ${m.color ?? "bg-primary"}`}>
-                  {m.initials ?? m.name.split(" ").map((s) => s[0]).slice(0, 2).join("")}
+          {team.map((m) => {
+            const assigned = m.assigned ?? 0;
+            const completedPct = assigned > 0 ? (m.completedPct ?? 0) : 0;
+            return (
+              <div key={m.name} className="flex items-center justify-between gap-3 rounded-xl border border-outline-variant/15 bg-surface-container-lowest p-3 hover:bg-surface-high/60 transition shadow-xs">
+                <div className="flex items-center gap-2.5">
+                  <UserAvatar
+                    avatar={m.avatar}
+                    name={m.name}
+                    size="sm"
+                    className="h-8 w-8"
+                  />
+                  <div>
+                    <p className="text-xs font-medium text-on-surface">{m.name}</p>
+                    <p className="text-[11px] text-on-surface-variant font-body-sm">{m.role}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs font-medium text-on-surface">{m.name}</p>
-                  <p className="text-[11px] text-on-surface-variant font-body-sm">{m.role}</p>
-                </div>
-              </div>
 
-              <div className="w-32">
-                <div className="flex items-center justify-between font-label-sm">
-                  <span className="text-[11px] text-on-surface-variant">Assigned</span>
-                  <span className="text-xs font-medium text-on-surface">{m.assigned}</span>
-                </div>
-                <div className="mt-1 h-1.5 w-full rounded-full bg-surface-container-highest overflow-hidden">
-                  <div className="h-full rounded-full bg-secondary" style={{ width: `${m.completedPct}%` }} />
-                </div>
-                <div className="mt-1 flex items-center justify-between text-[10px] text-on-surface-variant font-label-sm">
-                  <span>{m.completed} done</span>
-                  <span>{m.completedPct}%</span>
+                <div className="w-32">
+                  <div className="flex items-center justify-between font-label-sm">
+                    <span className="text-[11px] text-on-surface-variant">Assigned</span>
+                    <span className="text-xs font-medium text-on-surface">{assigned}</span>
+                  </div>
+                  <div className="mt-1 h-1.5 w-full rounded-full bg-surface-container-highest overflow-hidden">
+                    <div className="h-full rounded-full bg-secondary" style={{ width: `${completedPct}%` }} />
+                  </div>
+                  <div className="mt-1 flex items-center justify-between text-[10px] text-on-surface-variant font-label-sm">
+                    <span>{m.completed ?? 0} done</span>
+                    <span>{completedPct}%</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <div

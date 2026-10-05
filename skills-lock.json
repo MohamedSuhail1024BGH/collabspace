@@ -49,6 +49,12 @@
       "skillPath": "skills/penetration-testing-with-strix/SKILL.md",
       "computedHash": "6a61bdd56cb2cc05c5003810d5bb9e9ef8b3db96c663cac2f976b9d1a6f47704"
     },
+    "shadcn": {
+      "source": "shadcn/ui",
+      "sourceType": "github",
+      "skillPath": "skills/shadcn/SKILL.md",
+      "computedHash": "f615de216e085a84e31593ad0fa9062232adc40cd87b7c7ab2b8e49abf6500be"
+    },
     "web-app-penetration-testing": {
       "source": "usestrix/strix",
       "sourceType": "github",

@@ -24,7 +24,11 @@ import { getActiveWorkspaceId } from "./workspace";
 import { classifyConversation, validateDirectConversation } from "@/lib/auth/dm-validator";
 import { presenceTracker } from "@/lib/events/presence";
 
-export async function getTeamMembers(workspaceId?: string): Promise<DbTeamMember[]> {
+export type TeamMemberWithAvatar = DbTeamMember & {
+  avatar?: string | null;
+};
+
+export async function getTeamMembers(workspaceId?: string): Promise<TeamMemberWithAvatar[]> {
   const wsId = workspaceId ?? (await getActiveWorkspaceId());
   const members = await db
     .select({
@@ -40,7 +44,8 @@ export async function getTeamMembers(workspaceId?: string): Promise<DbTeamMember
     name: r.user.name,
     role: r.role,
     initials: r.user.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() || "TM",
-    color: r.user.avatar || "bg-violet-500",
+    color: "bg-violet-500",
+    avatar: r.user.avatar || null,
     online: presenceTracker.isUserOnline(wsId, r.user.id),
   }));
 }
@@ -128,6 +133,7 @@ export async function getTasks(workspaceId?: string): Promise<DbTask[]> {
 
 export type FullConversation = DbConversation & {
   messages: DbMessage[];
+  avatar?: string | null;
 };
 
 export async function getConversations(workspaceId?: string, currentUserId?: string): Promise<FullConversation[]> {
@@ -185,6 +191,7 @@ export async function getConversations(workspaceId?: string, currentUserId?: str
           ...c,
           name: cpName,
           initials: cpInitials,
+          avatar: counterparty.user.avatar || null,
           role: displayRole,
           color: displayColor,
           online: presenceTracker.isUserOnline(wsId, counterpartyId),
@@ -193,6 +200,7 @@ export async function getConversations(workspaceId?: string, currentUserId?: str
       } else {
         results.push({
           ...c,
+          avatar: null,
           online: counterpartyId ? presenceTracker.isUserOnline(wsId, counterpartyId) : false,
           messages: allMessages.filter((m) => m.conversationId === c.id),
         });
@@ -201,6 +209,7 @@ export async function getConversations(workspaceId?: string, currentUserId?: str
       // 3. Channels are visible to all workspace members
       results.push({
         ...c,
+        avatar: null,
         online: false,
         messages: allMessages.filter((m) => m.conversationId === c.id),
       });
@@ -305,6 +314,7 @@ export type WorkspaceReportData = {
     name: string;
     role: string;
     initials: string;
+    avatar?: string | null;
     color: string;
     assigned: number;
     completed: number;
@@ -377,10 +387,11 @@ export async function getWorkspaceReportsData(workspaceId?: string): Promise<Wor
       name: m.name,
       role: m.role,
       initials: m.initials,
+      avatar: m.avatar || null,
       color: m.color,
       assigned: assignedTasks.length,
       completed: done,
-      completedPct: assignedTasks.length > 0 ? Math.round((done / assignedTasks.length) * 100) : 100,
+      completedPct: assignedTasks.length > 0 ? Math.round((done / assignedTasks.length) * 100) : 0,
     };
   });
 

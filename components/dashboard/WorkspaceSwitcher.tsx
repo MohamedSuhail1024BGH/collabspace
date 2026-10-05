@@ -203,9 +203,6 @@ export function WorkspaceSwitcher({
         <span className="truncate max-w-[150px] font-medium text-on-surface">
           {currentWorkspace.name}
         </span>
-        <span className="text-[10px] text-secondary bg-surface-container-high px-1 py-0.2 rounded shrink-0">
-          {currentWorkspace.plan || "Pro"}
-        </span>
       </div>
 
       {/* Expandable Bottom Trigger Card */}

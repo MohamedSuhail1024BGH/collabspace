@@ -46,10 +46,6 @@ export function SignupClient() {
           <div className="mx-auto mb-3 flex items-center justify-center">
             <Logo size={48} className="h-12 w-12 shadow-md" />
           </div>
-          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-surface-container-high text-on-surface-variant font-mono text-[10px] mb-2 uppercase tracking-widest">
-            <span className="w-1.5 h-1.5 rounded-full bg-secondary" />
-            <span>ONBOARDING · WORKSPACE INITIALIZATION</span>
-          </div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-on-surface">Create your account</h1>
           <p className="mt-1 text-xs font-mono text-on-surface-variant">Start organizing projects and team execution today</p>
         </div>

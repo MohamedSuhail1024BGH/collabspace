@@ -9,7 +9,7 @@ type Props = {
   message: Message;
   isOwn: boolean;
   senderName?: string;
-  senderAvatar?: string;
+  senderAvatar?: string | null;
 };
 
 export default function MessageBubble({ message, isOwn, senderName, senderAvatar }: Props) {

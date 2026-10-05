@@ -85,6 +85,7 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
   const latestSearchQueryRef = useRef("");
 
   // UI Preferences State
+  const [appTheme, setAppTheme] = useState<"system" | "dark" | "light">("system");
   const [accentTheme, setAccentTheme] = useState("Violet");
   const [density, setDensity] = useState<"comfortable" | "compact">("comfortable");
   const [emailAlerts, setEmailAlerts] = useState(true);
@@ -138,6 +139,11 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
   useEffect(() => {
     queueMicrotask(() => {
       try {
+        const savedAppTheme = localStorage.getItem("collabspace_theme_mode") as "system" | "dark" | "light" | null;
+        if (savedAppTheme) {
+          setAppTheme(savedAppTheme);
+        }
+
         const savedTheme = localStorage.getItem("collabspace_accent_theme");
         if (savedTheme) {
           setAccentTheme(savedTheme);
@@ -163,6 +169,36 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
       }
     });
   }, []);
+
+  // Listen to OS scheme changes if appTheme is system
+  useEffect(() => {
+    if (appTheme !== "system") return;
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: light)");
+    const handler = (e: MediaQueryListEvent) => {
+      document.documentElement.setAttribute("data-theme", e.matches ? "light" : "dark");
+    };
+    mediaQuery.addEventListener("change", handler);
+    return () => mediaQuery.removeEventListener("change", handler);
+  }, [appTheme]);
+
+  const handleAppThemeChange = (mode: "system" | "dark" | "light") => {
+    setAppTheme(mode);
+    try {
+      localStorage.setItem("collabspace_theme_mode", mode);
+      let resolved = mode;
+      if (mode === "system") {
+        resolved = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+      }
+      document.documentElement.setAttribute("data-theme", resolved);
+      window.dispatchEvent(new Event("collabspace_preferences_changed"));
+    } catch {
+      // Ignore
+    }
+    setFeedback({
+      type: "success",
+      message: `Application theme switched to ${mode.charAt(0).toUpperCase() + mode.slice(1)}.`,
+    });
+  };
 
   const handleAccentChange = (themeName: string) => {
     setAccentTheme(themeName);
@@ -1227,6 +1263,61 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
             </div>
 
             <div className="space-y-4 max-w-xl">
+              <div>
+                <label className="block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-2">
+                  Application Theme
+                </label>
+                <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
+                  <button
+                    type="button"
+                    data-testid="settings-app-theme-system-btn"
+                    onClick={() => handleAppThemeChange("system")}
+                    className={`flex items-center justify-center gap-1.5 sm:gap-2 rounded border p-2 sm:p-2.5 text-xs transition ${
+                      appTheme === "system"
+                        ? "border-primary bg-primary/10 text-on-surface font-semibold shadow-xs"
+                        : "border-outline/20 bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
+                    }`}
+                  >
+                    <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    <span className="truncate">System</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    data-testid="settings-app-theme-dark-btn"
+                    onClick={() => handleAppThemeChange("dark")}
+                    className={`flex items-center justify-center gap-1.5 sm:gap-2 rounded border p-2 sm:p-2.5 text-xs transition ${
+                      appTheme === "dark"
+                        ? "border-primary bg-primary/10 text-on-surface font-semibold shadow-xs"
+                        : "border-outline/20 bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
+                    }`}
+                  >
+                    <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                    </svg>
+                    <span className="truncate">Dark</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    data-testid="settings-app-theme-light-btn"
+                    onClick={() => handleAppThemeChange("light")}
+                    className={`flex items-center justify-center gap-1.5 sm:gap-2 rounded border p-2 sm:p-2.5 text-xs transition ${
+                      appTheme === "light"
+                        ? "border-primary bg-primary/10 text-on-surface font-semibold shadow-xs"
+                        : "border-outline/20 bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
+                    }`}
+                  >
+                    <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                    <span className="truncate">Light</span>
+                  </button>
+                </div>
+              </div>
+
               <div>
                 <label className="block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-2">
                   Theme Accent Color

@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 type WorkloadMember = {
   id: string;
@@ -9,6 +10,7 @@ type WorkloadMember = {
   loadPercentage: number;
   assignedCount: number;
   initials: string;
+  avatar?: string | null;
   color: string;
 };
 
@@ -21,7 +23,7 @@ export function WorkloadChartWidget({
   members = [],
   tasks = [],
 }: {
-  members?: { name: string; role?: string; initials?: string; color?: string }[];
+  members?: { name: string; role?: string; initials?: string; color?: string; avatar?: string | null }[];
   tasks?: WorkloadTask[];
 }) {
   const openTasks = useMemo(() => tasks.filter((t) => t.status !== "Completed"), [tasks]);
@@ -46,6 +48,7 @@ export function WorkloadChartWidget({
         loadPercentage,
         assignedCount,
         initials: m.initials || m.name.slice(0, 2).toUpperCase(),
+        avatar: m.avatar || null,
         color: m.color || "bg-primary",
       };
     });
@@ -89,10 +92,14 @@ export function WorkloadChartWidget({
 
               {/* Avatar Pill */}
               <div
-                className={`flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full text-[9px] sm:text-[10px] font-bold text-white shadow ring-1 ring-surface-container-lowest shrink-0 ${member.color}`}
                 title={`${member.name} (${member.assignedCount} tasks, ${member.loadPercentage}% load)`}
+                className="shrink-0"
               >
-                {member.initials.slice(0, 1)}
+                <UserAvatar
+                  avatar={member.avatar}
+                  name={member.name}
+                  size="xs"
+                />
               </div>
 
               {/* Member Name */}

@@ -363,6 +363,7 @@ export function MessagesClient({
         participantIds: currentUser?.id ? [currentUser.id, member.user.id] : [member.user.id],
         name: member.user.name,
         initials,
+        avatar: member.user.avatar || null,
         color: "bg-primary",
         role: member.role === "owner" ? "Owner" : member.role === "admin" ? "Admin" : "Team Member",
         online: false,
@@ -639,6 +640,8 @@ export function MessagesClient({
               messages={activeConversation.messages}
               currentUserName={currentUser?.name}
               currentUserEmail={currentUser?.email}
+              senderAvatar={activeConversation.avatar}
+              workspaceMembers={workspaceMembers}
             />
 
             <MessageComposer

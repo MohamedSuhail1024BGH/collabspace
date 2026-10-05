@@ -63,8 +63,12 @@ export default async function RootLayout({
                 if (theme) document.documentElement.setAttribute('data-accent', theme.toLowerCase());
                 var density = localStorage.getItem('collabspace_density');
                 if (density) document.documentElement.setAttribute('data-density', density.toLowerCase());
-                var mode = localStorage.getItem('collabspace_theme_mode');
-                if (mode) document.documentElement.setAttribute('data-theme', mode);
+                var mode = localStorage.getItem('collabspace_theme_mode') || 'system';
+                var resolved = mode;
+                if (mode === 'system') {
+                  resolved = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+                }
+                document.documentElement.setAttribute('data-theme', resolved);
               } catch (e) {}
             `,
           }}

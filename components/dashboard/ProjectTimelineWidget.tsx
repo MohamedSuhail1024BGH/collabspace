@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 export type TimelineTask = {
   id: string;
@@ -20,7 +21,7 @@ type TimelinePhase = {
   endDate: string;
   colorClass: string;
   textClass: string;
-  members: { name: string; initials: string; color: string }[];
+  members: { name: string; initials: string; color: string; avatar?: string | null }[];
 };
 
 export function ProjectTimelineWidget({
@@ -28,7 +29,7 @@ export function ProjectTimelineWidget({
   teamMembers = [],
 }: {
   tasks?: TimelineTask[];
-  teamMembers?: { name: string; initials: string; color: string }[];
+  teamMembers?: { name: string; initials: string; color: string; avatar?: string | null }[];
 }) {
   const hasTasks = tasks && tasks.length > 0;
 
@@ -163,14 +164,12 @@ export function ProjectTimelineWidget({
                   {phase.members.length > 0 && (
                     <div className="flex -space-x-1 shrink-0">
                       {phase.members.map((m, idx) => (
-                        <div
-                          key={idx}
-                          className={`flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-bold text-white ring-1 ring-surface-container-lowest ${
-                            m.color || "bg-primary"
-                          }`}
-                          title={m.name}
-                        >
-                          {m.initials?.slice(0, 1) || "U"}
+                        <div key={idx} className="shrink-0" title={m.name}>
+                          <UserAvatar
+                            avatar={m.avatar}
+                            name={m.name}
+                            size="xs"
+                          />
                         </div>
                       ))}
                     </div>

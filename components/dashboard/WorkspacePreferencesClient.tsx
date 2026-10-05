@@ -275,10 +275,6 @@ export function WorkspacePreferencesClient({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto shrink-0">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-surface-container-low rounded border border-outline/15 font-mono text-[11px] text-on-surface-variant">
-            <span className="w-2 h-2 rounded-full bg-secondary" />
-            <span>Plan: {workspace.plan || "Pro"}</span>
-          </div>
           <button
             type="button"
             data-testid="copy-workspace-slug-btn"

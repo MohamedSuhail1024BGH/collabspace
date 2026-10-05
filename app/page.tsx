@@ -47,6 +47,7 @@ export default async function Home() {
     role: m.role,
     initials: m.initials,
     color: m.color,
+    avatar: m.avatar || null,
   }));
 
   return (
@@ -185,6 +186,7 @@ export default async function Home() {
                     name: member.name,
                     role: member.role,
                     color: member.color,
+                    avatar: member.avatar || null,
                   }}
                 />
               ))

@@ -4,13 +4,23 @@ import { useEffect, useRef } from "react";
 import MessageBubble from "./MessageBubble";
 import type { Message } from "@/data/mock-data";
 
+import type { WorkspaceMemberItem } from "@/components/dashboard/EventForm";
+
 type Props = {
   messages: Message[];
   currentUserName?: string;
   currentUserEmail?: string;
+  senderAvatar?: string | null;
+  workspaceMembers?: WorkspaceMemberItem[];
 };
 
-export default function MessageList({ messages, currentUserName, currentUserEmail }: Props) {
+export default function MessageList({
+  messages,
+  currentUserName,
+  currentUserEmail,
+  senderAvatar,
+  workspaceMembers,
+}: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -49,12 +59,18 @@ export default function MessageList({ messages, currentUserName, currentUserEmai
               (Boolean(currentUserName) && m.sender.toLowerCase() === currentUserName?.toLowerCase()) ||
               (Boolean(currentUserEmail) && m.sender.toLowerCase() === currentUserEmail?.toLowerCase());
 
+            const matchedMember = workspaceMembers?.find(
+              (mem) => mem.user.name.toLowerCase() === m.sender.toLowerCase()
+            );
+            const resolvedAvatar = matchedMember?.user.avatar || senderAvatar || undefined;
+
             return (
               <MessageBubble
                 key={m.id}
                 message={m}
                 isOwn={Boolean(isOwn)}
                 senderName={m.sender}
+                senderAvatar={resolvedAvatar || undefined}
               />
             );
           })
