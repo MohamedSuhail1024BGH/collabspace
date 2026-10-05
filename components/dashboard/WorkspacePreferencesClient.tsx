@@ -13,6 +13,24 @@ import {
   searchUsersForInviteAction,
 } from "@/app/actions";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Building2,
+  Users,
+  Copy,
+  Check,
+  Search,
+  Plus,
+  Trash2,
+  AlertTriangle,
+  LogOut,
+  Shield,
+  UserPlus,
+} from "lucide-react";
 
 export type WorkspaceMemberItem = {
   membershipId: string;
@@ -98,23 +116,25 @@ export function WorkspacePreferencesClient({
     const url = `${window.location.origin}/w/${workspace.slug}`;
     navigator.clipboard.writeText(url);
     setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2000);
+    setTimeout(() => setCopiedLink(false), 2500);
+    setFeedback({ type: "success", message: "Workspace share link copied to clipboard!" });
   };
 
-  // Workspace Form Handler
-  const handleSaveWorkspace = (e: React.FormEvent) => {
+  // Workspace Save Handler
+  const handleSaveWorkspace = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!workspace) return;
     setFeedback(null);
 
     startTransition(async () => {
       const res = await updateWorkspaceAction({
-        name: workspaceName,
-        description: workspaceDescription,
+        name: workspaceName.trim(),
+        description: workspaceDescription.trim(),
         isPublic: workspaceIsPublic,
       });
 
       if (res.success) {
-        setFeedback({ type: "success", message: "Workspace settings updated successfully." });
+        setFeedback({ type: "success", message: "Workspace preferences saved successfully." });
         router.refresh();
       } else {
         setFeedback({ type: "error", message: res.error || "Failed to update workspace." });
@@ -122,7 +142,7 @@ export function WorkspacePreferencesClient({
     });
   };
 
-  // Member Management Handlers
+  // Search members handler
   const handleSearchUsersForInvite = async (q: string) => {
     setMemberSearchQuery(q);
     latestSearchQueryRef.current = q;
@@ -143,13 +163,14 @@ export function WorkspacePreferencesClient({
     }
   };
 
+  // Add Member Handler
   const handleAddMember = async (targetUserId: string) => {
     if (!workspace) return;
     const targetUser = memberSearchResults.find((u) => u.id === targetUserId);
 
     if (targetUser) {
       const optimisticMember: WorkspaceMemberItem = {
-        membershipId: `temp-${targetUserId}-${members.length}`,
+        membershipId: `temp-${targetUser.id}-${members.length}`,
         role: selectedRoleForNewMember,
         status: "pending",
         joinedAt: "Just now",
@@ -162,56 +183,93 @@ export function WorkspacePreferencesClient({
         },
       };
       setMembers((prev) => [...prev, optimisticMember]);
+      setMemberSearchResults((prev) => prev.filter((u) => u.id !== targetUserId));
     }
 
-    setMemberSearchQuery("");
-    setMemberSearchResults([]);
+    startTransition(async () => {
+      const res = await addWorkspaceMemberAction({
+        workspaceId: workspace.id,
+        userId: targetUserId,
+        role: selectedRoleForNewMember,
+      });
 
-    const res = await addWorkspaceMemberAction({
-      workspaceId: workspace.id,
-      userId: targetUserId,
-      role: selectedRoleForNewMember,
+      if (res.success) {
+        setFeedback({ type: "success", message: "Invitation sent to member." });
+        setMemberSearchQuery("");
+        router.refresh();
+      } else {
+        setMembers((prev) => prev.filter((m) => m.user.id !== targetUserId));
+        setFeedback({ type: "error", message: res.error || "Failed to add member." });
+      }
     });
-    if (res.success) {
-      setFeedback({ type: "success", message: "Invitation sent successfully." });
-      router.refresh();
-    } else {
-      setFeedback({ type: "error", message: res.error || "Failed to add member." });
-      router.refresh();
-    }
   };
 
+  // Update Member Role Handler
+  const handleUpdateMemberRole = async (targetUserId: string, newRole: "admin" | "member" | "viewer") => {
+    if (!workspace) return;
+    const previousMembers = [...members];
+
+    setMembers((prev) =>
+      prev.map((item) => (item.user.id === targetUserId ? { ...item, role: newRole } : item))
+    );
+
+    startTransition(async () => {
+      const res = await addWorkspaceMemberAction({
+        workspaceId: workspace.id,
+        userId: targetUserId,
+        role: newRole,
+      });
+
+      if (res.success) {
+        setFeedback({ type: "success", message: `Member role updated to ${newRole}.` });
+        router.refresh();
+      } else {
+        setMembers(previousMembers);
+        setFeedback({ type: "error", message: res.error || "Failed to update member role." });
+      }
+    });
+  };
+
+  // Remove Member Handler
   const handleRemoveMemberConfirm = async () => {
     if (!workspace || !memberToRemove) return;
-    const targetId = memberToRemove.user.id;
-    setMembers((prev) => prev.filter((m) => m.user.id !== targetId));
+    const targetUserId = memberToRemove.user.id;
+    const previousMembers = [...members];
+
+    setMembers((prev) => prev.filter((m) => m.user.id !== targetUserId));
     setMemberToRemove(null);
 
-    const res = await removeWorkspaceMemberAction(workspace.id, targetId);
-    if (res.success) {
-      setFeedback({ type: "success", message: "Member removed from workspace." });
-      router.refresh();
-    } else {
-      setFeedback({ type: "error", message: res.error || "Failed to remove member." });
-      router.refresh();
-    }
+    startTransition(async () => {
+      const res = await removeWorkspaceMemberAction(workspace.id, targetUserId);
+      if (res.success) {
+        setFeedback({ type: "success", message: "Member removed from workspace." });
+        router.refresh();
+      } else {
+        setMembers(previousMembers);
+        setFeedback({ type: "error", message: res.error || "Failed to remove member." });
+      }
+    });
   };
 
+  // Transfer Ownership Handler
   const handleTransferOwnership = async () => {
     if (!workspace || !memberToTransfer) return;
+    const targetUserId = memberToTransfer.user.id;
     setIsTransferringOwnership(true);
-    const res = await transferWorkspaceOwnershipAction(workspace.id, memberToTransfer.user.id);
+
+    const res = await transferWorkspaceOwnershipAction(workspace.id, targetUserId);
     setIsTransferringOwnership(false);
     setMemberToTransfer(null);
 
     if (res.success) {
-      setFeedback({ type: "success", message: `Ownership transferred to ${memberToTransfer.user.name}.` });
+      setFeedback({ type: "success", message: "Ownership transferred successfully." });
       router.refresh();
     } else {
       setFeedback({ type: "error", message: res.error || "Failed to transfer ownership." });
     }
   };
 
+  // Delete Workspace Handler
   const handleDeleteWorkspace = async () => {
     if (!workspace) return;
     setIsDeletingWorkspace(true);
@@ -231,6 +289,7 @@ export function WorkspacePreferencesClient({
     }
   };
 
+  // Leave Workspace Handler
   const handleLeaveWorkspace = async () => {
     if (!workspace) return;
     setIsLeavingWorkspace(true);
@@ -239,7 +298,11 @@ export function WorkspacePreferencesClient({
     setShowLeaveWorkspaceModal(false);
 
     if (res.success) {
-      router.push("/start");
+      if ((res.remainingCount ?? 0) > 0) {
+        router.push("/");
+      } else {
+        router.push("/start");
+      }
       router.refresh();
     } else {
       setFeedback({ type: "error", message: res.error || "Failed to leave workspace." });
@@ -248,48 +311,44 @@ export function WorkspacePreferencesClient({
 
   if (!workspace) {
     return (
-      <div className="p-8 text-center text-on-surface-variant font-body-md">
+      <div className="p-8 text-center text-muted-foreground font-body-md">
         No active workspace selected. Please switch or create a workspace.
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Top Utility Context Bar (Stitch Design Inspired) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-outline/10">
+    <div className="space-y-6 max-w-5xl 2xl:max-w-6xl mx-auto">
+      {/* Top Utility Context Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/60">
         <div className="flex flex-col gap-1">
-          <div className="flex flex-wrap items-center gap-1.5 text-on-surface-variant font-mono text-[10px] sm:text-[11px] uppercase tracking-wider">
+          <div className="flex flex-wrap items-center gap-1.5 text-muted-foreground font-mono text-[10px] sm:text-[11px] uppercase tracking-wider">
             <span>Workspace</span>
-            <span className="text-outline/60">/</span>
+            <span className="text-muted-foreground/60">/</span>
             <span className="text-primary font-medium">{workspace.name}</span>
-            <span className="text-outline/60">/</span>
-            <span className="text-on-surface">Preferences</span>
+            <span className="text-muted-foreground/60">/</span>
+            <span className="text-foreground">Preferences</span>
           </div>
-          <h1 className="text-lg sm:text-xl font-bold text-on-surface font-headline-lg tracking-tight">
+          <h1 className="text-lg sm:text-xl font-bold text-foreground tracking-tight">
             Workspace Preferences
           </h1>
-          <p className="text-xs text-on-surface-variant font-body-sm">
+          <p className="text-xs text-muted-foreground">
             Configure tenant namespace, public accessibility, and team permissions.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto shrink-0">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-surface-container-low rounded border border-outline/15 font-mono text-[11px] text-on-surface-variant">
-            <span className="w-2 h-2 rounded-full bg-secondary" />
-            <span>Plan: {workspace.plan || "Pro"}</span>
-          </div>
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             data-testid="copy-workspace-slug-btn"
             onClick={handleCopySlug}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-container hover:bg-surface-container-high text-on-surface rounded text-xs font-mono transition-colors border border-outline/20"
+            className="h-8 px-3 text-xs font-mono"
           >
-            <svg className="h-3.5 w-3.5 text-on-surface-variant" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            </svg>
+            {copiedLink ? <Check className="size-3.5 mr-1 text-emerald-500" /> : <Copy className="size-3.5 mr-1" />}
             <span>{copiedLink ? "Copied URL!" : "Share Link"}</span>
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -297,51 +356,40 @@ export function WorkspacePreferencesClient({
       {feedback && (
         <div
           data-testid="settings-feedback-banner"
-          className={`flex items-center justify-between p-3 rounded text-xs border animate-in fade-in duration-200 ${
+          className={`flex items-center justify-between p-3 rounded-lg text-xs border animate-in fade-in duration-200 ${
             feedback.type === "success"
-              ? "bg-secondary/10 border-secondary/30 text-secondary"
-              : "bg-error/10 border-error/30 text-error"
+              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
+              : "bg-destructive/10 border-destructive/30 text-destructive"
           }`}
         >
           <div className="flex items-center gap-2">
-            {feedback.type === "success" ? (
-              <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            ) : (
-              <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            )}
             <span className="font-medium">{feedback.message}</span>
           </div>
           <button
             type="button"
             onClick={() => setFeedback(null)}
-            className="text-on-surface-variant hover:text-on-surface ml-4"
+            className="text-muted-foreground hover:text-foreground ml-4"
           >
-            &times;
+            ✕
           </button>
         </div>
       )}
 
       {/* Tabs Switcher */}
-      <div className="flex items-center border-b border-outline/20 pb-2 gap-2 overflow-x-auto">
+      <div className="flex items-center border-b border-border/60 pb-2 gap-2 overflow-x-auto">
         <button
           type="button"
           onClick={() => {
             setActiveTab("details");
             setFeedback(null);
           }}
-          className={`flex items-center gap-2 rounded px-3.5 py-1.5 text-xs font-medium transition shrink-0 ${
+          className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-medium transition shrink-0 cursor-pointer ${
             activeTab === "details"
-              ? "bg-surface-container-highest text-on-surface font-semibold shadow-xs"
-              : "text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
+              ? "bg-accent text-accent-foreground font-semibold shadow-xs border border-border"
+              : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
           }`}
         >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-          </svg>
+          <Building2 className="size-3.5" />
           <span>Workspace Details</span>
         </button>
 
@@ -351,181 +399,193 @@ export function WorkspacePreferencesClient({
             setActiveTab("members");
             setFeedback(null);
           }}
-          className={`flex items-center gap-2 rounded px-3.5 py-1.5 text-xs font-medium transition shrink-0 ${
+          className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-medium transition shrink-0 cursor-pointer ${
             activeTab === "members"
-              ? "bg-surface-container-highest text-on-surface font-semibold shadow-xs"
-              : "text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
+              ? "bg-accent text-accent-foreground font-semibold shadow-xs border border-border"
+              : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
           }`}
         >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-          </svg>
+          <Users className="size-3.5" />
           <span>Members & Roles</span>
-          <span className="font-mono text-[10px] bg-surface-container px-1.5 py-0.2 rounded text-on-surface-variant">
+          <Badge variant="secondary" className="text-[10px] font-mono px-1.5 py-0 h-4">
             {members.length}
-          </span>
+          </Badge>
         </button>
       </div>
 
       {/* Tab 1: Workspace Details */}
       {activeTab === "details" && (
         <div className="space-y-6">
-          <section className="bg-surface-container-low border border-outline/20 p-5 rounded-xl space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-outline/10 gap-2">
+          <Card className="p-5 border-border/60 space-y-4 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-border/50 gap-2">
               <div>
-                <h2 className="text-sm font-semibold text-on-surface font-headline-sm">Workspace Attributes</h2>
-                <p className="text-xs text-on-surface-variant font-body-sm">
+                <h2 className="text-sm font-semibold text-foreground">Workspace Attributes</h2>
+                <p className="text-xs text-muted-foreground">
                   Global tenant namespace, endpoint identifier, and branding.
                 </p>
               </div>
-              <span className="font-mono text-[10px] px-2 py-0.5 bg-surface-container-high rounded text-on-surface-variant">
+              <Badge variant="outline" className="text-[10px] font-mono bg-muted/30">
                 ID: #{workspace.id}
-              </span>
+              </Badge>
             </div>
 
             <form onSubmit={handleSaveWorkspace} className="space-y-4">
               <div>
-                <label className="mb-1 block text-xs font-mono text-on-surface-variant uppercase">
+                <label className="mb-1 block text-xs font-mono text-muted-foreground uppercase">
                   Workspace Name
                 </label>
-                <input
+                <Input
                   type="text"
                   data-testid="workspace-name-input"
                   value={workspaceName}
                   onChange={(e) => setWorkspaceName(e.target.value)}
                   disabled={!isAdmin || isPending}
-                  className="w-full rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:outline-none font-body-sm disabled:opacity-50"
+                  className="text-xs"
                   required
                 />
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-mono text-on-surface-variant uppercase">
+                <label className="mb-1 block text-xs font-mono text-muted-foreground uppercase">
                   Workspace Description
                 </label>
-                <textarea
+                <Textarea
                   data-testid="workspace-description-input"
                   rows={3}
                   value={workspaceDescription}
                   onChange={(e) => setWorkspaceDescription(e.target.value)}
                   disabled={!isAdmin || isPending}
                   placeholder="Describe your workspace mission and focus..."
-                  className="w-full rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:outline-none font-body-sm disabled:opacity-50"
+                  className="text-xs resize-none"
                 />
               </div>
 
               <div className="flex items-center justify-between pt-2">
                 <div>
-                  <p className="text-xs font-medium text-on-surface font-headline-sm">Public Workspace</p>
-                  <p className="text-[11px] text-on-surface-variant font-body-sm">
+                  <p className="text-xs font-medium text-foreground">Public Workspace</p>
+                  <p className="text-[11px] text-muted-foreground">
                     Allow other authenticated members to discover and request access.
                   </p>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    data-testid="workspace-public-toggle"
-                    checked={workspaceIsPublic}
-                    onChange={(e) => setWorkspaceIsPublic(e.target.checked)}
-                    disabled={!isAdmin || isPending}
-                    className="sr-only peer"
-                  />
-                  <div className="w-9 h-5 bg-surface-container-high peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
-                </label>
+                <input
+                  type="checkbox"
+                  data-testid="workspace-public-toggle"
+                  checked={workspaceIsPublic}
+                  onChange={(e) => setWorkspaceIsPublic(e.target.checked)}
+                  disabled={!isAdmin || isPending}
+                  className="h-4 w-4 rounded border-input text-primary focus:ring-0 cursor-pointer"
+                />
               </div>
 
               {isAdmin && (
-                <div className="pt-3 border-t border-outline/10 flex justify-end">
-                  <button
+                <div className="pt-3 border-t border-border/50 flex justify-end">
+                  <Button
                     type="submit"
                     data-testid="save-workspace-button"
                     disabled={isPending}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-primary text-on-primary font-medium text-xs rounded hover:bg-primary-container hover:text-on-primary-container transition-colors disabled:opacity-50"
+                    size="sm"
+                    className="h-9 text-xs font-medium"
                   >
                     {isPending ? "Saving changes..." : "Save Workspace Settings"}
-                  </button>
+                  </Button>
                 </div>
               )}
             </form>
-          </section>
+          </Card>
 
           {/* Danger Zone */}
-          <section className="bg-surface-container-low border border-error/20 p-5 rounded-xl space-y-4">
-            <div className="pb-3 border-b border-outline/10">
-              <h2 className="text-sm font-semibold text-error font-headline-sm">Danger Zone</h2>
-              <p className="text-xs text-on-surface-variant font-body-sm">
-                Destructive workspace lifecycle actions. Please proceed with caution.
+          <Card className="border-destructive/30 p-5 space-y-4 shadow-xs">
+            <div className="pb-3 border-b border-destructive/20">
+              <h3 className="text-sm font-semibold text-destructive flex items-center gap-1.5">
+                <AlertTriangle className="size-4" />
+                <span>Workspace Danger Zone</span>
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                High-impact destructive actions affecting all workspace collaborators and data.
               </p>
             </div>
 
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-medium text-on-surface font-headline-sm">
-                  {isOwner ? "Delete Workspace" : "Leave Workspace"}
-                </p>
-                <p className="text-[11px] text-on-surface-variant font-body-sm">
-                  {isOwner
-                    ? "Permanently delete this workspace, including all projects, tasks, and messages."
-                    : "Remove yourself from this workspace. You will lose access to all resources."}
-                </p>
-              </div>
-
+            <div className="space-y-3">
               {isOwner ? (
-                <button
-                  type="button"
-                  data-testid="workspace-delete-button"
-                  onClick={() => setShowDeleteWorkspaceModal(true)}
-                  className="px-3 py-1.5 bg-error/10 hover:bg-error/20 border border-error/30 text-error rounded text-xs font-medium transition-colors self-start sm:self-auto shrink-0"
-                >
-                  Delete Workspace
-                </button>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-lg bg-destructive/5 border border-destructive/20">
+                  <div>
+                    <h4 className="text-xs font-semibold text-destructive">Delete Entire Workspace</h4>
+                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                      Permanently destroys all projects, tasks, comments, and channels in this workspace.
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    data-testid="workspace-delete-button"
+                    onClick={() => setShowDeleteWorkspaceModal(true)}
+                    className="text-xs text-destructive border-destructive/30 hover:bg-destructive/10 shrink-0"
+                  >
+                    <Trash2 className="size-3.5 mr-1" />
+                    Delete Workspace
+                  </Button>
+                </div>
               ) : (
-                <button
-                  type="button"
-                  data-testid="workspace-leave-button"
-                  onClick={() => setShowLeaveWorkspaceModal(true)}
-                  className="px-3 py-1.5 bg-error/10 hover:bg-error/20 border border-error/30 text-error rounded text-xs font-medium transition-colors self-start sm:self-auto shrink-0"
-                >
-                  Leave Workspace
-                </button>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-lg bg-muted/20 border border-border/40">
+                  <div>
+                    <h4 className="text-xs font-semibold text-foreground">Leave Workspace</h4>
+                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                      Revoke your membership and access to this workspace.
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    data-testid="workspace-leave-button"
+                    onClick={() => setShowLeaveWorkspaceModal(true)}
+                    className="text-xs text-destructive hover:bg-destructive/10 shrink-0"
+                  >
+                    <LogOut className="size-3.5 mr-1" />
+                    Leave Workspace
+                  </Button>
+                </div>
               )}
             </div>
-          </section>
+          </Card>
         </div>
       )}
 
       {/* Tab 2: Members & Roles */}
       {activeTab === "members" && (
         <div className="space-y-6">
-          <section className="bg-surface-container-low border border-outline/20 p-5 rounded-xl space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-outline/10 gap-2">
+          <Card className="p-5 border-border/60 space-y-4 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-border/50 gap-2">
               <div>
-                <h2 className="text-sm font-semibold text-on-surface font-headline-sm">Workspace Members</h2>
-                <p className="text-xs text-on-surface-variant font-body-sm">
+                <h2 className="text-sm font-semibold text-foreground">Workspace Collaborators</h2>
+                <p className="text-xs text-muted-foreground">
                   Manage collaborators, assign role-based permissions, and invite team members.
                 </p>
               </div>
-              <span className="font-mono text-[10px] px-2 py-0.5 bg-surface-container-high rounded text-on-surface-variant">
+              <Badge variant="outline" className="text-[10px] font-mono bg-muted/30">
                 Total: {members.length}
-              </span>
+              </Badge>
             </div>
 
             {/* Invite Form */}
             {isAdmin && (
-              <div className="p-3 bg-surface-container-lowest rounded-lg border border-outline/10 space-y-3">
-                <p className="text-xs font-medium text-on-surface font-headline-sm">Invite Team Member</p>
+              <Card className="p-3.5 bg-muted/20 border-border/50 space-y-3">
+                <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                  <UserPlus className="size-3.5 text-primary" />
+                  <span>Invite Team Member</span>
+                </p>
                 <div className="flex flex-col sm:flex-row items-center gap-2">
                   <div className="relative flex-1 w-full">
-                    <input
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+                    <Input
                       type="text"
                       data-testid="invite-user-search-input"
                       value={memberSearchQuery}
                       onChange={(e) => handleSearchUsersForInvite(e.target.value)}
                       placeholder="Search users by name, username, or email..."
-                      className="w-full rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:outline-none font-body-sm"
+                      className="pl-8 text-xs h-9"
                     />
                     {isSearchingMembers && (
-                      <span className="absolute right-3 top-2.5 text-[10px] font-mono text-on-surface-variant">
+                      <span className="absolute right-3 top-2.5 text-[10px] font-mono text-muted-foreground">
                         Searching...
                       </span>
                     )}
@@ -535,7 +595,7 @@ export function WorkspacePreferencesClient({
                     data-testid="invite-role-select"
                     value={selectedRoleForNewMember}
                     onChange={(e) => setSelectedRoleForNewMember(e.target.value as "admin" | "member" | "viewer")}
-                    className="w-full sm:w-auto rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface focus:border-primary focus:outline-none font-mono"
+                    className="w-full sm:w-auto h-9 rounded-md border border-input bg-background px-3 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring font-mono"
                   >
                     <option value="member">Member</option>
                     <option value="admin">Admin</option>
@@ -545,184 +605,127 @@ export function WorkspacePreferencesClient({
 
                 {/* Search Results Dropdown */}
                 {memberSearchResults.length > 0 && (
-                  <div className="mt-2 space-y-1 max-h-48 overflow-y-auto border border-outline/20 rounded p-1.5 bg-surface-container-high">
+                  <div className="mt-2 space-y-1 max-h-48 overflow-y-auto border border-border/60 rounded-lg p-1.5 bg-card">
                     {memberSearchResults.map((u) => (
                       <div
                         key={u.id}
-                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 rounded hover:bg-surface-container text-xs"
+                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 rounded-md hover:bg-muted/40 text-xs"
                       >
                         <div className="flex items-center gap-2 min-w-0">
                           <UserAvatar avatar={u.avatar} name={u.name} size="xs" />
                           <div className="min-w-0">
-                            <p className="font-medium text-on-surface truncate">{u.name}</p>
-                            <p className="text-[10px] font-mono text-on-surface-variant truncate">{u.email}</p>
+                            <p className="font-semibold text-foreground truncate">{u.name}</p>
+                            <p className="text-[10px] font-mono text-muted-foreground truncate">{u.email}</p>
                           </div>
                         </div>
-                        <button
-                          type="button"
+                        <Button
+                          size="sm"
                           onClick={() => handleAddMember(u.id)}
-                          className="px-2.5 py-1.5 sm:py-1 bg-primary text-on-primary rounded text-[11px] font-medium hover:bg-primary-container hover:text-on-primary-container transition active:scale-95 shrink-0 self-end sm:self-auto"
+                          className="h-7 px-2.5 text-xs self-end sm:self-auto"
                         >
                           Add as {selectedRoleForNewMember}
-                        </button>
+                        </Button>
                       </div>
                     ))}
                   </div>
                 )}
-              </div>
+              </Card>
             )}
 
-            {/* Mobile Member Cards (< sm) */}
-            <div className="sm:hidden space-y-2">
-              {members.map((m) => {
-                const isSelf = m.user.id === user.id;
-                const canManage = isOwner && !isSelf;
-
-                return (
-                  <div
-                    key={m.membershipId}
-                    className="p-3 rounded-lg bg-surface-container-lowest border border-outline/20 space-y-2.5"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <UserAvatar avatar={m.user.avatar} name={m.user.name} size="sm" />
-                        <div className="min-w-0">
-                          <p className="font-medium text-xs text-on-surface flex items-center gap-1.5 truncate">
-                            <span className="truncate">{m.user.name}</span>
-                            {isSelf && (
-                              <span className="font-mono text-[9px] bg-primary/20 text-primary px-1 py-0.2 rounded shrink-0">
-                                You
-                              </span>
-                            )}
-                          </p>
-                          <p className="text-[10px] font-mono text-on-surface-variant truncate">{m.user.email}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        {m.status === "pending" && (
-                          <span className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-tertiary/15 text-tertiary border border-tertiary/25">
-                            Pending
-                          </span>
-                        )}
-                        <span
-                          className={`font-mono text-[10px] px-2 py-0.5 rounded capitalize shrink-0 ${
-                            m.role === "owner"
-                              ? "bg-primary/20 text-primary font-semibold"
-                              : m.role === "admin"
-                              ? "bg-secondary/20 text-secondary"
-                              : "bg-surface-container-high text-on-surface-variant"
-                          }`}
-                        >
-                          {m.role}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-1.5 border-t border-outline/10 text-[10px] font-mono text-on-surface-variant">
-                      <span>Joined {new Date(m.joinedAt).toLocaleDateString()}</span>
-                      {canManage && (
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setMemberToTransfer(m)}
-                            className="px-2.5 py-1 rounded bg-surface-container hover:bg-surface-container-high text-on-surface text-[11px] font-mono transition active:scale-95"
-                          >
-                            Transfer
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setMemberToRemove(m)}
-                            className="px-2.5 py-1 rounded bg-error/10 hover:bg-error/20 text-error text-[11px] font-mono transition active:scale-95"
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Desktop Members Roster Table (>= sm) */}
-            <div className="hidden sm:block overflow-x-auto scrollbar-thin">
+            {/* Desktop Table */}
+            <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-outline/10 text-on-surface-variant font-mono text-[10px] uppercase">
+                  <tr className="border-b border-border/50 text-muted-foreground font-mono text-[10px] uppercase">
                     <th className="pb-2">User</th>
                     <th className="pb-2">Role</th>
                     <th className="pb-2">Joined</th>
                     <th className="pb-2 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-outline/10">
+                <tbody className="divide-y divide-border/40">
                   {members.map((m) => {
                     const isSelf = m.user.id === user.id;
                     const canManage = isOwner && !isSelf;
 
                     return (
-                      <tr key={m.membershipId} className="hover:bg-surface-container/50 transition-colors">
+                      <tr key={m.membershipId} className="hover:bg-muted/20 transition-colors">
                         <td className="py-2.5">
                           <div className="flex items-center gap-2">
                             <UserAvatar avatar={m.user.avatar} name={m.user.name} size="xs" />
                             <div>
-                              <p className="font-medium text-on-surface flex items-center gap-1.5">
+                              <div className="font-medium text-foreground flex items-center gap-1.5">
                                 <span>{m.user.name}</span>
                                 {isSelf && (
-                                  <span className="font-mono text-[9px] bg-primary/20 text-primary px-1 py-0.2 rounded">
+                                  <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">
                                     You
-                                  </span>
+                                  </Badge>
                                 )}
-                              </p>
-                              <p className="text-[10px] font-mono text-on-surface-variant">{m.user.email}</p>
+                              </div>
+                              <p className="text-[10px] font-mono text-muted-foreground">{m.user.email}</p>
                             </div>
                           </div>
                         </td>
 
                         <td className="py-2.5">
                           <div className="flex items-center gap-1.5">
-                            <span
-                              className={`font-mono text-[10px] px-2 py-0.5 rounded capitalize ${
-                                m.role === "owner"
-                                  ? "bg-primary/20 text-primary font-semibold"
-                                  : m.role === "admin"
-                                  ? "bg-secondary/20 text-secondary"
-                                  : "bg-surface-container-high text-on-surface-variant"
-                              }`}
-                            >
-                              {m.role}
-                            </span>
+                            {canManage && m.role !== "owner" ? (
+                              <select
+                                value={m.role}
+                                onChange={(e) =>
+                                  handleUpdateMemberRole(
+                                    m.user.id,
+                                    e.target.value as "admin" | "member" | "viewer"
+                                  )
+                                }
+                                aria-label={`Change role for ${m.user.name}`}
+                                className="h-6 rounded-md border border-input bg-card px-2 text-[10px] font-mono text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer capitalize"
+                              >
+                                <option value="admin">Admin</option>
+                                <option value="member">Member</option>
+                                <option value="viewer">Viewer</option>
+                              </select>
+                            ) : (
+                              <Badge
+                                variant={m.role === "owner" ? "default" : m.role === "admin" ? "secondary" : "outline"}
+                                className="text-[10px] font-mono capitalize"
+                              >
+                                {m.role}
+                              </Badge>
+                            )}
                             {m.status === "pending" && (
-                              <span className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-tertiary/15 text-tertiary border border-tertiary/25">
+                              <Badge variant="outline" className="text-[9px] font-mono text-amber-500 border-amber-500/30">
                                 Pending
-                              </span>
+                              </Badge>
                             )}
                           </div>
                         </td>
 
-                        <td className="py-2.5 font-mono text-[10px] text-on-surface-variant">
+                        <td className="py-2.5 font-mono text-[10px] text-muted-foreground">
                           {new Date(m.joinedAt).toLocaleDateString()}
                         </td>
 
                         <td className="py-2.5 text-right">
                           {canManage && (
                             <div className="flex items-center justify-end gap-1.5">
-                              <button
-                                type="button"
+                              <Button
+                                variant="outline"
+                                size="sm"
                                 onClick={() => setMemberToTransfer(m)}
                                 title="Transfer Ownership"
-                                className="px-2 py-1 rounded bg-surface-container hover:bg-surface-container-high text-on-surface text-[10px] font-mono transition"
+                                className="h-6 px-2 text-[10px] font-mono"
                               >
                                 Transfer
-                              </button>
-                              <button
-                                type="button"
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
                                 onClick={() => setMemberToRemove(m)}
                                 title="Remove Member"
-                                className="px-2 py-1 rounded bg-error/10 hover:bg-error/20 text-error text-[10px] font-mono transition"
+                                className="h-6 px-2 text-[10px] font-mono text-destructive hover:bg-destructive/10"
                               >
                                 Remove
-                              </button>
+                              </Button>
                             </div>
                           )}
                         </td>
@@ -732,123 +735,130 @@ export function WorkspacePreferencesClient({
                 </tbody>
               </table>
             </div>
-          </section>
+          </Card>
         </div>
       )}
 
       {/* Delete Workspace Confirmation Modal */}
       {showDeleteWorkspaceModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-md rounded-xl bg-surface-container-high border border-outline/20 p-5 shadow-2xl space-y-4">
-            <h3 className="text-base font-semibold text-on-surface font-headline-sm">Delete Workspace?</h3>
-            <p className="text-xs text-on-surface-variant font-body-sm">
-              Are you sure you want to delete <span className="font-semibold text-on-surface">{workspace.name}</span>?
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
+          <Card className="w-full max-w-md p-4 sm:p-5 shadow-2xl space-y-4 border-destructive/40 max-h-[88dvh] overflow-y-auto">
+            <h3 className="text-base font-semibold text-destructive">Delete Workspace?</h3>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Are you sure you want to delete <span className="font-semibold text-foreground">{workspace.name}</span>?
               This will permanently purge all tasks, projects, calendars, and conversation channels. This action cannot be undone.
             </p>
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
+            <div className="flex justify-end gap-2 pt-2 border-t border-border/50">
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => setShowDeleteWorkspaceModal(false)}
-                className="px-3 py-1.5 rounded border border-outline/20 bg-surface-container text-xs text-on-surface-variant hover:text-on-surface transition"
+                className="h-8 text-xs"
               >
                 Cancel
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
                 onClick={handleDeleteWorkspace}
                 disabled={isDeletingWorkspace}
-                className="px-3 py-1.5 rounded bg-error text-on-error text-xs font-medium hover:bg-error/90 transition disabled:opacity-50"
+                className="h-8 text-xs font-semibold"
               >
                 {isDeletingWorkspace ? "Deleting..." : "Confirm Delete Workspace"}
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
         </div>
       )}
 
       {/* Leave Workspace Confirmation Modal */}
       {showLeaveWorkspaceModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-md rounded-xl bg-surface-container-high border border-outline/20 p-5 shadow-2xl space-y-4">
-            <h3 className="text-base font-semibold text-on-surface font-headline-sm">Leave Workspace?</h3>
-            <p className="text-xs text-on-surface-variant font-body-sm">
-              Are you sure you want to leave <span className="font-semibold text-on-surface">{workspace.name}</span>? You will lose access until re-invited.
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
+          <Card className="w-full max-w-md p-4 sm:p-5 shadow-2xl space-y-4 border-destructive/40 max-h-[88dvh] overflow-y-auto">
+            <h3 className="text-base font-semibold text-destructive">Leave Workspace?</h3>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Are you sure you want to leave <span className="font-semibold text-foreground">{workspace.name}</span>? You will lose access until re-invited.
             </p>
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
+            <div className="flex justify-end gap-2 pt-2 border-t border-border/50">
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => setShowLeaveWorkspaceModal(false)}
-                className="px-3 py-1.5 rounded border border-outline/20 bg-surface-container text-xs text-on-surface-variant hover:text-on-surface transition"
+                className="h-8 text-xs"
               >
                 Cancel
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
                 onClick={handleLeaveWorkspace}
                 disabled={isLeavingWorkspace}
-                className="px-3 py-1.5 rounded bg-error text-on-error text-xs font-medium hover:bg-error/90 transition disabled:opacity-50"
+                className="h-8 text-xs font-semibold"
               >
                 {isLeavingWorkspace ? "Leaving..." : "Confirm Leave"}
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
         </div>
       )}
 
       {/* Remove Member Confirmation Modal */}
       {memberToRemove && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-md rounded-xl bg-surface-container-high border border-outline/20 p-5 shadow-2xl space-y-4">
-            <h3 className="text-base font-semibold text-on-surface font-headline-sm">Remove Member?</h3>
-            <p className="text-xs text-on-surface-variant font-body-sm">
-              Are you sure you want to revoke access for <span className="font-semibold text-on-surface">{memberToRemove.user.name}</span>?
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
+          <Card className="w-full max-w-md p-4 sm:p-5 shadow-2xl space-y-4 border-destructive/40 max-h-[88dvh] overflow-y-auto">
+            <h3 className="text-base font-semibold text-destructive">Remove Member?</h3>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Are you sure you want to revoke access for <span className="font-semibold text-foreground">{memberToRemove.user.name}</span>?
             </p>
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
+            <div className="flex justify-end gap-2 pt-2 border-t border-border/50">
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => setMemberToRemove(null)}
-                className="px-3 py-1.5 rounded border border-outline/20 bg-surface-container text-xs text-on-surface-variant hover:text-on-surface transition"
+                className="h-8 text-xs"
               >
                 Cancel
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
                 onClick={handleRemoveMemberConfirm}
-                className="px-3 py-1.5 rounded bg-error text-on-error text-xs font-medium hover:bg-error/90 transition"
+                className="h-8 text-xs font-semibold"
               >
                 Revoke Access
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
         </div>
       )}
 
       {/* Transfer Ownership Confirmation Modal */}
       {memberToTransfer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-md rounded-xl bg-surface-container-high border border-outline/20 p-5 shadow-2xl space-y-4">
-            <h3 className="text-base font-semibold text-on-surface font-headline-sm">Transfer Ownership?</h3>
-            <p className="text-xs text-on-surface-variant font-body-sm">
-              Transferring workspace ownership to <span className="font-semibold text-on-surface">{memberToTransfer.user.name}</span> will demote your account to Admin. Are you sure?
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
+          <Card className="w-full max-w-md p-4 sm:p-5 shadow-2xl space-y-4 border-border/80 max-h-[88dvh] overflow-y-auto">
+            <h3 className="text-base font-semibold text-foreground">Transfer Ownership?</h3>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Transferring workspace ownership to <span className="font-semibold text-foreground">{memberToTransfer.user.name}</span> will demote your account to Admin. Are you sure?
             </p>
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
+            <div className="flex justify-end gap-2 pt-2 border-t border-border/50">
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => setMemberToTransfer(null)}
-                className="px-3 py-1.5 rounded border border-outline/20 bg-surface-container text-xs text-on-surface-variant hover:text-on-surface transition"
+                className="h-8 text-xs"
               >
                 Cancel
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                size="sm"
                 onClick={handleTransferOwnership}
                 disabled={isTransferringOwnership}
-                className="px-3 py-1.5 rounded bg-primary text-on-primary text-xs font-medium hover:bg-primary-container hover:text-on-primary-container transition disabled:opacity-50"
+                className="h-8 text-xs font-semibold"
               >
                 {isTransferringOwnership ? "Transferring..." : "Confirm Transfer"}
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
         </div>
       )}
     </div>

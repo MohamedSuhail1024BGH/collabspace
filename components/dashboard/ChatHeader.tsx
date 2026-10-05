@@ -2,6 +2,10 @@
 
 import type { Conversation } from "@/data/mock-data";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, Hash, Users } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type Props = {
   conversation: Conversation;
@@ -20,27 +24,26 @@ export default function ChatHeader({ conversation, onBack, memberCount }: Props)
         conversation.name.startsWith("#")));
 
   return (
-    <div className="h-14 px-3 sm:px-4 flex items-center justify-between border-b border-outline/15 bg-surface-container flex-shrink-0 select-none">
+    <div className="h-14 px-3 sm:px-4 flex items-center justify-between border-b border-border/80 bg-card/60 backdrop-blur-md flex-shrink-0 select-none">
       {/* Left: Back button (mobile) + Identity stack */}
       <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
         {onBack && (
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onBack}
-            className="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors md:hidden shrink-0 min-h-[36px] min-w-[36px] flex items-center justify-center active:scale-95 cursor-pointer"
+            className="md:hidden size-8 text-muted-foreground hover:text-foreground shrink-0 cursor-pointer"
             title="Back to conversation list"
             aria-label="Back to conversation list"
           >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-          </button>
+            <ArrowLeft className="size-4" />
+          </Button>
         )}
 
         <div className="relative shrink-0">
           {isChannel ? (
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/15 border border-primary/30 text-primary font-mono text-sm font-bold shadow-xs">
-              #
+            <div className="flex size-9 items-center justify-center rounded-xl bg-secondary/80 border border-border/80 text-foreground font-bold shadow-xs">
+              <Hash className="size-4" />
             </div>
           ) : (
             <UserAvatar
@@ -48,18 +51,18 @@ export default function ChatHeader({ conversation, onBack, memberCount }: Props)
               name={conversation.name}
               size="md"
               showStatus={true}
-              statusColor={conversation.online ? "bg-secondary" : "bg-outline/40"}
+              statusColor={conversation.online ? "bg-emerald-500" : "bg-muted-foreground/40"}
             />
           )}
         </div>
 
         <div className="flex flex-col min-w-0">
-          <h2 className="font-bold text-xs sm:text-sm text-on-surface truncate font-headline-md leading-tight">
+          <h2 className="font-bold text-xs sm:text-sm text-foreground truncate leading-tight">
             {conversation.name}
           </h2>
 
           {isChannel ? (
-            <p className="text-[11px] font-mono text-on-surface-variant truncate">
+            <p className="text-[11px] text-muted-foreground truncate font-mono">
               {memberCount
                 ? `${memberCount} member${memberCount === 1 ? "" : "s"}`
                 : "Workspace channel"}
@@ -67,23 +70,25 @@ export default function ChatHeader({ conversation, onBack, memberCount }: Props)
           ) : (
             <div className="flex items-center gap-1.5 min-w-0">
               <span
-                className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${
-                  conversation.online ? "bg-secondary" : "bg-outline/40"
-                }`}
+                className={cn(
+                  "inline-block size-1.5 rounded-full shrink-0",
+                  conversation.online ? "bg-emerald-500" : "bg-muted-foreground/40"
+                )}
               />
               <span
-                className={`text-[11px] font-mono truncate ${
+                className={cn(
+                  "text-[11px] font-mono truncate",
                   conversation.online
-                    ? "text-secondary font-medium"
-                    : "text-on-surface-variant/70 font-medium"
-                }`}
+                    ? "text-emerald-500 font-medium"
+                    : "text-muted-foreground"
+                )}
               >
                 {conversation.online ? "Online" : "Offline"}
               </span>
               {conversation.role && (
                 <>
-                  <span className="text-outline/30 text-[10px]">•</span>
-                  <span className="text-[11px] font-mono text-on-surface-variant/60 truncate">
+                  <span className="text-border text-[10px]">•</span>
+                  <span className="text-[11px] font-mono text-muted-foreground truncate">
                     {conversation.role}
                   </span>
                 </>
@@ -95,15 +100,14 @@ export default function ChatHeader({ conversation, onBack, memberCount }: Props)
 
       {/* Right: Presence Indicator */}
       {isChannel && memberCount !== undefined && memberCount > 0 && (
-        <div
+        <Badge
+          variant="secondary"
           title={`${memberCount} members in channel`}
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-surface-container-high text-on-surface-variant text-xs font-mono"
+          className="gap-1.5 px-2.5 py-1 text-xs font-mono"
         >
-          <svg className="h-3.5 w-3.5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-          </svg>
-          <span className="text-[11px] font-semibold text-on-surface">{memberCount}</span>
-        </div>
+          <Users className="size-3.5 text-muted-foreground" />
+          <span>{memberCount}</span>
+        </Badge>
       )}
     </div>
   );

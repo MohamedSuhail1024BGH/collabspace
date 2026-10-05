@@ -2,6 +2,10 @@
 
 import type { CalendarEvent } from "@/data/mock-data";
 import { formatTimeShort } from "@/lib/format-time";
+import { Card, CardHeader, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Clock, X, Edit3, Trash2 } from "lucide-react";
 
 type Props = {
   event: CalendarEvent | null;
@@ -11,14 +15,14 @@ type Props = {
   canManage?: boolean;
 };
 
-const categoryBadgeStyles: Record<string, string> = {
-  Meeting: "border-secondary/30 bg-secondary-container/20 text-secondary",
-  Planning: "border-primary/30 bg-primary-container/20 text-primary",
-  Design: "border-outline/30 bg-surface-container-high text-on-surface",
-  Engineering: "border-tertiary/30 bg-tertiary-container/20 text-tertiary",
-  Deadline: "border-error/30 bg-error-container/20 text-error",
-  Client: "border-secondary/30 bg-secondary-container/20 text-secondary",
-  Other: "border-outline/30 bg-surface-container text-on-surface-variant",
+const categoryBadgeVariants: Record<string, "default" | "secondary" | "outline" | "success" | "warning" | "info" | "destructive"> = {
+  Meeting: "info",
+  Planning: "default",
+  Design: "secondary",
+  Engineering: "warning",
+  Deadline: "destructive",
+  Client: "success",
+  Other: "outline",
 };
 
 export default function EventDetails({
@@ -30,46 +34,41 @@ export default function EventDetails({
 }: Props) {
   if (!event) return null;
 
-  const badgeStyle = categoryBadgeStyles[event.category] || categoryBadgeStyles.Other;
+  const badgeVariant = categoryBadgeVariants[event.category] || "secondary";
 
   return (
-    <div
-      className="w-full rounded border border-outline/20 bg-surface-container-low p-4 text-on-surface shadow-md"
+    <Card
+      className="w-full text-foreground shadow-md"
       data-testid="event-details-card"
     >
-      <div className="mb-3 flex items-start justify-between gap-3">
-        <div>
-          <span className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">
+      <CardHeader className="p-4 pb-3 flex flex-row items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <span className="text-xs font-mono text-muted-foreground uppercase">
             {event.date}
           </span>
-          <h4 className="mt-0.5 text-base font-bold text-on-surface leading-snug">{event.title}</h4>
-          <span
-            className={`mt-2 inline-block rounded border px-2 py-0.5 text-[10px] font-mono ${badgeStyle}`}
-          >
+          <h4 className="text-base font-bold text-foreground leading-snug">{event.title}</h4>
+          <Badge variant={badgeVariant} className="text-[10px] font-mono w-fit mt-1">
             {event.category}
-          </span>
+          </Badge>
         </div>
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={onClose}
-          className="rounded p-1 text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
+          className="size-7 text-muted-foreground hover:text-foreground"
           title="Close details"
         >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
+          <X className="size-4" />
+        </Button>
+      </CardHeader>
 
-      <div className="space-y-3 text-xs">
-        <div className="rounded border border-outline/20 bg-surface-container-lowest p-3 text-on-surface">
-          <div className="flex items-center gap-1.5 text-[11px] font-mono text-on-surface-variant">
-            <svg className="h-3.5 w-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span className="uppercase tracking-wider">Time Window</span>
+      <CardContent className="p-4 pt-1 flex flex-col gap-3 text-xs">
+        <div className="rounded-lg border border-border bg-secondary/30 p-3">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Clock className="size-3.5 text-primary" />
+            <span className="uppercase tracking-wider font-semibold">Time Window</span>
           </div>
-          <p className="mt-1 font-mono text-xs font-semibold text-on-surface">
+          <p className="mt-1 font-mono text-xs font-semibold text-foreground">
             {formatTimeShort(`${event.date}T${event.startTime}`)} —{" "}
             {formatTimeShort(`${event.date}T${event.endTime ?? event.startTime}`)}
           </p>
@@ -77,10 +76,10 @@ export default function EventDetails({
 
         {event.description ? (
           <div>
-            <span className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               Description
             </span>
-            <p className="mt-1 text-xs text-on-surface leading-relaxed whitespace-pre-wrap">
+            <p className="mt-1 text-xs text-foreground leading-relaxed whitespace-pre-wrap">
               {event.description}
             </p>
           </div>
@@ -88,50 +87,55 @@ export default function EventDetails({
 
         {event.attendees && event.attendees.length > 0 ? (
           <div>
-            <span className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               Attendees ({event.attendees.length})
             </span>
             <div className="mt-1.5 flex flex-wrap gap-1.5">
               {event.attendees.map((attendee) => (
-                <div
+                <Badge
                   key={attendee}
-                  className="inline-flex items-center gap-1.5 rounded border border-outline/20 bg-surface-container-lowest px-2 py-0.5 text-xs text-on-surface font-mono"
+                  variant="outline"
+                  className="gap-1.5 text-xs font-mono py-1 px-2"
                 >
-                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-on-primary">
+                  <span className="flex size-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground">
                     {attendee.slice(0, 1).toUpperCase()}
                   </span>
                   <span>{attendee}</span>
-                </div>
+                </Badge>
               ))}
             </div>
           </div>
         ) : null}
 
         {canManage && (
-          <div className="flex items-center justify-end gap-2 pt-2.5 border-t border-outline/10">
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-border mt-1">
             {onEdit && (
-              <button
-                type="button"
+              <Button
+                variant="outline"
+                size="sm"
                 data-testid="event-edit-btn"
                 onClick={() => onEdit(event)}
-                className="rounded bg-surface-container hover:bg-surface-container-highest px-3 py-1 text-xs font-mono text-on-surface transition"
+                className="h-8 gap-1.5 text-xs"
               >
-                Edit event
-              </button>
+                <Edit3 className="size-3.5" />
+                <span>Edit event</span>
+              </Button>
             )}
             {onDelete && (
-              <button
-                type="button"
+              <Button
+                variant="destructive"
+                size="sm"
                 data-testid="event-delete-btn"
                 onClick={() => onDelete(event.id)}
-                className="rounded bg-error-container/20 hover:bg-error-container/30 px-3 py-1 text-xs font-mono text-error transition"
+                className="h-8 gap-1.5 text-xs"
               >
-                Delete
-              </button>
+                <Trash2 className="size-3.5" />
+                <span>Delete</span>
+              </Button>
             )}
           </div>
         )}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

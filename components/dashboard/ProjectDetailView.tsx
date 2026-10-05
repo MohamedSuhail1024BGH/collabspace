@@ -11,13 +11,24 @@ import {
 import { TaskForm, type TaskDraft } from "@/components/dashboard/TaskForm";
 import { ProjectTimelineWidget } from "./ProjectTimelineWidget";
 import { WorkloadChartWidget } from "./WorkloadChartWidget";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import {
+  ArrowLeft,
+  Plus,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  User,
+  Users,
+  ShieldCheck,
+  Activity,
+  Trash2,
+  ListTodo,
+} from "lucide-react";
 import type { Project, TaskPriority } from "@/data/mock-data";
-
-const priorityStyles = {
-  High: "border-error/30 bg-error-container/20 text-error",
-  Medium: "border-tertiary/30 bg-tertiary-container/20 text-tertiary",
-  Low: "border-secondary/30 bg-secondary-container/20 text-secondary",
-} as const;
 
 type WorkspaceMemberItem = {
   membershipId: string;
@@ -163,36 +174,41 @@ export function ProjectDetailView({
 
   return (
     <div className="space-y-4 sm:space-y-6 pb-12">
-      {/* Project Top Header & Details Card (Stitch Precision Engineering Dark) */}
-      <section className="rounded-xl bg-surface-container-low border border-outline-variant/20 p-4 sm:p-6 transition-all shadow-xs">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-4">
-          <div className="flex items-start gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-on-primary font-bold text-lg shadow-sm">
+      {/* Project Top Header & Details Card */}
+      <Card className="p-4 sm:p-6 border-border/60 shadow-xs">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-5">
+          <div className="flex items-start gap-3.5">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold text-lg shadow-sm shrink-0">
               {project.name.charAt(0).toUpperCase()}
             </div>
-            <div>
+            <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
                   Project Workspace
                 </span>
-                <span className="rounded-md bg-surface-lowest border border-outline-variant/25 px-2 py-0.5 text-[10px] font-mono text-secondary">
+                <Badge variant="outline" className="text-[10px] font-mono bg-muted/40">
                   {project.status}
-                </span>
+                </Badge>
               </div>
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-on-surface font-headline-sm">{project.name}</h1>
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+                {project.name}
+              </h1>
 
               {/* Project Meta Chips */}
-              <div className="mt-2.5 flex flex-wrap items-center gap-1.5 sm:gap-2">
-                <div className="flex items-center gap-1.5 rounded-md bg-surface-lowest border border-outline-variant/20 px-2.5 py-1 text-[11px] font-mono text-on-surface-variant">
-                  <span className="text-primary font-medium">Due:</span>
+              <div className="pt-1.5 flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-1.5 rounded-md bg-muted/40 border border-border/50 px-2.5 py-1 text-[11px] font-mono text-muted-foreground">
+                  <Calendar className="size-3 text-primary" />
+                  <span className="text-foreground font-medium">Due:</span>
                   <span>{project.due}</span>
                 </div>
-                <div className="flex items-center gap-1.5 rounded-md bg-surface-lowest border border-outline-variant/20 px-2.5 py-1 text-[11px] font-mono text-on-surface-variant">
-                  <span className="text-secondary font-medium">Tasks:</span>
-                  <span>{completedTasksCount} / {project.tasks.length} completed</span>
+                <div className="flex items-center gap-1.5 rounded-md bg-muted/40 border border-border/50 px-2.5 py-1 text-[11px] font-mono text-muted-foreground">
+                  <CheckCircle2 className="size-3 text-emerald-500" />
+                  <span className="text-foreground font-medium">Tasks:</span>
+                  <span>{completedTasksCount} / {project.tasks.length} done</span>
                 </div>
-                <div className="flex items-center gap-1.5 rounded-md bg-surface-lowest border border-outline-variant/20 px-2.5 py-1 text-[11px] font-mono text-on-surface-variant">
-                  <span className="text-tertiary font-medium">Lead:</span>
+                <div className="flex items-center gap-1.5 rounded-md bg-muted/40 border border-border/50 px-2.5 py-1 text-[11px] font-mono text-muted-foreground">
+                  <User className="size-3 text-primary" />
+                  <span className="text-foreground font-medium">Lead:</span>
                   <span>{project.owner}</span>
                 </div>
               </div>
@@ -200,76 +216,62 @@ export function ProjectDetailView({
           </div>
 
           <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
-            <Link
-              href="/projects"
-              className="rounded-lg bg-surface-container hover:bg-surface-high border border-outline-variant/25 px-3 py-1.5 text-xs font-mono text-on-surface transition shadow-xs active:scale-95"
-            >
-              &larr; All projects
-            </Link>
+            <Button asChild variant="outline" size="sm" className="h-9 text-xs">
+              <Link href="/projects">
+                <ArrowLeft className="size-3.5 mr-1" />
+                All projects
+              </Link>
+            </Button>
             {canManageProject && (
-              <button
-                type="button"
+              <Button
+                size="sm"
                 data-testid="project-header-new-task-btn"
                 onClick={openCreateTaskModal}
-                className="flex items-center gap-1.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-3.5 py-1.5 text-xs font-medium shadow-xs transition active:scale-95 cursor-pointer"
+                className="h-9 text-xs font-medium cursor-pointer"
               >
-                <span>+</span>
-                <span>New Task</span>
-              </button>
+                <Plus className="size-3.5 mr-1" />
+                New Task
+              </Button>
             )}
           </div>
         </div>
 
         {/* Quick Stat Metrics Strip */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 pt-4 border-t border-outline-variant/15">
-          <div className="rounded-xl bg-surface-container border border-outline-variant/20 p-3.5">
-            <p className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 pt-4 border-t border-border/60">
+          <div className="rounded-lg bg-muted/20 border border-border/40 p-3">
+            <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
               Owner
             </p>
-            <p className="mt-1 text-sm font-semibold truncate text-on-surface">{project.owner}</p>
+            <p className="mt-1 text-sm font-semibold truncate text-foreground">{project.owner}</p>
           </div>
-          <div className="rounded-xl bg-surface-container border border-outline-variant/20 p-3.5">
+          <div className="rounded-lg bg-muted/20 border border-border/40 p-3 space-y-1.5">
             <div className="flex items-center justify-between">
-              <p className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">
+              <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
                 Progress
               </p>
-              {/* Clean progress display */}
-            </div>
-            <div className="mt-1 flex items-center gap-2">
-              <div className="flex-1 h-1.5 rounded-full bg-surface-lowest overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-300 ${
-                    project.progress >= 80 ? "bg-tertiary" : "bg-secondary"
-                  }`}
-                  style={{ width: `${project.progress}%` }}
-                />
-              </div>
-              <span
-                className={`text-xs font-mono ${
-                  project.progress >= 80 ? "text-tertiary font-bold" : "text-secondary"
-                }`}
-              >
+              <span className="text-xs font-mono font-semibold text-foreground">
                 {project.progress}%
               </span>
             </div>
+            <Progress value={project.progress} className="h-2" />
           </div>
-          <div className="rounded-xl bg-surface-container border border-outline-variant/20 p-3.5">
-            <p className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">
+          <div className="rounded-lg bg-muted/20 border border-border/40 p-3">
+            <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
               Due Date
             </p>
-            <p className="mt-1 text-sm font-mono text-on-surface">{project.due}</p>
+            <p className="mt-1 text-sm font-mono text-foreground">{project.due}</p>
           </div>
-          <div className="rounded-xl bg-surface-container border border-outline-variant/20 p-3.5">
-            <p className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">
+          <div className="rounded-lg bg-muted/20 border border-border/40 p-3">
+            <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
               Health
             </p>
             <p
-              className={`mt-1 text-sm font-mono ${
+              className={`mt-1 text-sm font-medium ${
                 project.progress >= 70
-                  ? "text-secondary"
+                  ? "text-emerald-500"
                   : project.progress >= 50
-                  ? "text-tertiary"
-                  : "text-error"
+                  ? "text-amber-500"
+                  : "text-destructive"
               }`}
             >
               {project.progress >= 70
@@ -280,11 +282,11 @@ export function ProjectDetailView({
             </p>
           </div>
         </div>
-      </section>
+      </Card>
 
       {/* Project Navigation Tabs Bar */}
-      <div className="flex items-center justify-between gap-3 border-b border-outline/10 pb-0">
-        <div className="flex items-center gap-1 overflow-x-auto">
+      <div className="flex items-center justify-between gap-3 border-b border-border/60 pb-0">
+        <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
           {[
             { id: "overview", label: "Overview" },
             { id: "tasks", label: `Tasks (${project.tasks.length})` },
@@ -300,10 +302,10 @@ export function ProjectDetailView({
                   tab.id as "overview" | "tasks" | "timeline" | "team" | "activity"
                 )
               }
-              className={`px-3 py-2 text-xs font-medium border-b-2 transition whitespace-nowrap ${
+              className={`px-3.5 py-2.5 text-xs font-medium border-b-2 transition whitespace-nowrap cursor-pointer ${
                 activeTab === tab.id
                   ? "border-primary text-primary font-semibold"
-                  : "border-transparent text-on-surface-variant hover:text-on-surface"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
               {tab.label}
@@ -311,16 +313,16 @@ export function ProjectDetailView({
           ))}
         </div>
 
-        {/* Team Members Avatar Stack (Preserves "Team members" locator) */}
+        {/* Team Members Avatar Stack (Preserves "Team members:" locator) */}
         <div className="flex items-center gap-2 shrink-0 pb-1">
-          <span className="text-xs font-mono text-on-surface-variant hidden sm:inline">
+          <span className="text-xs font-mono text-muted-foreground hidden sm:inline">
             Team members:
           </span>
-          <div className="flex -space-x-1 overflow-hidden">
+          <div className="flex -space-x-1.5 overflow-hidden">
             {project.teamMembers.map((m, idx) => (
               <div
                 key={idx}
-                className={`flex h-6 w-6 items-center justify-center rounded-full text-[9px] font-bold text-white shadow ring-1 ring-surface-container-lowest ${
+                className={`flex h-6 w-6 items-center justify-center rounded-full text-[9px] font-bold text-white shadow ring-1 ring-background ${
                   m.color || "bg-primary"
                 }`}
                 title={`${m.name} (${m.role})`}
@@ -330,17 +332,18 @@ export function ProjectDetailView({
             ))}
           </div>
           {canManageProject && (
-            <button
-              type="button"
+            <Button
+              variant="outline"
+              size="icon"
               onClick={() => {
                 setActiveTab("team");
                 setShowAssignForm(true);
               }}
-              className="flex h-5 w-5 items-center justify-center rounded-full bg-surface-container-high text-on-surface hover:bg-surface-container-highest transition text-xs font-bold"
+              className="h-6 w-6 rounded-full p-0 text-xs"
               title="Add member"
             >
-              +
-            </button>
+              <Plus className="size-3" />
+            </Button>
           )}
         </div>
       </div>
@@ -348,69 +351,67 @@ export function ProjectDetailView({
       {/* Main Tab Content */}
       {activeTab === "overview" && (
         <div className="space-y-4">
-          {/* Top Sprint Timeline */}
-          <div>
-            <ProjectTimelineWidget
-              tasks={project.tasks}
-              teamMembers={project.teamMembers}
-            />
-          </div>
+          <ProjectTimelineWidget
+            tasks={project.tasks}
+            teamMembers={project.teamMembers}
+          />
 
-          {/* Bottom Row: Associated Tasks & Workload Distribution */}
+          {/* Associated Tasks & Workload Distribution */}
           <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
-            {/* Associated Tasks Card with required heading for E2E */}
-            <div className="rounded-xl bg-surface-container-low border border-outline-variant/20 p-4 sm:p-5 flex flex-col transition-all shadow-xs">
-              <div className="flex items-center justify-between mb-3 pb-2.5 border-b border-outline-variant/15">
+            <Card className="p-4 sm:p-5 flex flex-col border-border/60 shadow-xs">
+              <div className="flex items-center justify-between mb-3 pb-3 border-b border-border/60">
                 <div>
-                  <h2 className="text-sm font-semibold tracking-tight text-on-surface font-headline-sm">Associated tasks</h2>
-                  <p className="text-[11px] font-mono text-on-surface-variant">
+                  <h2 className="text-sm font-semibold tracking-tight text-foreground">
+                    Associated tasks
+                  </h2>
+                  <p className="text-[11px] font-mono text-muted-foreground">
                     {completedTasksCount}/{project.tasks.length} done ({taskCompletionRate}%)
                   </p>
                 </div>
                 {canManageProject && (
-                  <button
-                    type="button"
+                  <Button
+                    variant="outline"
+                    size="sm"
                     data-testid="project-add-task-btn"
                     onClick={openCreateTaskModal}
-                    className="rounded-lg bg-surface-container hover:bg-surface-high border border-outline-variant/25 px-2.5 py-1 text-xs font-mono text-primary transition shadow-xs"
+                    className="h-7 px-2.5 text-xs text-primary"
                   >
-                    + Add task
-                  </button>
+                    <Plus className="size-3 mr-1" />
+                    Add task
+                  </Button>
                 )}
               </div>
 
-              <div className="flex-1 overflow-y-auto space-y-2 pr-1 max-h-72 scrollbar-thin">
+              <div className="flex-1 overflow-y-auto space-y-2 pr-1 max-h-72">
                 {project.tasks.length > 0 ? (
                   project.tasks.map((task) => (
                     <div
                       key={task.id}
-                      className="rounded-xl bg-surface-container border border-outline-variant/20 p-3 hover:bg-surface-high hover:border-outline/30 transition shadow-xs"
+                      className="rounded-lg bg-muted/20 border border-border/40 p-3 hover:bg-muted/40 transition"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-xs font-medium text-on-surface truncate font-headline-sm">{task.title}</p>
-                        <span
-                          className={`rounded px-1.5 py-0.5 text-[9px] font-mono ${
-                            priorityStyles[task.priority]
-                          }`}
+                        <p className="text-xs font-medium text-foreground truncate">{task.title}</p>
+                        <Badge
+                          variant={task.priority === "High" ? "destructive" : task.priority === "Medium" ? "secondary" : "outline"}
+                          className="text-[9px] font-mono px-1.5 py-0 h-4"
                         >
                           {task.priority}
-                        </span>
+                        </Badge>
                       </div>
-                      <div className="mt-1.5 flex items-center justify-between text-[10px] font-mono text-on-surface-variant">
+                      <div className="mt-1.5 flex items-center justify-between text-[10px] font-mono text-muted-foreground">
                         <span>{task.assignee}</span>
                         <span>Due {task.due}</span>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <p className="text-xs font-mono text-on-surface-variant italic text-center py-6">
+                  <p className="text-xs font-mono text-muted-foreground italic text-center py-8">
                     No tasks associated yet.
                   </p>
                 )}
               </div>
-            </div>
+            </Card>
 
-            {/* Workload Bar Chart */}
             <WorkloadChartWidget members={project.teamMembers} />
           </div>
         </div>
@@ -418,51 +419,53 @@ export function ProjectDetailView({
 
       {/* Tab: Tasks Full View */}
       {activeTab === "tasks" && (
-        <section className="rounded-xl bg-surface-container-low border border-outline-variant/20 p-4 sm:p-5 shadow-xs">
-          <div className="flex items-center justify-between mb-4 pb-3 border-b border-outline-variant/15">
+        <Card className="p-4 sm:p-5 border-border/60 shadow-xs">
+          <div className="flex items-center justify-between mb-4 pb-3 border-b border-border/60">
             <div>
-              <h2 className="text-base font-bold text-on-surface font-headline-sm">Associated tasks</h2>
-              <p className="text-xs font-mono text-on-surface-variant">
+              <h2 className="text-base font-bold text-foreground">Associated tasks</h2>
+              <p className="text-xs font-mono text-muted-foreground">
                 {completedTasksCount} / {project.tasks.length} completed ({taskCompletionRate}%)
               </p>
             </div>
             {canManageProject && (
-              <button
-                type="button"
+              <Button
+                size="sm"
                 data-testid="project-add-task-btn"
                 onClick={openCreateTaskModal}
-                className="rounded-lg bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-3.5 py-1.5 text-xs font-medium shadow-xs transition"
+                className="h-8 text-xs font-medium"
               >
-                + Add task
-              </button>
+                <Plus className="size-3.5 mr-1" />
+                Add task
+              </Button>
             )}
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {project.tasks.map((task) => (
-              <div
+              <Card
                 key={task.id}
-                className="rounded bg-surface-container-lowest border border-outline/20 p-3 hover:bg-surface-container transition"
+                className="p-3.5 bg-muted/10 border-border/60 hover:bg-muted/30 transition"
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
-                  <p className="text-sm font-semibold text-on-surface">{task.title}</p>
-                  <span
-                    className={`rounded border px-2 py-0.5 text-[10px] font-mono uppercase ${
-                      priorityStyles[task.priority]
-                    }`}
+                  <p className="text-sm font-semibold text-foreground line-clamp-1">{task.title}</p>
+                  <Badge
+                    variant={task.priority === "High" ? "destructive" : task.priority === "Medium" ? "secondary" : "outline"}
+                    className="text-[10px] font-mono"
                   >
                     {task.priority}
-                  </span>
+                  </Badge>
                 </div>
-                <div className="flex items-center justify-between text-xs font-mono text-on-surface-variant">
+                <div className="flex items-center justify-between text-xs font-mono text-muted-foreground">
                   <span>{task.assignee}</span>
-                  <span>{task.status}</span>
+                  <Badge variant="outline" className="text-[10px] bg-background">
+                    {task.status}
+                  </Badge>
                 </div>
-                <p className="mt-2 text-[10px] font-mono text-on-surface-variant">Due {task.due}</p>
-              </div>
+                <p className="mt-2 text-[10px] font-mono text-muted-foreground">Due {task.due}</p>
+              </Card>
             ))}
           </div>
-        </section>
+        </Card>
       )}
 
       {/* Tab: Timeline Full View */}
@@ -475,88 +478,89 @@ export function ProjectDetailView({
 
       {/* Tab: Team Members Management */}
       {activeTab === "team" && (
-        <section className="rounded bg-surface-container-low border border-outline/20 p-4 sm:p-5">
-          <div className="flex items-center justify-between mb-4">
+        <Card className="p-4 sm:p-5 border-border/60 shadow-xs">
+          <div className="flex items-center justify-between mb-4 pb-3 border-b border-border/60">
             <div>
-              <h2 className="text-base font-bold text-on-surface">Team Members</h2>
-              <p className="text-xs font-mono text-on-surface-variant">
+              <h2 className="text-base font-bold text-foreground">Team Members</h2>
+              <p className="text-xs font-mono text-muted-foreground">
                 {project.teamMembers.length} assigned members on this project
               </p>
             </div>
 
             {canManageProject && workspaceMembers.length > 0 && (
-              <button
-                type="button"
+              <Button
+                variant="outline"
+                size="sm"
                 data-testid="assign-member-toggle-btn"
                 onClick={() => setShowAssignForm(!showAssignForm)}
-                className="rounded bg-surface-container hover:bg-surface-container-highest border border-outline/20 px-3 py-1.5 text-xs font-mono text-primary transition"
+                className="h-8 text-xs"
               >
                 {showAssignForm ? "Cancel" : "+ Assign Member"}
-              </button>
+              </Button>
             )}
           </div>
 
           {showAssignForm && (
-            <form
-              onSubmit={handleAssignMember}
-              className="mb-4 rounded bg-surface-container border border-outline/20 p-4"
-            >
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="block text-[11px] font-mono uppercase text-on-surface-variant mb-1">
-                    Select Workspace Member
-                  </label>
-                  <select
-                    value={selectedUserId}
-                    onChange={(e) => setSelectedUserId(e.target.value)}
-                    className="w-full rounded bg-surface-container-lowest border border-outline/20 p-2 text-xs text-on-surface focus:border-primary focus:outline-none"
-                  >
-                    {workspaceMembers.map((m) => (
-                      <option key={m.user.id} value={m.user.id}>
-                        {m.user.name} ({m.role})
-                      </option>
-                    ))}
-                  </select>
+            <Card className="mb-5 p-4 border-primary/30 bg-muted/20">
+              <form onSubmit={handleAssignMember}>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-[11px] font-mono uppercase text-muted-foreground mb-1">
+                      Select Workspace Member
+                    </label>
+                    <select
+                      value={selectedUserId}
+                      onChange={(e) => setSelectedUserId(e.target.value)}
+                      className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                    >
+                      {workspaceMembers.map((m) => (
+                        <option key={m.user.id} value={m.user.id}>
+                          {m.user.name} ({m.role})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-mono uppercase text-muted-foreground mb-1">
+                      Project Role
+                    </label>
+                    <select
+                      value={selectedProjectRole}
+                      onChange={(e) =>
+                        setSelectedProjectRole(
+                          e.target.value as "lead" | "contributor" | "reviewer" | "viewer"
+                        )
+                      }
+                      className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                    >
+                      <option value="contributor">Contributor</option>
+                      <option value="lead">Project Lead</option>
+                      <option value="reviewer">Reviewer</option>
+                      <option value="viewer">Viewer</option>
+                    </select>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-[11px] font-mono uppercase text-on-surface-variant mb-1">
-                    Project Role
-                  </label>
-                  <select
-                    value={selectedProjectRole}
-                    onChange={(e) =>
-                      setSelectedProjectRole(
-                        e.target.value as "lead" | "contributor" | "reviewer" | "viewer"
-                      )
-                    }
-                    className="w-full rounded bg-surface-container-lowest border border-outline/20 p-2 text-xs text-on-surface focus:border-primary focus:outline-none"
+                <div className="mt-3.5 flex justify-end">
+                  <Button
+                    type="submit"
+                    size="sm"
+                    disabled={isPending}
+                    className="h-8 text-xs font-medium"
                   >
-                    <option value="contributor">Contributor</option>
-                    <option value="lead">Project Lead</option>
-                    <option value="reviewer">Reviewer</option>
-                    <option value="viewer">Viewer</option>
-                  </select>
+                    {isPending ? "Assigning..." : "Confirm Assignment"}
+                  </Button>
                 </div>
-              </div>
-              <div className="mt-3 flex justify-end">
-                <button
-                  type="submit"
-                  disabled={isPending}
-                  className="rounded bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-4 py-1.5 text-xs font-medium transition"
-                >
-                  {isPending ? "Assigning..." : "Confirm Assignment"}
-                </button>
-              </div>
-            </form>
+              </form>
+            </Card>
           )}
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {project.teamMembers.map((member) => (
-              <div
+              <Card
                 key={member.name}
-                className="flex items-center justify-between rounded bg-surface-container-lowest border border-outline/20 p-3"
+                className="flex items-center justify-between p-3.5 bg-muted/10 border-border/50"
               >
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-3">
                   <div
                     className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white shadow ${
                       member.color || "bg-primary"
@@ -565,53 +569,50 @@ export function ProjectDetailView({
                     {member.initials}
                   </div>
                   <div>
-                    <p className="font-semibold text-xs text-on-surface">{member.name}</p>
-                    <span className="text-[10px] font-mono text-on-surface-variant capitalize">
+                    <p className="font-semibold text-xs text-foreground">{member.name}</p>
+                    <span className="text-[10px] font-mono text-muted-foreground capitalize">
                       {member.role}
                     </span>
                   </div>
                 </div>
 
                 {canManageProject && member.name !== project.owner && member.id && (
-                  <button
-                    type="button"
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     onClick={() => handleRemoveProjectMember(member.id)}
                     disabled={isPending}
                     title="Remove from project"
-                    className="rounded p-1 text-on-surface-variant hover:text-error hover:bg-error-container/20 transition"
+                    className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                   >
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                  </button>
+                    <Trash2 className="size-3.5" />
+                  </Button>
                 )}
-              </div>
+              </Card>
             ))}
           </div>
-        </section>
+        </Card>
       )}
 
       {/* Tab: Activity */}
       {activeTab === "activity" && (
-        <section className="rounded bg-surface-container-low border border-outline/20 p-4 sm:p-5">
-          <h2 className="text-base font-bold text-on-surface mb-3">Recent Activity</h2>
+        <Card className="p-4 sm:p-5 border-border/60 shadow-xs">
+          <h2 className="text-base font-bold text-foreground mb-3 flex items-center gap-2">
+            <Activity className="size-4 text-primary" />
+            <span>Recent Activity</span>
+          </h2>
           <div className="space-y-2">
             {project.recentActivity.map((item, idx) => (
               <div
                 key={idx}
-                className="flex items-center gap-2.5 rounded bg-surface-container-lowest border border-outline/20 p-2.5 text-xs text-on-surface"
+                className="flex items-center gap-3 rounded-lg bg-muted/20 border border-border/40 p-3 text-xs text-foreground"
               >
-                <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                <span className="h-2 w-2 rounded-full bg-primary shrink-0" />
                 <span>{item}</span>
               </div>
             ))}
           </div>
-        </section>
+        </Card>
       )}
 
       {/* Task Creation Modal */}

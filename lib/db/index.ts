@@ -62,10 +62,11 @@ export const sql = new Proxy((() => {}) as unknown as postgres.Sql, {
   },
   apply(_target, _thisArg, args) {
     const instance = getClient();
-    return Reflect.apply(instance as unknown as Function, _thisArg, args);
+    return Reflect.apply(instance as unknown as (...args: unknown[]) => unknown, _thisArg, args);
   },
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const sqlite: any = sql;
 
 export function setDatabaseForTesting(_customSqlite?: unknown) {

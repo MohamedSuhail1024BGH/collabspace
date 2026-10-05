@@ -1,9 +1,13 @@
-"use client";
+import { Card } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { UserAvatar } from "@/components/ui/UserAvatar";
+import { Users } from "lucide-react";
 
 type TeamMemberMinimal = {
   name: string;
   role: string;
   initials?: string;
+  avatar?: string | null;
   color?: string;
   assigned?: number;
   completed?: number;
@@ -13,49 +17,61 @@ type TeamMemberMinimal = {
 export function TeamReport({ team, visible = true }: { team: TeamMemberMinimal[]; visible?: boolean }) {
   if (!visible) return null;
 
-  // Render each team member's performance from the provided period-specific data
   return (
-    <section className="rounded-xl border border-outline-variant/20 bg-surface-container-low p-4 sm:p-5 shadow-xs">
-      <h3 className="mb-3 text-base font-semibold text-on-surface font-headline-sm pb-2 border-b border-outline-variant/15">Team performance</h3>
+    <Card className="p-4 sm:p-5 border-border/60 shadow-xs">
+      <div className="mb-4 flex items-center justify-between pb-3 border-b border-border/60">
+        <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
+          <Users className="size-4 text-primary" />
+          <span>Team performance</span>
+        </h3>
+      </div>
 
       {team.length > 0 ? (
         <div className="space-y-2.5">
-          {team.map((m) => (
-            <div key={m.name} className="flex items-center justify-between gap-3 rounded-xl border border-outline-variant/15 bg-surface-container-lowest p-3 hover:bg-surface-high/60 transition shadow-xs">
-              <div className="flex items-center gap-2.5">
-                <div className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold text-on-primary ${m.color ?? "bg-primary"}`}>
-                  {m.initials ?? m.name.split(" ").map((s) => s[0]).slice(0, 2).join("")}
+          {team.map((m) => {
+            const assigned = m.assigned ?? 0;
+            const completedPct = assigned > 0 ? (m.completedPct ?? 0) : 0;
+            return (
+              <Card
+                key={m.name}
+                className="flex items-center justify-between gap-3 p-3 bg-muted/10 border-border/50 hover:bg-muted/20 transition shadow-xs"
+              >
+                <div className="flex items-center gap-2.5">
+                  <UserAvatar
+                    avatar={m.avatar}
+                    name={m.name}
+                    size="sm"
+                    className="h-8 w-8"
+                  />
+                  <div>
+                    <p className="text-xs font-semibold text-foreground">{m.name}</p>
+                    <p className="text-[11px] text-muted-foreground capitalize font-mono">{m.role}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs font-medium text-on-surface">{m.name}</p>
-                  <p className="text-[11px] text-on-surface-variant font-body-sm">{m.role}</p>
-                </div>
-              </div>
 
-              <div className="w-32">
-                <div className="flex items-center justify-between font-label-sm">
-                  <span className="text-[11px] text-on-surface-variant">Assigned</span>
-                  <span className="text-xs font-medium text-on-surface">{m.assigned}</span>
+                <div className="w-32 space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-[11px] text-muted-foreground">Assigned</span>
+                    <span className="text-xs font-semibold text-foreground font-mono">{assigned}</span>
+                  </div>
+                  <Progress value={completedPct} className="h-1.5" />
+                  <div className="flex items-center justify-between text-[10px] text-muted-foreground font-mono">
+                    <span>{m.completed ?? 0} done</span>
+                    <span className="font-semibold text-foreground">{completedPct}%</span>
+                  </div>
                 </div>
-                <div className="mt-1 h-1.5 w-full rounded-full bg-surface-container-highest overflow-hidden">
-                  <div className="h-full rounded-full bg-secondary" style={{ width: `${m.completedPct}%` }} />
-                </div>
-                <div className="mt-1 flex items-center justify-between text-[10px] text-on-surface-variant font-label-sm">
-                  <span>{m.completed} done</span>
-                  <span>{m.completedPct}%</span>
-                </div>
-              </div>
-            </div>
-          ))}
+              </Card>
+            );
+          })}
         </div>
       ) : (
         <div
           data-testid="no-team-reports"
-          className="rounded border border-dashed border-outline/20 bg-surface-container-lowest p-6 text-center text-xs text-on-surface-variant"
+          className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground font-mono"
         >
           No Team Members here
         </div>
       )}
-    </section>
+    </Card>
   );
 }

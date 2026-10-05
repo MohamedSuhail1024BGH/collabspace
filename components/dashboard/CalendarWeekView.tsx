@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import type { CalendarEvent } from "@/data/mock-data";
 import { formatTimeShort } from "@/lib/format-time";
+import { cn } from "@/lib/utils";
 
 type Props = {
   year: number;
@@ -15,13 +16,13 @@ type Props = {
 };
 
 const categoryBadgeStyles: Record<string, string> = {
-  Meeting: "border-secondary/30 bg-secondary-container/20 text-secondary",
-  Planning: "border-primary/30 bg-primary-container/20 text-primary",
-  Design: "border-outline/30 bg-surface-container-high text-on-surface",
-  Engineering: "border-tertiary/30 bg-tertiary-container/20 text-tertiary",
-  Deadline: "border-error/30 bg-error-container/20 text-error",
-  Client: "border-secondary/30 bg-secondary-container/20 text-secondary",
-  Other: "border-outline/30 bg-surface-container text-on-surface-variant",
+  Meeting: "border-primary/40 bg-primary/10 text-primary",
+  Planning: "border-secondary/40 bg-secondary/15 text-secondary-foreground",
+  Design: "border-purple-500/30 bg-purple-500/10 text-purple-600 dark:text-purple-400",
+  Engineering: "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+  Deadline: "border-destructive/40 bg-destructive/10 text-destructive",
+  Client: "border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400",
+  Other: "border-border/60 bg-muted/40 text-muted-foreground",
 };
 
 export default function CalendarWeekView({
@@ -80,36 +81,38 @@ export default function CalendarWeekView({
   }, [refDate, events, category, selectedDate, month]);
 
   return (
-    <div data-testid="calendar-week-view" className="overflow-x-auto select-none scrollbar-thin">
+    <div data-testid="calendar-week-view" className="overflow-x-auto select-none">
       <div className="grid min-w-[540px] sm:min-w-[620px] grid-cols-7 gap-1.5 sm:gap-2">
         {weekDays.map((day) => (
           <div
             key={day.dateStr}
-            className={`flex min-h-[260px] sm:min-h-[340px] flex-col rounded border transition-all ${
+            className={cn(
+              "flex min-h-[260px] sm:min-h-[340px] flex-col rounded-lg border transition-all",
               day.isSelected
-                ? "border-2 border-primary bg-surface-container-high shadow-xs"
+                ? "border-primary ring-1 ring-primary/40 bg-card shadow-xs"
                 : day.inCurrentMonth
-                ? "border-outline/20 bg-surface-container-lowest hover:bg-surface-container"
-                : "border-outline/10 bg-surface-container-lowest/30 opacity-70"
-            }`}
+                ? "border-border/60 bg-card/60 hover:bg-card hover:border-border"
+                : "border-border/30 bg-muted/20 opacity-60"
+            )}
           >
             {/* Day Header */}
             <div
               onClick={() => onSelectDate(day.dateStr)}
-              className="cursor-pointer border-b border-outline/10 p-2.5 text-center transition"
+              className="cursor-pointer border-b border-border/40 p-2.5 text-center transition hover:bg-muted/30"
             >
-              <div className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">
+              <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
                 {day.dayName}
               </div>
               <div className="mt-1 flex items-center justify-center">
                 <span
-                  className={`flex h-6 w-6 items-center justify-center rounded text-xs font-mono transition ${
+                  className={cn(
+                    "flex h-6 w-6 items-center justify-center rounded-md text-xs font-mono transition",
                     day.isToday
-                      ? "bg-primary font-bold text-on-primary shadow-xs"
+                      ? "bg-primary font-bold text-primary-foreground shadow-xs"
                       : day.isSelected
-                      ? "bg-surface-container-highest text-primary font-bold"
-                      : "text-on-surface"
-                  }`}
+                      ? "bg-muted text-primary font-bold ring-1 ring-primary/40"
+                      : "text-foreground"
+                  )}
                 >
                   {day.dayNumber}
                 </span>
@@ -119,14 +122,14 @@ export default function CalendarWeekView({
             {/* Events in Day */}
             <div className="flex-1 space-y-1.5 p-2 overflow-y-auto max-h-72">
               {day.events.length === 0 ? (
-                <div className="pt-8 text-center text-[10px] font-mono text-on-surface-variant/40">
+                <div className="pt-8 text-center text-[10px] font-mono text-muted-foreground/40">
                   No events
                 </div>
               ) : (
                 day.events.map((ev) => {
                   const style =
                     categoryBadgeStyles[ev.category] ||
-                    "border-outline/20 bg-surface-container text-on-surface";
+                    "border-border/50 bg-muted text-foreground";
 
                   return (
                     <div
@@ -135,7 +138,10 @@ export default function CalendarWeekView({
                         e.stopPropagation();
                         onSelectEvent(ev);
                       }}
-                      className={`cursor-pointer rounded border p-2 text-left transition hover:brightness-110 shadow-xs ${style}`}
+                      className={cn(
+                        "cursor-pointer rounded-md border p-2 text-left transition hover:brightness-105 shadow-xs",
+                        style
+                      )}
                     >
                       <div className="flex items-center justify-between text-[10px] font-mono opacity-80 mb-0.5">
                         <span>{formatTimeShort(ev.startTime)}</span>

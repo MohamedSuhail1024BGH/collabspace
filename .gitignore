@@ -54,7 +54,9 @@ collabspace.db*
 
 .opencode
 
-#agent-conf
+# agent-conf
 .agents/
 .freebuff/
 .test-tmp/
+
+additions/

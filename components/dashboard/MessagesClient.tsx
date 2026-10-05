@@ -13,6 +13,20 @@ import ConversationItem from "@/components/dashboard/ConversationItem";
 import MessageComposer from "@/components/dashboard/MessageComposer";
 import MessageList from "@/components/dashboard/MessageList";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Search,
+  Plus,
+  MessageSquare,
+  Hash,
+  Users,
+  X,
+  MessageCircle,
+} from "lucide-react";
 import type { Conversation, Message } from "@/data/mock-data";
 import type { FullConversation } from "@/lib/db/queries";
 import type { WorkspaceMemberItem } from "@/components/dashboard/EventForm";
@@ -363,6 +377,7 @@ export function MessagesClient({
         participantIds: currentUser?.id ? [currentUser.id, member.user.id] : [member.user.id],
         name: member.user.name,
         initials,
+        avatar: member.user.avatar || null,
         color: "bg-primary",
         role: member.role === "owner" ? "Owner" : member.role === "admin" ? "Admin" : "Team Member",
         online: false,
@@ -439,43 +454,40 @@ export function MessagesClient({
   };
 
   return (
-    <div className="h-full w-full flex overflow-hidden bg-surface">
-      {/* Left Sub-Pane: Channels & Peers Navigation (Telegram Desktop Sidebar) */}
+    <div className="h-full w-full flex overflow-hidden bg-background">
+      {/* Left Sub-Pane: Channels & Peers Navigation */}
       <aside
-        className={`w-full md:w-80 lg:w-84 xl:w-88 flex-shrink-0 flex flex-col bg-surface-container-low border-r border-outline/15 select-none pb-0 ${
+        className={`w-full md:w-80 lg:w-84 xl:w-88 flex-shrink-0 flex flex-col bg-card border-r border-border/60 select-none pb-0 ${
           showListOnMobile ? "flex" : "hidden md:flex"
         }`}
       >
-        {/* Telegram Desktop Top Bar: Title Landmark & Compose Trigger */}
-        <div className="h-14 px-3.5 border-b border-outline/15 flex items-center justify-between bg-surface-container-low shrink-0">
+        {/* Top Header */}
+        <div className="h-14 px-4 border-b border-border/60 flex items-center justify-between bg-card shrink-0">
           <div className="flex items-center gap-2 min-w-0">
-            <h1 className="text-sm sm:text-base font-bold text-on-surface font-headline-sm tracking-tight truncate">
+            <MessageSquare className="size-4 text-primary" />
+            <h1 className="text-sm sm:text-base font-bold text-foreground tracking-tight truncate">
               Messages
             </h1>
           </div>
 
-          <button
-            type="button"
+          <Button
+            size="sm"
             data-testid="new-chat-btn"
             onClick={() => setShowNewChatModal(true)}
-            className="flex items-center gap-1.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-2.5 py-1.5 text-xs font-medium shadow-xs transition-colors shrink-0"
+            className="h-8 px-2.5 text-xs font-medium shrink-0 cursor-pointer"
             title="Create channel or conversation"
           >
-            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
+            <Plus className="size-3.5 mr-1" />
             <span>New chat</span>
-          </button>
+          </Button>
         </div>
 
         {/* Channel Search & Quick Filters */}
-        <div className="p-3 border-b border-outline/10 space-y-2.5 bg-surface-container-low shrink-0">
+        <div className="p-3 border-b border-border/40 space-y-2.5 bg-card/80 shrink-0">
           {/* Filter Search Input */}
-          <div className="relative flex items-center rounded-lg bg-surface-container-lowest border border-outline/20 px-2.5 py-1.5 text-xs text-on-surface focus-within:border-primary">
-            <svg className="h-3.5 w-3.5 text-on-surface-variant shrink-0 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+            <Input
               ref={searchInputRef}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -485,35 +497,33 @@ export function MessagesClient({
                 }
               }}
               placeholder="Filter channels, peers..."
-              className="w-full bg-transparent border-none outline-none font-body-sm text-xs text-on-surface placeholder:text-on-surface-variant/50"
+              className="pl-8 pr-7 h-8 text-xs"
             />
             {search ? (
               <button
                 type="button"
                 onClick={() => setSearch("")}
-                className="p-0.5 text-on-surface-variant hover:text-on-surface rounded transition-colors"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-muted-foreground hover:text-foreground rounded"
                 aria-label="Clear search"
               >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <X className="size-3.5" />
               </button>
             ) : (
-              <kbd className="font-mono text-[9px] bg-surface-container-high text-on-surface-variant px-1 rounded">
+              <kbd className="absolute right-2 top-1/2 -translate-y-1/2 font-mono text-[9px] bg-muted text-muted-foreground px-1 py-0.5 rounded border border-border/40 pointer-events-none">
                 F
               </kbd>
             )}
           </div>
 
           {/* Filter Pill Tabs */}
-          <div className="flex items-center gap-1 text-[11px] font-mono">
+          <div className="flex items-center gap-1 text-[11px] font-mono bg-muted/40 p-0.5 rounded-lg border border-border/30">
             <button
               type="button"
               onClick={() => setFilterType("all")}
-              className={`flex-1 py-1 rounded text-center transition-colors ${
+              className={`flex-1 py-1 rounded text-center transition-all cursor-pointer ${
                 filterType === "all"
-                  ? "bg-surface-container-highest text-on-surface font-semibold"
-                  : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
+                  ? "bg-background text-foreground font-semibold shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               All ({conversations.length})
@@ -521,10 +531,10 @@ export function MessagesClient({
             <button
               type="button"
               onClick={() => setFilterType("channels")}
-              className={`flex-1 py-1 rounded text-center transition-colors ${
+              className={`flex-1 py-1 rounded text-center transition-all cursor-pointer ${
                 filterType === "channels"
-                  ? "bg-surface-container-highest text-on-surface font-semibold"
-                  : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
+                  ? "bg-background text-foreground font-semibold shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               Channels ({conversations.filter(isChannel).length})
@@ -532,10 +542,10 @@ export function MessagesClient({
             <button
               type="button"
               onClick={() => setFilterType("direct")}
-              className={`flex-1 py-1 rounded text-center transition-colors ${
+              className={`flex-1 py-1 rounded text-center transition-all cursor-pointer ${
                 filterType === "direct"
-                  ? "bg-surface-container-highest text-on-surface font-semibold"
-                  : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
+                  ? "bg-background text-foreground font-semibold shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               DMs ({conversations.filter((c) => !isChannel(c)).length})
@@ -544,11 +554,11 @@ export function MessagesClient({
         </div>
 
         {/* Navigation Tree (Channels & Direct Messages) */}
-        <div className="flex-1 overflow-y-auto p-2 space-y-4 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-2 space-y-4">
           {/* 1. Channels Section */}
           {(filterType === "all" || filterType === "channels") && (
             <div>
-              <div className="flex items-center justify-between px-2 py-1 text-on-surface-variant">
+              <div className="flex items-center justify-between px-2 py-1 text-muted-foreground">
                 <span className="font-mono text-[10px] uppercase tracking-wider font-semibold">
                   Channels
                 </span>
@@ -558,10 +568,10 @@ export function MessagesClient({
                     setNewChatTab("channel");
                     setShowNewChatModal(true);
                   }}
-                  className="hover:text-on-surface text-xs p-0.5"
+                  className="hover:text-foreground text-xs p-0.5"
                   title="New channel"
                 >
-                  +
+                  <Plus className="size-3" />
                 </button>
               </div>
               <div className="space-y-0.5 mt-1">
@@ -574,7 +584,7 @@ export function MessagesClient({
                   />
                 ))}
                 {channelsList.length === 0 && (
-                  <p className="px-2 py-1.5 text-[11px] font-mono text-on-surface-variant/60">
+                  <p className="px-2 py-2 text-[11px] font-mono text-muted-foreground/60">
                     No channels found
                   </p>
                 )}
@@ -585,7 +595,7 @@ export function MessagesClient({
           {/* 2. Direct Messages Section */}
           {(filterType === "all" || filterType === "direct") && (
             <div>
-              <div className="flex items-center justify-between px-2 py-1 text-on-surface-variant">
+              <div className="flex items-center justify-between px-2 py-1 text-muted-foreground">
                 <span className="font-mono text-[10px] uppercase tracking-wider font-semibold">
                   Direct Messages
                 </span>
@@ -595,10 +605,10 @@ export function MessagesClient({
                     setNewChatTab("direct");
                     setShowNewChatModal(true);
                   }}
-                  className="hover:text-on-surface text-xs p-0.5"
+                  className="hover:text-foreground text-xs p-0.5"
                   title="New direct message"
                 >
-                  +
+                  <Plus className="size-3" />
                 </button>
               </div>
               <div className="space-y-0.5 mt-1">
@@ -611,7 +621,7 @@ export function MessagesClient({
                   />
                 ))}
                 {directList.length === 0 && (
-                  <p className="px-2 py-1.5 text-[11px] font-mono text-on-surface-variant/60">
+                  <p className="px-2 py-2 text-[11px] font-mono text-muted-foreground/60">
                     No direct messages
                   </p>
                 )}
@@ -621,9 +631,9 @@ export function MessagesClient({
         </div>
       </aside>
 
-      {/* Right Active Message Stream & Composer (Telegram Desktop Chat View) */}
+      {/* Right Active Message Stream & Composer */}
       <main
-        className={`flex-1 flex flex-col min-w-0 bg-surface overflow-hidden ${
+        className={`flex-1 flex flex-col min-w-0 bg-background overflow-hidden ${
           !showListOnMobile ? "flex" : "hidden md:flex"
         }`}
       >
@@ -632,13 +642,15 @@ export function MessagesClient({
             <ChatHeader
               conversation={activeConversation}
               onBack={() => setShowListOnMobile(true)}
-              memberCount={workspaceMembers.length || 8}
+              memberCount={workspaceMembers.length || 1}
             />
 
             <MessageList
               messages={activeConversation.messages}
               currentUserName={currentUser?.name}
               currentUserEmail={currentUser?.email}
+              senderAvatar={activeConversation.avatar}
+              workspaceMembers={workspaceMembers}
             />
 
             <MessageComposer
@@ -647,23 +659,21 @@ export function MessagesClient({
             />
           </div>
         ) : (
-          <div className="flex flex-1 flex-col items-center justify-center p-8 text-center text-on-surface-variant">
-            <div className="w-12 h-12 rounded-xl bg-surface-container flex items-center justify-center text-primary mb-3 border border-outline/15 shadow-sm">
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
+          <div className="flex flex-1 flex-col items-center justify-center p-8 text-center text-muted-foreground">
+            <div className="w-12 h-12 rounded-xl bg-muted/40 flex items-center justify-center text-primary mb-3 border border-border/40 shadow-xs">
+              <MessageCircle className="size-6" />
             </div>
-            <h3 className="text-sm font-semibold text-on-surface">No conversation selected</h3>
-            <p className="mt-1 text-xs font-mono text-on-surface-variant max-w-sm">
-              Select a channel or colleague from the left panel, or click &quot;+ New chat&quot; to begin a new thread.
+            <h3 className="text-sm font-semibold text-foreground">No conversation selected</h3>
+            <p className="mt-1 text-xs font-mono text-muted-foreground max-w-sm">
+              Select a channel or colleague from the left panel, or click &quot;New chat&quot; to begin a new thread.
             </p>
-            <button
-              type="button"
+            <Button
+              size="sm"
               onClick={() => setShowNewChatModal(true)}
-              className="mt-4 rounded bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-3.5 py-1.5 text-xs font-medium transition shadow-xs"
+              className="mt-4 h-8 text-xs font-medium"
             >
               Start a conversation
-            </button>
+            </Button>
           </div>
         )}
       </main>
@@ -672,41 +682,40 @@ export function MessagesClient({
       {showNewChatModal && mounted && createPortal(
         <div
           data-testid="new-chat-modal"
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-md animate-in fade-in duration-150"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-150"
           onClick={() => setShowNewChatModal(false)}
         >
-          <div
-            className="w-full max-w-md rounded-xl bg-surface-container-high border border-outline/20 p-5 shadow-2xl max-h-[90dvh] overflow-y-auto custom-scrollbar"
+          <Card
+            className="w-full max-w-md p-5 shadow-2xl max-h-[90dvh] overflow-y-auto border-border/80"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mb-4 flex items-center justify-between pb-2 border-b border-outline/10">
+            <div className="mb-4 flex items-center justify-between pb-3 border-b border-border/60">
               <div>
-                <h2 className="text-base font-bold text-on-surface font-headline-sm">Start a Conversation</h2>
-                <p className="text-[11px] font-mono text-on-surface-variant mt-0.5">
+                <h2 className="text-base font-bold text-foreground">Start a Conversation</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
                   Message a team member or create a new team channel.
                 </p>
               </div>
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => setShowNewChatModal(false)}
-                className="p-1 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
+                className="h-7 w-7 text-muted-foreground hover:text-foreground"
                 aria-label="Close modal"
               >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+                <X className="size-4" />
+              </Button>
             </div>
 
             {/* Modal Tabs */}
-            <div className="mb-4 flex rounded bg-surface-container-lowest border border-outline/20 p-0.5">
+            <div className="mb-4 flex rounded-lg bg-muted/40 border border-border/40 p-1">
               <button
                 type="button"
                 onClick={() => setNewChatTab("direct")}
-                className={`flex-1 rounded py-1.5 text-xs font-medium transition ${
+                className={`flex-1 rounded py-1.5 text-xs font-medium transition cursor-pointer ${
                   newChatTab === "direct"
-                    ? "bg-surface-container-highest text-on-surface font-semibold shadow-xs"
-                    : "text-on-surface-variant hover:text-on-surface"
+                    ? "bg-background text-foreground font-semibold shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 Direct Message
@@ -714,10 +723,10 @@ export function MessagesClient({
               <button
                 type="button"
                 onClick={() => setNewChatTab("channel")}
-                className={`flex-1 rounded py-1.5 text-xs font-medium transition ${
+                className={`flex-1 rounded py-1.5 text-xs font-medium transition cursor-pointer ${
                   newChatTab === "channel"
-                    ? "bg-surface-container-highest text-on-surface font-semibold shadow-xs"
-                    : "text-on-surface-variant hover:text-on-surface"
+                    ? "bg-background text-foreground font-semibold shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 Create Channel
@@ -726,10 +735,10 @@ export function MessagesClient({
 
             {newChatTab === "direct" ? (
               <div className="space-y-2.5">
-                <p className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">
+                <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
                   Select Team Colleague
                 </p>
-                <div className="max-h-60 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
+                <div className="max-h-60 overflow-y-auto space-y-1.5 pr-1">
                   {workspaceMembers
                     .filter((m) => m.user.id !== currentUser?.id)
                     .map((m) => (
@@ -739,27 +748,27 @@ export function MessagesClient({
                         data-testid={`start-dm-${m.user.username?.toLowerCase() || m.user.id}`}
                         disabled={isCreatingChat}
                         onClick={() => handleStartDirectMessage(m)}
-                        className="flex w-full items-center justify-between rounded bg-surface-container-lowest border border-outline/20 p-2.5 text-left transition hover:bg-surface-container-high group"
+                        className="flex w-full items-center justify-between rounded-lg bg-muted/20 border border-border/40 p-2.5 text-left transition hover:bg-muted/40 group cursor-pointer"
                       >
                         <div className="flex items-center gap-2.5">
                           <UserAvatar avatar={m.user.avatar} name={m.user.name} size="sm" />
                           <div>
-                            <p className="text-xs font-semibold text-on-surface group-hover:text-primary transition-colors">
+                            <p className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors">
                               {m.user.name}
                             </p>
-                            <p className="text-[11px] font-mono text-on-surface-variant">
+                            <p className="text-[11px] font-mono text-muted-foreground">
                               @{m.user.username || "user"}
                             </p>
                           </div>
                         </div>
-                        <span className="rounded bg-surface-container px-2 py-0.5 text-[10px] font-mono text-on-surface-variant">
+                        <Badge variant="outline" className="text-[10px] font-mono bg-muted/40">
                           {m.role}
-                        </span>
+                        </Badge>
                       </button>
                     ))}
 
                   {workspaceMembers.filter((m) => m.user.id !== currentUser?.id).length === 0 && (
-                    <p className="py-4 text-center text-xs font-mono text-on-surface-variant">
+                    <p className="py-6 text-center text-xs font-mono text-muted-foreground">
                       No other members in this workspace yet. Invite colleagues in Settings!
                     </p>
                   )}
@@ -768,64 +777,65 @@ export function MessagesClient({
             ) : (
               <form onSubmit={handleCreateChannel} className="space-y-3">
                 <div>
-                  <label className="block text-[11px] font-mono uppercase text-on-surface-variant mb-1">
+                  <label className="block text-[11px] font-mono uppercase text-muted-foreground mb-1">
                     Channel Name
                   </label>
-                  <input
-                    type="text"
+                  <Input
                     required
                     placeholder="e.g. #marketing-sync"
                     value={newChannelName}
                     onChange={(e) => setNewChannelName(e.target.value)}
-                    className="w-full rounded bg-surface-container-lowest border border-outline/20 px-3 py-1.5 text-xs text-on-surface focus:border-primary focus:outline-none font-mono"
+                    className="text-xs font-mono"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-mono uppercase text-on-surface-variant mb-1">
+                  <label className="block text-[11px] font-mono uppercase text-muted-foreground mb-1">
                     Topic / Description
                   </label>
-                  <input
-                    type="text"
+                  <Input
                     placeholder="e.g. Cross-functional campaign coordination"
                     value={newChannelDescription}
                     onChange={(e) => setNewChannelDescription(e.target.value)}
-                    className="w-full rounded bg-surface-container-lowest border border-outline/20 px-3 py-1.5 text-xs text-on-surface focus:border-primary focus:outline-none"
+                    className="text-xs"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-mono uppercase text-on-surface-variant mb-1">
+                  <label className="block text-[11px] font-mono uppercase text-muted-foreground mb-1">
                     Initial Message (Optional)
                   </label>
-                  <textarea
+                  <Textarea
                     rows={2}
                     placeholder="Welcome team! Use this channel to coordinate..."
                     value={newChannelInitialMessage}
                     onChange={(e) => setNewChannelInitialMessage(e.target.value)}
-                    className="w-full rounded bg-surface-container-lowest border border-outline/20 px-3 py-1.5 text-xs text-on-surface focus:border-primary focus:outline-none resize-none"
+                    className="text-xs resize-none"
                   />
                 </div>
 
-                <div className="mt-4 flex justify-end gap-2 pt-2 border-t border-outline/10">
-                  <button
+                <div className="mt-4 flex justify-end gap-2 pt-2 border-t border-border/50">
+                  <Button
                     type="button"
+                    variant="outline"
+                    size="sm"
                     onClick={() => setShowNewChatModal(false)}
-                    className="rounded bg-surface-container-high px-3 py-1.5 text-xs font-medium text-on-surface hover:bg-surface-container-highest transition"
+                    className="h-8 text-xs"
                   >
                     Cancel
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="submit"
+                    size="sm"
                     disabled={isCreatingChat || !newChannelName.trim()}
-                    className="rounded bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-3.5 py-1.5 text-xs font-medium shadow-sm transition disabled:opacity-50"
+                    className="h-8 text-xs font-medium"
                   >
                     {isCreatingChat ? "Creating..." : "Create Channel"}
-                  </button>
+                  </Button>
                 </div>
               </form>
             )}
-          </div>
+          </Card>
         </div>,
         document.body
       )}

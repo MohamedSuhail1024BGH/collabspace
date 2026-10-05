@@ -1,3 +1,7 @@
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Search, RotateCcw } from "lucide-react";
+
 type TaskFiltersProps = {
   search: string;
   status: string;
@@ -31,25 +35,26 @@ export function TaskFilters({
     <div className="mb-4 flex flex-col gap-2.5">
       {/* Search Input */}
       <div className="relative w-full">
-        <input
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+        <Input
           value={search}
           onChange={(event) => onSearchChange(event.target.value)}
           type="search"
           placeholder="Search tasks by title or assignee..."
-          className="w-full rounded-lg bg-surface-container-lowest border border-outline/20 px-3 py-2 sm:py-1.5 text-xs text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:outline-none"
+          className="pl-9 h-9"
         />
       </div>
 
       {/* Filter Selects & Actions Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-[repeat(3,minmax(130px,1fr))_auto] gap-2 items-center">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-[repeat(3,minmax(140px,1fr))_auto] gap-2 items-center">
         <select
           value={status}
           onChange={(event) => onStatusChange(event.target.value)}
           aria-label="Filter by status"
-          className="w-full rounded-lg bg-surface-container-lowest border border-outline/20 px-2.5 py-2 sm:py-1.5 text-xs text-on-surface focus:border-primary focus:outline-none font-mono"
+          className="w-full rounded-lg border border-input bg-card px-3 py-1.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-mono h-9 cursor-pointer"
         >
           {statusOptions.map((option) => (
-            <option key={option} value={option} className="bg-surface-container text-on-surface">
+            <option key={option} value={option}>
               {option === "All" ? "Status: All" : option}
             </option>
           ))}
@@ -59,10 +64,10 @@ export function TaskFilters({
           value={priority}
           onChange={(event) => onPriorityChange(event.target.value)}
           aria-label="Filter by priority"
-          className="w-full rounded-lg bg-surface-container-lowest border border-outline/20 px-2.5 py-2 sm:py-1.5 text-xs text-on-surface focus:border-primary focus:outline-none font-mono"
+          className="w-full rounded-lg border border-input bg-card px-3 py-1.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-mono h-9 cursor-pointer"
         >
           {priorityOptions.map((option) => (
-            <option key={option} value={option} className="bg-surface-container text-on-surface">
+            <option key={option} value={option}>
               {option === "All" ? "Priority: All" : option}
             </option>
           ))}
@@ -72,22 +77,25 @@ export function TaskFilters({
           value={assignee}
           onChange={(event) => onAssigneeChange(event.target.value)}
           aria-label="Filter by assignee"
-          className="w-full rounded-lg bg-surface-container-lowest border border-outline/20 px-2.5 py-2 sm:py-1.5 text-xs text-on-surface focus:border-primary focus:outline-none font-mono col-span-1"
+          className="w-full rounded-lg border border-input bg-card px-3 py-1.5 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-mono h-9 cursor-pointer col-span-2 sm:col-span-1"
         >
           {assigneeOptions.map((option) => (
-            <option key={option} value={option} className="bg-surface-container text-on-surface">
+            <option key={option} value={option}>
               {option === "All" ? "Assignee: All" : option}
             </option>
           ))}
         </select>
 
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           onClick={onClear}
-          className="w-full sm:w-auto rounded-lg bg-surface-container hover:bg-surface-container-highest border border-outline/20 px-3 py-2 sm:py-1.5 text-xs font-mono text-on-surface transition active:scale-95 text-center cursor-pointer"
+          className="w-full sm:w-auto h-9 gap-1.5 text-xs font-mono col-span-2 lg:col-span-1"
         >
-          Clear
-        </button>
+          <RotateCcw className="size-3.5" />
+          <span>Clear</span>
+        </Button>
       </div>
     </div>
   );

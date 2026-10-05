@@ -2,6 +2,21 @@
 
 import { useMemo, useState, useEffect } from "react";
 import type { CalendarEvent } from "@/data/mock-data";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Field, FieldLabel } from "@/components/ui/field";
+import { Badge } from "@/components/ui/badge";
+import { Calendar as CalendarIcon, Check, Plus } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export type WorkspaceMemberItem = {
   membershipId: string;
@@ -101,220 +116,200 @@ export default function EventForm({
 
   const isInvalidTimeRange = durationInfo.isNegative;
 
-  const toggleAttendee = (name: string) => {
-    setSelectedAttendees((current) =>
-      current.includes(name) ? current.filter((n) => n !== name) : [...current, name],
+  const toggleAttendee = (memberName: string) => {
+    setSelectedAttendees((prev) =>
+      prev.includes(memberName) ? prev.filter((a) => a !== memberName) : [...prev, memberName],
     );
   };
 
-  function handleSubmit(e: React.FormEvent) {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !date || !startTime || isInvalidTimeRange) return;
+
     onSave({
       title: title.trim(),
       date,
       startTime,
-      endTime: endTime || startTime,
+      endTime: endTime || undefined,
       category,
-      description: description.trim(),
-      attendees: selectedAttendees,
+      description: description.trim() || undefined,
+      attendees: selectedAttendees.length > 0 ? selectedAttendees : undefined,
     });
-  }
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-surface-container-lowest/80 p-0 sm:p-4 backdrop-blur-sm">
-      <div className="w-full max-w-2xl rounded-t-2xl sm:rounded-xl border border-outline/20 bg-surface-container-low p-5 sm:p-6 shadow-2xl max-h-[92dvh] flex flex-col animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-150">
-        <div className="mb-4 flex items-center justify-between gap-3 shrink-0">
-          <div>
-            <p className="font-label-sm text-xs uppercase tracking-wider text-primary">
-              {mode === "create" ? "New event" : "Edit event"}
-            </p>
-            <h3 className="mt-1 text-lg sm:text-xl font-semibold text-on-surface">
-              {mode === "create" ? "Schedule an event" : "Update event details"}
-            </h3>
+    <Dialog open onOpenChange={(open) => !open && onCancel()}>
+      <DialogContent className="sm:max-w-xl max-h-[92vh] overflow-y-auto">
+        <DialogHeader>
+          <div className="flex items-center justify-between pr-6">
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <CalendarIcon className="size-5 text-primary" />
+              {mode === "create" ? "Create New Event" : "Update Event"}
+            </DialogTitle>
+            <Badge variant="outline" className="text-[10px] font-mono">
+              Schedule
+            </Badge>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="font-label-sm rounded border border-outline/20 bg-surface-container px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-on-surface-variant">
-              {mode === "create" ? "Draft" : "Event"}
-            </span>
-            <button
-              type="button"
-              onClick={onCancel}
-              className="p-1 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors sm:hidden min-h-[36px] min-w-[36px] flex items-center justify-center cursor-pointer"
-              aria-label="Close"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
+          <DialogDescription>
+            {mode === "create"
+              ? "Schedule a meeting, planning session, or team milestone."
+              : "Update event details, timing, or attendees."}
+          </DialogDescription>
+        </DialogHeader>
 
         {isInvalidTimeRange && (
-          <div className="mb-4 rounded border border-error/30 bg-error/10 p-3 text-xs text-error font-body-sm shrink-0">
+          <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
             <strong>Invalid time range:</strong> End time cannot be earlier than start time.
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0">
-          <div className="space-y-3.5 overflow-y-auto flex-1 pr-1 custom-scrollbar">
-            <div>
-              <label className="mb-1 block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
-                Title
-              </label>
-              <input
-                type="text"
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 py-2">
+          <Field>
+            <FieldLabel htmlFor="event-title">Title</FieldLabel>
+            <Input
+              id="event-title"
+              data-testid="event-title-input"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. Sprint Retro, Product Demo"
+              required
+              autoFocus
+            />
+          </Field>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field>
+              <FieldLabel htmlFor="event-date">Date</FieldLabel>
+              <Input
+                id="event-date"
+                type="date"
+                data-testid="event-date-input"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
                 required
-                placeholder="Event title..."
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="w-full rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:border-primary focus:outline-none"
+                className="font-mono h-9"
               />
-            </div>
+            </Field>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div>
-                <label className="mb-1 block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
-                  Date
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="w-full rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface focus:border-primary focus:outline-none"
-                />
-              </div>
+            <Field>
+              <FieldLabel htmlFor="event-category">Category</FieldLabel>
+              <select
+                id="event-category"
+                data-testid="event-category-select"
+                value={category}
+                onChange={(e) => setCategory(e.target.value as CalendarEvent["category"])}
+                className="w-full rounded-md border border-input bg-background px-3 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer h-9 font-mono"
+              >
+                {categoryOptions.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+            </Field>
 
-              <div>
-                <label className="mb-1 block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
-                  Start Time
-                </label>
-                <input
-                  type="time"
-                  required
-                  value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
-                  className="w-full rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface focus:border-primary focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <div className="mb-1 flex items-center justify-between">
-                  <label className="block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
-                    End Time
-                  </label>
-                  {durationInfo.text && !isInvalidTimeRange && (
-                    <span className="inline-flex items-center gap-1 font-label-sm text-[10px] font-semibold text-primary">
-                      <svg className="w-3 h-3 text-primary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <span>{durationInfo.text}</span>
-                    </span>
-                  )}
-                </div>
-                <input
-                  type="time"
-                  value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
-                  className={`w-full rounded border bg-surface-container-lowest px-3 py-2 text-xs text-on-surface focus:outline-none ${
-                    isInvalidTimeRange
-                      ? "border-error/50 focus:border-error"
-                      : "border-outline/20 focus:border-primary"
-                  }`}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div>
-                <label className="mb-1 block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
-                  Category
-                </label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value as CalendarEvent["category"])}
-                  className="w-full rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface focus:border-primary focus:outline-none"
-                >
-                  {categoryOptions.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="mb-1 block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
-                  Attendees ({selectedAttendees.length})
-                </label>
-                <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto rounded border border-outline/20 bg-surface-container-lowest p-2">
-                  {workspaceMembers.length > 0 ? (
-                    workspaceMembers.map((m) => {
-                      const isSelected = selectedAttendees.includes(m.user.name);
-                      return (
-                        <button
-                          key={m.user.id}
-                          type="button"
-                          onClick={() => toggleAttendee(m.user.name)}
-                          className={`inline-flex items-center gap-1 rounded border px-2 py-0.5 text-xs font-medium transition cursor-pointer ${
-                            isSelected
-                              ? "border-primary/40 bg-primary/20 text-primary"
-                              : "border-outline/20 bg-surface-container text-on-surface-variant hover:text-on-surface hover:border-outline/40"
-                          }`}
-                        >
-                          {isSelected ? (
-                            <svg className="w-3 h-3 text-primary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                          ) : (
-                            <svg className="w-3 h-3 text-on-surface-variant shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                            </svg>
-                          )}
-                          <span>{m.user.name}</span>
-                        </button>
-                      );
-                    })
-                  ) : (
-                    <span className="text-xs text-on-surface-variant">No members available</span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <label className="mb-1 block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
-                Description
-              </label>
-              <textarea
-                rows={3}
-                placeholder="Notes, agenda, or video call links..."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="w-full rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:border-primary focus:outline-none"
+            <Field>
+              <FieldLabel htmlFor="event-start-time">Start Time</FieldLabel>
+              <Input
+                id="event-start-time"
+                type="time"
+                data-testid="event-start-time-input"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                required
+                className="font-mono h-9"
               />
-            </div>
+            </Field>
+
+            <Field>
+              <div className="flex items-center justify-between">
+                <FieldLabel htmlFor="event-end-time">End Time</FieldLabel>
+                {durationInfo.text && !durationInfo.isNegative && (
+                  <span className="text-[11px] font-mono text-muted-foreground">
+                    ({durationInfo.text})
+                  </span>
+                )}
+              </div>
+              <Input
+                id="event-end-time"
+                type="time"
+                data-testid="event-end-time-input"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                className={cn("font-mono h-9", isInvalidTimeRange && "border-destructive")}
+              />
+              {isInvalidTimeRange && (
+                <p className="text-xs text-destructive mt-1">End time must be after start time</p>
+              )}
+            </Field>
           </div>
 
-          <div className="flex items-center justify-end gap-2.5 pt-3 mt-3 border-t border-outline/10 shrink-0">
-            <button
+          <Field>
+            <FieldLabel>Attendees</FieldLabel>
+            <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto rounded-lg border border-border bg-secondary/30 p-2">
+              {workspaceMembers.length > 0 ? (
+                workspaceMembers.map((m) => {
+                  const isSelected = selectedAttendees.includes(m.user.name);
+                  return (
+                    <button
+                      key={m.user.id}
+                      type="button"
+                      data-testid={`attendee-checkbox-${m.user.id}`}
+                      onClick={() => toggleAttendee(m.user.name)}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium transition cursor-pointer",
+                        isSelected
+                          ? "border-primary/40 bg-primary/15 text-primary"
+                          : "border-border bg-card text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {isSelected ? (
+                        <Check className="size-3 text-primary shrink-0" />
+                      ) : (
+                        <Plus className="size-3 text-muted-foreground shrink-0" />
+                      )}
+                      <span>{m.user.name}</span>
+                    </button>
+                  );
+                })
+              ) : (
+                <span className="text-xs text-muted-foreground">No members available</span>
+              )}
+            </div>
+          </Field>
+
+          <Field>
+            <FieldLabel htmlFor="event-description">Description</FieldLabel>
+            <Textarea
+              id="event-description"
+              data-testid="event-description-input"
+              rows={3}
+              placeholder="Notes, agenda, or video call links..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </Field>
+
+          <DialogFooter className="mt-2">
+            <Button
               type="button"
+              variant="outline"
+              data-testid="event-cancel-btn"
               onClick={onCancel}
-              className="rounded-lg border border-outline/20 bg-surface-container hover:bg-surface-container-high px-4 py-2 sm:py-1.5 text-xs font-medium text-on-surface-variant hover:text-on-surface transition active:scale-95 cursor-pointer min-h-[40px] sm:min-h-0"
+              disabled={isSaving}
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
+              data-testid="event-save-btn"
               disabled={isSaving || !title.trim() || !date || !startTime || isInvalidTimeRange}
-              className="rounded-lg bg-primary hover:bg-primary-container px-4 py-2 sm:py-1.5 text-xs font-semibold text-on-primary hover:text-on-primary-container transition disabled:opacity-50 shadow-sm active:scale-95 cursor-pointer min-h-[40px] sm:min-h-0"
             >
               {isSaving ? "Saving..." : mode === "create" ? "Create event" : "Save changes"}
-            </button>
-          </div>
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

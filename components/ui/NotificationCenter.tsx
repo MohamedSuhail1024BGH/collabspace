@@ -9,6 +9,19 @@ import {
   acceptWorkspaceInviteAction,
   declineWorkspaceInviteAction,
 } from "@/app/actions";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Bell,
+  Check,
+  X,
+  Clock,
+  UserPlus,
+  ListTodo,
+  CheckCircle2,
+  Info,
+} from "lucide-react";
 import type { DbNotification } from "@/lib/db/schema";
 
 interface InviteData {
@@ -251,42 +264,35 @@ export function NotificationCenter() {
     <div className="relative" ref={menuRef}>
       {/* Toast banner */}
       {toastMessage && (
-        <div
+        <Card
           data-testid="notification-toast"
-          className="fixed top-4 right-4 sm:right-6 z-50 px-3.5 py-2.5 rounded-lg bg-surface-container-high border border-outline/30 text-on-surface shadow-xl text-xs font-mono flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-150 backdrop-blur-md"
+          className="fixed top-4 right-4 sm:right-6 z-50 px-4 py-2.5 shadow-xl text-xs font-mono flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-150 backdrop-blur-md border-border/80"
         >
           <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
           <span>{toastMessage}</span>
           <button
             type="button"
             onClick={() => setToastMessage(null)}
-            className="ml-2 text-on-surface-variant hover:text-on-surface text-xs"
+            className="ml-2 text-muted-foreground hover:text-foreground text-xs"
           >
-            ✕
+            <X className="size-3" />
           </button>
-        </div>
+        </Card>
       )}
 
       {/* Floating 10-Second Reminder Card */}
       {activeReminder && (
-        <div
+        <Card
           data-testid="invite-reminder-banner"
-          className="fixed top-16 right-4 sm:right-6 z-50 p-4 max-w-sm w-full bg-surface-container-high border border-primary/40 rounded-xl shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-top-3 duration-200"
+          className="fixed top-16 right-4 sm:right-6 z-50 p-4 max-w-sm w-full border-primary/40 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-top-3 duration-200"
         >
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 rounded-lg bg-primary/20 text-primary flex items-center justify-center shrink-0 animate-pulse">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                />
-              </svg>
+              <Bell className="size-4" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-1">
-                <h4 className="text-xs font-semibold text-on-surface font-headline-sm">
+                <h4 className="text-xs font-semibold text-foreground">
                   Reminder: Workspace Invitation
                 </h4>
                 <button
@@ -295,50 +301,47 @@ export function NotificationCenter() {
                     setActiveReminder(null);
                     setIsPulsingBell(false);
                   }}
-                  className="text-on-surface-variant hover:text-on-surface text-xs p-1"
+                  className="text-muted-foreground hover:text-foreground text-xs p-1"
                   title="Dismiss reminder"
                 >
-                  ✕
+                  <X className="size-3.5" />
                 </button>
               </div>
-              <p className="text-[11px] text-on-surface-variant mt-1 leading-relaxed">
+              <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
                 {activeReminder.message}
               </p>
               <div className="mt-3 flex items-center gap-2">
-                <button
-                  type="button"
+                <Button
+                  size="sm"
                   data-testid="reminder-accept-btn"
                   onClick={(e) => {
                     handleAcceptInvite(e, activeReminder);
                     setActiveReminder(null);
                     setIsPulsingBell(false);
                   }}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-secondary/15 hover:bg-secondary/25 text-secondary border border-secondary/30 text-[11px] font-mono font-medium transition active:scale-95"
+                  className="h-7 px-2.5 text-[11px] font-mono font-medium"
                 >
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M5 13l4 4L19 7" />
-                  </svg>
+                  <Check className="size-3 mr-1" />
                   Accept
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
                   data-testid="reminder-decline-btn"
                   onClick={(e) => {
                     handleDeclineInvite(e, activeReminder);
                     setActiveReminder(null);
                     setIsPulsingBell(false);
                   }}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-error/10 hover:bg-error/20 text-error border border-error/25 text-[11px] font-mono font-medium transition active:scale-95"
+                  className="h-7 px-2.5 text-[11px] font-mono text-destructive hover:bg-destructive/10"
                 >
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <X className="size-3 mr-1" />
                   Decline
-                </button>
+                </Button>
               </div>
             </div>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Bell Button */}
@@ -348,33 +351,21 @@ export function NotificationCenter() {
         onClick={handleToggle}
         title="Notifications"
         aria-label={`Notifications, ${unreadCount} unread`}
-        className={`relative p-2 rounded-lg transition-all focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none select-none ${
+        className={`relative p-2 rounded-lg transition-all focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none select-none cursor-pointer ${
           isPulsingBell ? "animate-pulse ring-2 ring-primary bg-primary/20 text-primary" : ""
         } ${
           isOpen
-            ? "bg-surface-container-high text-primary ring-1 ring-primary/30"
-            : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
+            ? "bg-accent text-primary ring-1 ring-primary/30"
+            : "text-muted-foreground hover:text-foreground hover:bg-accent/60"
         }`}
       >
-        <svg
-          className="h-4 w-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1.8}
-            d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-          />
-        </svg>
+        <Bell className="size-4" />
 
         {/* Unread Badge */}
         {unreadCount > 0 && (
           <span
             data-testid="notification-badge"
-            className="absolute top-1 right-1 flex items-center justify-center min-w-4 h-4 px-1 rounded-full bg-primary text-on-primary font-mono text-[9px] font-bold shadow-xs animate-in zoom-in"
+            className="absolute top-1 right-1 flex items-center justify-center min-w-4 h-4 px-1 rounded-full bg-primary text-primary-foreground font-mono text-[9px] font-bold shadow-xs animate-in zoom-in"
           >
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
@@ -383,20 +374,20 @@ export function NotificationCenter() {
 
       {/* Flyout Popover */}
       {isOpen && (
-        <div
+        <Card
           data-testid="notification-popover"
-          className="absolute right-0 top-full mt-2 w-80 sm:w-96 rounded-xl bg-surface-container-high border border-outline/20 shadow-2xl backdrop-blur-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150"
+          className="absolute right-0 top-full mt-2 w-80 sm:w-96 shadow-2xl backdrop-blur-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150 border-border/80"
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-outline/15 bg-surface-container-low">
+          <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-border/60 bg-muted/20">
             <div className="flex items-center gap-2">
-              <h3 className="text-xs font-semibold text-on-surface font-headline-sm">
+              <h3 className="text-xs font-semibold text-foreground">
                 Notifications
               </h3>
               {unreadCount > 0 && (
-                <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-primary/20 text-primary font-semibold">
+                <Badge variant="secondary" className="text-[10px] font-mono px-1.5 py-0">
                   {unreadCount} new
-                </span>
+                </Badge>
               )}
             </div>
 
@@ -406,7 +397,7 @@ export function NotificationCenter() {
                 data-testid="mark-all-read-btn"
                 onClick={handleMarkAllRead}
                 disabled={isPending}
-                className="text-[11px] font-mono text-primary hover:text-primary-container transition-colors disabled:opacity-50"
+                className="text-[11px] font-mono text-primary hover:underline transition-colors disabled:opacity-50 cursor-pointer"
               >
                 Mark all read
               </button>
@@ -414,15 +405,15 @@ export function NotificationCenter() {
           </div>
 
           {/* Filter Tabs */}
-          <div className="flex items-center gap-1 px-3 pt-2 pb-1 border-b border-outline/10 text-xs">
+          <div className="flex items-center gap-1 px-3 pt-2 pb-1 border-b border-border/40 text-xs bg-muted/10">
             <button
               type="button"
               data-testid="tab-all-notifications"
               onClick={() => setActiveTab("all")}
-              className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition ${
+              className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer ${
                 activeTab === "all"
-                  ? "bg-surface-container-highest text-on-surface font-semibold"
-                  : "text-on-surface-variant hover:text-on-surface"
+                  ? "bg-background text-foreground font-semibold shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               All ({notifications.length})
@@ -431,10 +422,10 @@ export function NotificationCenter() {
               type="button"
               data-testid="tab-unread-notifications"
               onClick={() => setActiveTab("unread")}
-              className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition ${
+              className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition cursor-pointer ${
                 activeTab === "unread"
-                  ? "bg-surface-container-highest text-primary font-semibold"
-                  : "text-on-surface-variant hover:text-on-surface"
+                  ? "bg-background text-primary font-semibold shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               Unread ({unreadCount})
@@ -442,28 +433,16 @@ export function NotificationCenter() {
           </div>
 
           {/* Notification List */}
-          <div className="max-h-80 sm:max-h-96 overflow-y-auto divide-y divide-outline/10 scrollbar-thin">
+          <div className="max-h-80 sm:max-h-96 overflow-y-auto divide-y divide-border/40">
             {filteredNotifications.length === 0 ? (
               <div className="p-8 text-center space-y-2">
-                <div className="mx-auto w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant/70">
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
+                <div className="mx-auto w-10 h-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
+                  <CheckCircle2 className="size-5" />
                 </div>
-                <p className="text-xs font-medium text-on-surface">
+                <p className="text-xs font-medium text-foreground">
                   {activeTab === "unread" ? "No unread notifications" : "No notifications yet"}
                 </p>
-                <p className="text-[11px] text-on-surface-variant font-body-sm max-w-xs mx-auto">
+                <p className="text-[11px] text-muted-foreground max-w-xs mx-auto">
                   {activeTab === "unread"
                     ? "You are completely caught up with all workspace updates."
                     : "When you receive invitations or task assignments, they will appear here."}
@@ -481,7 +460,7 @@ export function NotificationCenter() {
                     key={item.id}
                     data-testid={`notification-item-${item.id}`}
                     onClick={() => handleNotificationClick(item)}
-                    className={`p-3 flex items-start gap-3 hover:bg-surface-container transition cursor-pointer select-none ${
+                    className={`p-3 flex items-start gap-3 hover:bg-muted/30 transition cursor-pointer select-none ${
                       !item.isRead ? "bg-primary/5" : ""
                     }`}
                   >
@@ -489,53 +468,32 @@ export function NotificationCenter() {
                     <div
                       className={`mt-0.5 w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
                         item.type === "invite"
-                          ? "bg-primary/20 text-primary"
+                          ? "bg-primary/15 text-primary"
                           : item.type === "task_assigned"
-                          ? "bg-secondary/20 text-secondary"
-                          : "bg-surface-container-highest text-on-surface-variant"
+                          ? "bg-secondary text-secondary-foreground"
+                          : "bg-muted text-muted-foreground"
                       }`}
                     >
                       {item.type === "invite" ? (
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
-                          />
-                        </svg>
+                        <UserPlus className="size-3.5" />
                       ) : item.type === "task_assigned" ? (
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
-                          />
-                        </svg>
+                        <ListTodo className="size-3.5" />
                       ) : (
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                          />
-                        </svg>
+                        <Info className="size-3.5" />
                       )}
                     </div>
 
                     {/* Body */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-1 mb-0.5">
-                        <p className="text-xs font-semibold text-on-surface truncate">
+                        <p className="text-xs font-semibold text-foreground truncate">
                           {item.title}
                         </p>
-                        <span className="text-[10px] font-mono text-on-surface-variant/80 shrink-0">
+                        <span className="text-[10px] font-mono text-muted-foreground shrink-0">
                           {formatRelativeTime(item.createdAt)}
                         </span>
                       </div>
-                      <p className="text-[11px] text-on-surface-variant leading-relaxed line-clamp-2">
+                      <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2">
                         {item.message}
                       </p>
 
@@ -543,56 +501,48 @@ export function NotificationCenter() {
                       {isInvite && (
                         <div className="mt-2.5">
                           {isPendingInvite ? (
-                            <div className="pt-2 border-t border-outline/10 flex flex-wrap items-center gap-1.5">
-                              <button
-                                type="button"
+                            <div className="pt-2 border-t border-border/40 flex flex-wrap items-center gap-1.5">
+                              <Button
+                                size="sm"
                                 data-testid={`accept-invite-btn-${item.id}`}
                                 onClick={(e) => handleAcceptInvite(e, item)}
                                 disabled={actionPendingId === item.id}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-secondary/15 hover:bg-secondary/25 text-secondary border border-secondary/30 text-[11px] font-mono font-medium transition active:scale-95 disabled:opacity-50"
+                                className="h-6 px-2 text-[10px] font-mono"
                               >
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M5 13l4 4L19 7" />
-                                </svg>
+                                <Check className="size-2.5 mr-1" />
                                 Accept
-                              </button>
-                              <button
-                                type="button"
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
                                 data-testid={`decline-invite-btn-${item.id}`}
                                 onClick={(e) => handleDeclineInvite(e, item)}
                                 disabled={actionPendingId === item.id}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-error/10 hover:bg-error/20 text-error border border-error/25 text-[11px] font-mono font-medium transition active:scale-95 disabled:opacity-50"
+                                className="h-6 px-2 text-[10px] font-mono text-destructive hover:bg-destructive/10"
                               >
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
+                                <X className="size-2.5 mr-1" />
                                 Decline
-                              </button>
-                              <button
-                                type="button"
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
                                 data-testid={`notify-later-btn-${item.id}`}
                                 onClick={(e) => handleNotifyLater(e, item)}
                                 disabled={actionPendingId === item.id}
-                                className="inline-flex items-center gap-1 px-2 py-1 rounded bg-surface-container hover:bg-surface-container-highest text-on-surface-variant border border-outline/20 text-[10px] font-mono font-medium transition active:scale-95 disabled:opacity-50"
+                                className="h-6 px-1.5 text-[10px] font-mono text-muted-foreground"
                               >
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                Notify later (10s)
-                              </button>
+                                <Clock className="size-2.5 mr-1" />
+                                Later (10s)
+                              </Button>
                             </div>
                           ) : inviteData?.status === "accepted" ? (
-                            <div className="pt-1.5 border-t border-outline/10 flex items-center gap-1 text-[11px] font-mono text-secondary">
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M5 13l4 4L19 7" />
-                              </svg>
+                            <div className="pt-1.5 border-t border-border/40 flex items-center gap-1 text-[11px] font-mono text-emerald-500">
+                              <Check className="size-3" />
                               <span>Invitation Accepted</span>
                             </div>
                           ) : (
-                            <div className="pt-1.5 border-t border-outline/10 flex items-center gap-1 text-[11px] font-mono text-on-surface-variant/70">
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M6 18L18 6M6 6l12 12" />
-                              </svg>
+                            <div className="pt-1.5 border-t border-border/40 flex items-center gap-1 text-[11px] font-mono text-muted-foreground">
+                              <X className="size-3" />
                               <span>Invitation Declined</span>
                             </div>
                           )}
@@ -609,7 +559,7 @@ export function NotificationCenter() {
               })
             )}
           </div>
-        </div>
+        </Card>
       )}
     </div>
   );

@@ -1,17 +1,28 @@
 import Link from "next/link";
 import { ActivityItem } from "@/components/dashboard/ActivityItem";
+import { ActivityChart } from "@/components/dashboard/ActivityChart";
 import { ProjectCard } from "@/components/dashboard/ProjectCard";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { TaskRow } from "@/components/dashboard/TaskRow";
 import { TeamMember } from "@/components/dashboard/TeamMember";
 import { ProjectTimelineWidget } from "@/components/dashboard/ProjectTimelineWidget";
 import { WorkloadChartWidget } from "@/components/dashboard/WorkloadChartWidget";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import type { DashboardTask, TaskPriority } from "@/data/mock-data";
 import { getDashboardOverview } from "@/lib/db/queries";
 import { getActiveWorkspace } from "@/lib/db/workspace";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/db/auth";
 import { formatTimeShort } from "@/lib/format-time";
+import { Plus, ArrowRight } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -47,33 +58,46 @@ export default async function Home() {
     role: m.role,
     initials: m.initials,
     color: m.color,
+    avatar: m.avatar || null,
   }));
 
+  // Activity trend points for Contribution History
+  const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const activityPoints = daysOfWeek.map((day, idx) => {
+    const completedForDay = allTasks.filter(
+      (t, i) => i % 7 === idx && t.status === "Completed"
+    ).length;
+    return {
+      label: day,
+      value: completedForDay,
+    };
+  });
+
   return (
-    <div className="space-y-3 sm:space-y-5 pb-8 sm:pb-12 w-full max-w-full overflow-hidden">
-      {/* Top Command Action Bar (Stitch Precision Engineering Dark) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 pb-3 border-b border-outline/10 w-full min-w-0">
+    <div className="flex flex-col gap-5 sm:gap-6 pb-12 w-full max-w-full overflow-hidden">
+      {/* Top Header Command Strip */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/80 w-full min-w-0">
         <div className="flex flex-col gap-1 min-w-0">
-          <h1 className="text-lg sm:text-2xl font-bold tracking-tight text-on-surface truncate">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground truncate">
             Welcome to {activeWorkspace.name}
           </h1>
-          <p className="text-xs font-mono text-on-surface-variant truncate">
+          <p className="text-xs text-muted-foreground truncate">
             Workspace overview and active team progress
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto text-xs shrink-0">
-          <Link
-            href="/tasks"
-            className="flex items-center gap-1.5 bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-3.5 py-1.5 rounded-lg font-medium text-xs transition shadow-xs active:scale-95"
-          >
-            <span>Quick Issue</span>
-          </Link>
+        <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+          <Button size="sm" asChild className="gap-1.5 h-8 rounded-full shadow-xs">
+            <Link href="/tasks">
+              <Plus className="size-3.5" />
+              <span>Quick Issue</span>
+            </Link>
+          </Button>
         </div>
       </div>
 
-      {/* Metric Strips (2x2 grid on mobile, 4-col on desktop) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 w-full min-w-0">
+      {/* Metric Stat Cards (2-col mobile, 4-col desktop) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 w-full min-w-0">
         {stats.map((stat) => (
           <StatCard
             key={stat.label}
@@ -84,8 +108,14 @@ export default async function Home() {
         ))}
       </div>
 
-      {/* Primary Row: Project Timeline Gantt & Workload Distribution */}
-      <section className="grid gap-3 sm:gap-4 lg:grid-cols-[1.5fr_1fr] w-full min-w-0">
+      {/* Row 1: Contribution History & Workload Distribution */}
+      <section className="grid gap-4 lg:grid-cols-[1.4fr_1fr] w-full min-w-0">
+        <ActivityChart points={activityPoints} period="week" />
+        <WorkloadChartWidget members={mappedTeam} tasks={allTasks} />
+      </section>
+
+      {/* Row 2: Project Timeline */}
+      <section className="w-full min-w-0">
         <ProjectTimelineWidget
           tasks={allTasks.map((t) => ({
             id: t.id,
@@ -97,27 +127,28 @@ export default async function Home() {
           }))}
           teamMembers={mappedTeam}
         />
-        <WorkloadChartWidget members={mappedTeam} tasks={allTasks} />
       </section>
 
-      {/* Secondary Row: Priority Tasks & Featured Projects */}
-      <section className="grid gap-3 sm:gap-4 xl:grid-cols-[1.4fr_1fr] w-full min-w-0">
+      {/* Row 3: Priority Tasks & Featured Projects */}
+      <section className="grid gap-4 xl:grid-cols-[1.4fr_1fr] w-full min-w-0">
         {/* Priority Tasks */}
-        <div className="rounded-lg bg-surface-container-low border border-outline/20 p-3 sm:p-4 transition-all min-w-0 overflow-hidden">
-          <div className="mb-2.5 sm:mb-3 flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-semibold tracking-tight text-on-surface">Priority tasks</h2>
-              <p className="text-[10px] sm:text-[11px] font-mono text-on-surface-variant">Immediate action items requiring focus</p>
+        <Card className="min-w-0 overflow-hidden rounded-2xl border-border/80">
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <div className="flex flex-col gap-0.5">
+              <CardTitle className="text-base font-semibold">Priority Tasks</CardTitle>
+              <CardDescription className="text-xs">
+                Immediate action items requiring focus
+              </CardDescription>
             </div>
-            <Link
-              href="/tasks"
-              className="text-xs font-mono font-medium text-primary hover:underline transition"
-            >
-              Add task &rarr;
-            </Link>
-          </div>
+            <Button variant="ghost" size="sm" asChild className="gap-1 text-xs text-foreground hover:bg-secondary">
+              <Link href="/tasks">
+                Add task
+                <ArrowRight className="size-3.5" />
+              </Link>
+            </Button>
+          </CardHeader>
 
-          <div className="space-y-2">
+          <CardContent className="flex flex-col gap-2 pt-0">
             {formattedTasks.length > 0 ? (
               formattedTasks.slice(0, 5).map((task) => (
                 <TaskRow key={task.id} task={task} />
@@ -125,30 +156,32 @@ export default async function Home() {
             ) : (
               <div
                 data-testid="no-priority-tasks"
-                className="rounded border border-dashed border-outline/20 bg-surface-container-lowest p-6 text-center text-xs text-on-surface-variant font-mono"
+                className="rounded-xl border border-dashed border-border bg-card/40 p-6 text-center text-xs text-muted-foreground font-mono"
               >
                 No Priority Tasks here
               </div>
             )}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Featured Projects */}
-        <div className="rounded-lg bg-surface-container-low border border-outline/20 p-3 sm:p-4 transition-all min-w-0 overflow-hidden">
-          <div className="mb-2.5 sm:mb-3 flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-semibold tracking-tight text-on-surface">Featured projects</h2>
-              <p className="text-[10px] sm:text-[11px] font-mono text-on-surface-variant">High-priority organizational initiatives</p>
+        <Card className="min-w-0 overflow-hidden rounded-2xl border-border/80">
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <div className="flex flex-col gap-0.5">
+              <CardTitle className="text-base font-semibold">Featured Projects</CardTitle>
+              <CardDescription className="text-xs">
+                High-priority organizational initiatives
+              </CardDescription>
             </div>
-            <Link
-              href="/projects"
-              className="text-xs font-mono font-medium text-primary hover:underline transition"
-            >
-              View all &rarr;
-            </Link>
-          </div>
+            <Button variant="ghost" size="sm" asChild className="gap-1 text-xs text-foreground hover:bg-secondary">
+              <Link href="/projects">
+                View all
+                <ArrowRight className="size-3.5" />
+              </Link>
+            </Button>
+          </CardHeader>
 
-          <div className="space-y-2 sm:space-y-2.5">
+          <CardContent className="flex flex-col gap-2.5 pt-0">
             {projects.length > 0 ? (
               projects.slice(0, 3).map((project) => (
                 <ProjectCard key={project.id} project={project} />
@@ -156,27 +189,27 @@ export default async function Home() {
             ) : (
               <div
                 data-testid="no-featured-projects"
-                className="rounded border border-dashed border-outline/20 bg-surface-container-lowest p-6 text-center text-xs text-on-surface-variant font-mono"
+                className="rounded-xl border border-dashed border-border bg-card/40 p-6 text-center text-xs text-muted-foreground font-mono"
               >
                 No Featured Projects here
               </div>
             )}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </section>
 
-      {/* Bento Row 4: Team Updates & Activity */}
-      <section className="grid gap-3 sm:gap-4 xl:grid-cols-[1fr_1.4fr] w-full min-w-0">
+      {/* Row 4: Team Updates & Activity */}
+      <section className="grid gap-4 xl:grid-cols-[1fr_1.4fr] w-full min-w-0">
         {/* Team Updates */}
-        <div className="rounded-lg bg-surface-container-low border border-outline/20 p-3 sm:p-4 transition-all min-w-0 overflow-hidden">
-          <div className="mb-2.5 sm:mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold tracking-tight text-on-surface">Team updates</h2>
-            <span className="rounded bg-surface-container-high px-2 py-0.5 text-[10px] sm:text-xs font-mono text-secondary">
+        <Card className="min-w-0 overflow-hidden rounded-2xl border-border/80">
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <CardTitle className="text-base font-semibold">Team Members</CardTitle>
+            <Badge variant="secondary" className="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 rounded-full">
               {team.filter((m) => m.online).length} online
-            </span>
-          </div>
+            </Badge>
+          </CardHeader>
 
-          <div className="space-y-1">
+          <CardContent className="flex flex-col gap-1.5 pt-0">
             {team.length > 0 ? (
               team.slice(0, 4).map((member) => (
                 <TeamMember
@@ -185,28 +218,31 @@ export default async function Home() {
                     name: member.name,
                     role: member.role,
                     color: member.color,
+                    avatar: member.avatar || null,
                   }}
                 />
               ))
             ) : (
               <div
                 data-testid="no-team-members"
-                className="rounded border border-dashed border-outline/20 bg-surface-container-lowest p-6 text-center text-xs text-on-surface-variant font-mono"
+                className="rounded-xl border border-dashed border-border bg-card/40 p-6 text-center text-xs text-muted-foreground font-mono"
               >
                 No Team Members here
               </div>
             )}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Activity Feed */}
-        <div className="rounded-lg bg-surface-container-low border border-outline/20 p-3 sm:p-4 transition-all min-w-0 overflow-hidden">
-          <div className="mb-2.5 sm:mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold tracking-tight text-on-surface">Activity</h2>
-            <span className="text-[10px] sm:text-xs font-mono text-on-surface-variant">Today</span>
-          </div>
+        <Card className="min-w-0 overflow-hidden rounded-2xl border-border/80">
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <CardTitle className="text-base font-semibold">Recent Activity</CardTitle>
+            <Badge variant="secondary" className="text-[10px] font-mono rounded-full">
+              Today
+            </Badge>
+          </CardHeader>
 
-          <div className="space-y-1">
+          <CardContent className="flex flex-col gap-1 pt-0">
             {activity.length > 0 ? (
               activity.slice(0, 5).map((item, idx) => (
                 <ActivityItem
@@ -218,13 +254,13 @@ export default async function Home() {
             ) : (
               <div
                 data-testid="no-activity"
-                className="rounded border border-dashed border-outline/20 bg-surface-container-lowest p-6 text-center text-xs text-on-surface-variant font-mono"
+                className="rounded-xl border border-dashed border-border bg-card/40 p-6 text-center text-xs text-muted-foreground font-mono"
               >
                 No Activity here
               </div>
             )}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </section>
     </div>
   );

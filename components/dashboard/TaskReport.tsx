@@ -1,5 +1,8 @@
 "use client";
 
+import { Card } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { CheckCircle2, BarChart2 } from "lucide-react";
 import type { StatusCount } from "@/data/mock-data";
 
 export function TaskReport({ statusBreakdown, totalTasks = 1, visible = true }: { statusBreakdown: StatusCount[]; totalTasks?: number; visible?: boolean }) {
@@ -8,80 +11,83 @@ export function TaskReport({ statusBreakdown, totalTasks = 1, visible = true }: 
   const total = totalTasks || 1;
 
   return (
-    <section className="rounded-xl border border-outline-variant/20 bg-surface-container-low p-4 sm:p-5 shadow-xs">
-      <div className="mb-3.5 flex items-center justify-between pb-2.5 border-b border-outline-variant/15">
-        <h3 className="text-base font-semibold text-on-surface font-headline-sm">Task analytics</h3>
-        <p className="text-xs text-on-surface-variant font-body-sm">Status breakdown and counts</p>
+    <Card className="p-4 sm:p-5 border-border/60 shadow-xs">
+      <div className="mb-4 flex items-center justify-between pb-3 border-b border-border/60">
+        <div>
+          <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
+            <BarChart2 className="size-4 text-primary" />
+            <span>Task analytics</span>
+          </h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Status breakdown and counts</p>
+        </div>
       </div>
 
       {totalTasks > 0 ? (
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-xl border border-outline-variant/15 bg-surface-container-lowest p-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant font-label-sm">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Card className="p-4 bg-muted/10 border-border/50">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground font-mono">
               Status breakdown
             </p>
-            <div className="mt-3 space-y-2.5">
+            <div className="mt-3.5 space-y-3">
               {statusBreakdown.map((entry) => {
                 const { status, count } = entry;
                 const pct = Math.round((count / total) * 100);
                 return (
                   <div key={status} className="flex items-center gap-2.5">
-                    <div className={`h-2 w-2 rounded-full ${entry.color ?? "bg-primary"}`} />
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between font-label-sm">
-                        <span className="text-xs text-on-surface">{status}</span>
-                        <span className="text-[11px] text-on-surface-variant">
+                    <div className={`h-2.5 w-2.5 rounded-full shrink-0 ${entry.color ?? "bg-primary"}`} />
+                    <div className="flex-1 space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-foreground font-medium">{status}</span>
+                        <span className="text-[11px] text-muted-foreground font-mono">
                           {count} ({pct}%)
                         </span>
                       </div>
-                      <div className="mt-1 h-1.5 w-full rounded-full bg-surface-container-highest overflow-hidden">
-                        <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
-                      </div>
+                      <Progress value={pct} className="h-1.5" />
                     </div>
                   </div>
                 );
               })}
             </div>
-          </div>
+          </Card>
 
-          <div className="rounded-xl border border-outline-variant/15 bg-surface-container-lowest p-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant font-label-sm">
+          <Card className="p-4 bg-muted/10 border-border/50">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground font-mono">
               Quick totals
             </p>
-            <div className="mt-3 grid gap-2 font-label-sm">
-              <div className="flex items-center justify-between py-1 border-b border-outline-variant/15">
-                <span className="text-xs text-on-surface-variant">Total tasks</span>
-                <span className="text-xs font-semibold text-on-surface">{totalTasks}</span>
+            <div className="mt-3.5 divide-y divide-border/40 text-xs font-mono">
+              <div className="flex items-center justify-between py-2">
+                <span className="text-muted-foreground">Total tasks</span>
+                <span className="font-semibold text-foreground">{totalTasks}</span>
               </div>
-              <div className="flex items-center justify-between py-1 border-b border-outline/10">
-                <span className="text-xs text-on-surface-variant">Completed</span>
-                <span className="text-xs font-semibold text-secondary">
+              <div className="flex items-center justify-between py-2">
+                <span className="text-muted-foreground">Completed</span>
+                <span className="font-semibold text-emerald-500">
                   {statusBreakdown.find((s) => s.status.toLowerCase() === "completed")?.count ?? 0}
                 </span>
               </div>
-              <div className="flex items-center justify-between py-1 border-b border-outline/10">
-                <span className="text-xs text-on-surface-variant">Blocked</span>
-                <span className="text-xs font-semibold text-error">
+              <div className="flex items-center justify-between py-2">
+                <span className="text-muted-foreground">Blocked</span>
+                <span className="font-semibold text-destructive">
                   {statusBreakdown.find((s) => s.status.toLowerCase() === "blocked")?.count ?? 0}
                 </span>
               </div>
-              <div className="flex items-center justify-between py-1">
-                <span className="text-xs text-on-surface-variant">Overdue</span>
-                <span className="text-xs font-semibold text-tertiary">
+              <div className="flex items-center justify-between py-2">
+                <span className="text-muted-foreground">Overdue</span>
+                <span className="font-semibold text-amber-500">
                   {statusBreakdown.find((s) => s.status.toLowerCase() === "overdue")?.count ?? 0}
                 </span>
               </div>
             </div>
-          </div>
+          </Card>
         </div>
       ) : (
         <div
           data-testid="no-task-reports"
-          className="rounded border border-dashed border-outline/20 bg-surface-container-lowest p-6 text-center text-xs text-on-surface-variant"
+          className="rounded-lg border border-dashed border-border p-8 text-center text-xs text-muted-foreground font-mono"
         >
           No Task Analytics here
         </div>
       )}
-    </section>
+    </Card>
   );
 }

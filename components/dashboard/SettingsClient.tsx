@@ -16,6 +16,34 @@ import {
   searchUsersForInviteAction,
 } from "@/app/actions";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Building2,
+  Users,
+  User,
+  Palette,
+  Copy,
+  Check,
+  Search,
+  Trash2,
+  AlertTriangle,
+  LogOut,
+  Shield,
+  Laptop,
+  Moon,
+  Sun,
+  ArrowRightLeft,
+  Upload,
+  CheckCircle2,
+  AlertCircle,
+  KeyRound,
+  Bell,
+  Sliders,
+} from "lucide-react";
 
 export type WorkspaceMemberItem = {
   membershipId: string;
@@ -85,6 +113,7 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
   const latestSearchQueryRef = useRef("");
 
   // UI Preferences State
+  const [appTheme, setAppTheme] = useState<"system" | "dark" | "light">("system");
   const [accentTheme, setAccentTheme] = useState("Violet");
   const [density, setDensity] = useState<"comfortable" | "compact">("comfortable");
   const [emailAlerts, setEmailAlerts] = useState(true);
@@ -138,6 +167,11 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
   useEffect(() => {
     queueMicrotask(() => {
       try {
+        const savedAppTheme = localStorage.getItem("collabspace_theme_mode") as "system" | "dark" | "light" | null;
+        if (savedAppTheme) {
+          setAppTheme(savedAppTheme);
+        }
+
         const savedTheme = localStorage.getItem("collabspace_accent_theme");
         if (savedTheme) {
           setAccentTheme(savedTheme);
@@ -163,6 +197,36 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
       }
     });
   }, []);
+
+  // Listen to OS scheme changes if appTheme is system
+  useEffect(() => {
+    if (appTheme !== "system") return;
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: light)");
+    const handler = (e: MediaQueryListEvent) => {
+      document.documentElement.setAttribute("data-theme", e.matches ? "light" : "dark");
+    };
+    mediaQuery.addEventListener("change", handler);
+    return () => mediaQuery.removeEventListener("change", handler);
+  }, [appTheme]);
+
+  const handleAppThemeChange = (mode: "system" | "dark" | "light") => {
+    setAppTheme(mode);
+    try {
+      localStorage.setItem("collabspace_theme_mode", mode);
+      let resolved = mode;
+      if (mode === "system") {
+        resolved = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+      }
+      document.documentElement.setAttribute("data-theme", resolved);
+      window.dispatchEvent(new Event("collabspace_preferences_changed"));
+    } catch {
+      // Ignore
+    }
+    setFeedback({
+      type: "success",
+      message: `Application theme switched to ${mode.charAt(0).toUpperCase() + mode.slice(1)}.`,
+    });
+  };
 
   const handleAccentChange = (themeName: string) => {
     setAccentTheme(themeName);
@@ -492,96 +556,93 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-5xl 2xl:max-w-6xl mx-auto">
       {/* Tab Navigation */}
-      <div className="flex items-center border-b border-outline/20 pb-3 gap-2 overflow-x-auto">
-        <button
+      <div className="flex items-center gap-1.5 border-b border-border pb-3 overflow-x-auto no-scrollbar">
+        <Button
           type="button"
           data-testid="settings-workspace-tab"
+          variant={activeTab === "workspace" ? "secondary" : "ghost"}
+          size="sm"
           onClick={() => {
             setActiveTab("workspace");
             setFeedback(null);
           }}
-          className={`flex items-center gap-2 rounded px-3.5 py-1.5 text-xs font-medium transition shrink-0 ${
-            activeTab === "workspace"
-              ? "bg-surface-container-highest text-on-surface font-semibold shadow-sm"
-              : "text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
+          className={`shrink-0 text-xs font-medium gap-2 ${
+            activeTab === "workspace" ? "font-semibold text-foreground shadow-xs" : "text-muted-foreground"
           }`}
         >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-          </svg>
+          <Building2 className="h-4 w-4" />
           <span>Workspace</span>
-        </button>
+        </Button>
 
-        <button
+        <Button
           type="button"
           data-testid="settings-members-tab"
+          variant={activeTab === "members" ? "secondary" : "ghost"}
+          size="sm"
           onClick={() => {
             setActiveTab("members");
             setFeedback(null);
           }}
-          className={`flex items-center gap-2 rounded px-3.5 py-1.5 text-xs font-medium transition shrink-0 ${
-            activeTab === "members"
-              ? "bg-surface-container-highest text-on-surface font-semibold shadow-sm"
-              : "text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
+          className={`shrink-0 text-xs font-medium gap-2 ${
+            activeTab === "members" ? "font-semibold text-foreground shadow-xs" : "text-muted-foreground"
           }`}
         >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-          </svg>
+          <Users className="h-4 w-4" />
           <span>Members & Roles</span>
-        </button>
+        </Button>
 
-        <button
+        <Button
           type="button"
           data-testid="settings-account-tab"
+          variant={activeTab === "account" ? "secondary" : "ghost"}
+          size="sm"
           onClick={() => {
             setActiveTab("account");
             setFeedback(null);
           }}
-          className={`flex items-center gap-2 rounded px-3.5 py-1.5 text-xs font-medium transition shrink-0 ${
-            activeTab === "account"
-              ? "bg-surface-container-highest text-on-surface font-semibold shadow-sm"
-              : "text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
+          className={`shrink-0 text-xs font-medium gap-2 ${
+            activeTab === "account" ? "font-semibold text-foreground shadow-xs" : "text-muted-foreground"
           }`}
         >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-          </svg>
+          <User className="h-4 w-4" />
           <span>Account</span>
-        </button>
+        </Button>
 
-        <button
+        <Button
           type="button"
           data-testid="settings-ui-tab"
+          variant={activeTab === "ui" ? "secondary" : "ghost"}
+          size="sm"
           onClick={() => {
             setActiveTab("ui");
             setFeedback(null);
           }}
-          className={`flex items-center gap-2 rounded px-3.5 py-1.5 text-xs font-medium transition shrink-0 ${
-            activeTab === "ui"
-              ? "bg-surface-container-highest text-on-surface font-semibold shadow-sm"
-              : "text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
+          className={`shrink-0 text-xs font-medium gap-2 ${
+            activeTab === "ui" ? "font-semibold text-foreground shadow-xs" : "text-muted-foreground"
           }`}
         >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
-          </svg>
+          <Palette className="h-4 w-4" />
           <span>UI & Preferences</span>
-        </button>
+        </Button>
       </div>
 
       {/* Global Status Feedback Banner */}
       {feedback && (
         <div
           data-testid="settings-feedback-banner"
-          className={`flex items-center gap-2 rounded border p-3 text-xs font-body-sm ${
+          className={`flex items-center gap-2.5 rounded-lg border p-3 text-xs transition-colors ${
             feedback.type === "success"
-              ? "border-secondary/30 bg-secondary/10 text-secondary"
-              : "border-error/30 bg-error/10 text-error"
+              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+              : "border-destructive/30 bg-destructive/10 text-destructive"
           }`}
         >
+          {feedback.type === "success" ? (
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+          ) : (
+            <AlertCircle className="h-4 w-4 shrink-0 text-destructive" />
+          )}
           <span>{feedback.message}</span>
         </div>
       )}
@@ -591,176 +652,179 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
       {/* ------------------------------------------------------------- */}
       {activeTab === "workspace" && (
         <div className="space-y-6">
-          <section className="rounded border border-outline/20 bg-surface-container-low p-4 sm:p-5">
-            <div className="mb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <div>
-                <h3 className="text-base font-semibold text-on-surface">Workspace Information</h3>
-                <p className="text-xs text-on-surface-variant font-body-sm mt-0.5">
-                  Manage your organization identity, description, and team URL identifiers.
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-on-surface-variant font-label-sm">Your Role:</span>
-                <span className={`rounded px-2 py-0.5 text-xs font-semibold capitalize font-label-sm ${
-                  isOwner
-                    ? "bg-tertiary/15 text-tertiary border border-tertiary/30"
-                    : isAdmin
-                    ? "bg-primary/15 text-primary border border-primary/30"
-                    : "bg-surface-container-high text-on-surface-variant border border-outline/20"
-                }`}>
-                  {currentUserRole}
-                </span>
-              </div>
-            </div>
-
-            {!isAdmin && (
-              <div className="mb-4 rounded border border-tertiary/30 bg-tertiary/10 p-3 text-xs text-tertiary flex items-center gap-2 font-body-sm">
-                <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>You have <strong>{currentUserRole}</strong> access. Only workspace owners and admins can update organization settings.</span>
-              </div>
-            )}
-
-            <form onSubmit={handleSaveWorkspace} className="space-y-4 max-w-xl">
-              <div>
-                <label htmlFor="ws-name" className="block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1">
-                  Workspace Name
-                </label>
-                <input
-                  id="ws-name"
-                  data-testid="workspace-name-input"
-                  type="text"
-                  disabled={!isAdmin || isPending}
-                  value={workspaceName}
-                  onChange={(e) => setWorkspaceName(e.target.value)}
-                  placeholder="e.g. Product Engineering, Design Studio"
-                  className="w-full rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:border-primary focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
-                  required
-                />
-              </div>
-
-              <div>
-                <label htmlFor="ws-slug" className="block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1">
-                  Workspace Identifier & URL
-                </label>
-                <div className="flex items-center rounded border border-outline/20 bg-surface-container-lowest px-3 py-1.5 text-xs text-on-surface-variant font-mono">
-                  <span className="text-on-surface-variant/60 mr-1">collabspace.app/</span>
-                  <span className="text-on-surface font-semibold">{workspace?.slug ?? "workspace"}</span>
-                  <button
-                    type="button"
-                    data-testid="copy-workspace-slug-btn"
-                    onClick={() => {
-                      if (typeof window !== "undefined") {
-                        const fullUrl = `${window.location.origin}/start?join=${workspace?.slug}`;
-                        navigator.clipboard.writeText(fullUrl);
-                        setCopiedLink(true);
-                        setTimeout(() => setCopiedLink(false), 2000);
-                      }
-                    }}
-                    className="ml-auto inline-flex items-center gap-1.5 rounded border border-outline/20 bg-surface-container px-2.5 py-1 text-xs text-on-surface hover:bg-surface-container-high transition font-sans font-medium"
-                  >
-                    {copiedLink ? (
-                      <>
-                        <svg className="w-3.5 h-3.5 text-primary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span>Copied!</span>
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-3.5 h-3.5 text-on-surface-variant shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                        </svg>
-                        <span>Copy Link</span>
-                      </>
-                    )}
-                  </button>
+          <Card>
+            <CardHeader className="pb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div>
+                  <CardTitle className="text-base font-semibold text-foreground">Workspace Information</CardTitle>
+                  <CardDescription className="text-xs text-muted-foreground mt-0.5">
+                    Manage your organization identity, description, and team URL identifiers.
+                  </CardDescription>
                 </div>
-                <p className="mt-1 text-[11px] text-on-surface-variant font-body-sm">
-                  Share this identifier with prospective team members to let them request access.
-                </p>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Your Role:</span>
+                  <Badge variant={isOwner ? "default" : isAdmin ? "secondary" : "outline"} className="capitalize font-semibold">
+                    {currentUserRole}
+                  </Badge>
+                </div>
               </div>
+            </CardHeader>
 
-              <div>
-                <label htmlFor="ws-desc" className="block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1">
-                  Workspace Description
-                </label>
-                <textarea
-                  id="ws-desc"
-                  data-testid="workspace-description-input"
-                  rows={3}
-                  disabled={!isAdmin || isPending}
-                  value={workspaceDescription}
-                  onChange={(e) => setWorkspaceDescription(e.target.value)}
-                  placeholder="Describe your organization mission or team objective..."
-                  className="w-full rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:border-primary focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
-                />
-              </div>
-
-              <div className="pt-1">
-                <label className="flex items-center gap-2.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    data-testid="workspace-public-toggle"
-                    disabled={!isAdmin || isPending}
-                    checked={workspaceIsPublic}
-                    onChange={(e) => setWorkspaceIsPublic(e.target.checked)}
-                    className="h-4 w-4 rounded border-outline/30 bg-surface-container-lowest accent-primary disabled:opacity-60"
-                  />
-                  <div>
-                    <span className="text-xs font-medium text-on-surface">Public & Discoverable</span>
-                    <p className="text-[11px] text-on-surface-variant font-body-sm">Allow other CollabSpace members to discover and request access to this workspace.</p>
-                  </div>
-                </label>
-              </div>
-
-              {isAdmin && (
-                <div className="pt-2">
-                  <button
-                    type="submit"
-                    data-testid="save-workspace-button"
-                    disabled={isPending}
-                    className="rounded bg-primary px-4 py-1.5 text-xs font-semibold text-on-primary shadow-sm transition hover:bg-primary-container hover:text-on-primary-container disabled:opacity-50"
-                  >
-                    {isPending ? "Saving..." : "Save Workspace"}
-                  </button>
+            <CardContent>
+              {!isAdmin && (
+                <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-400 flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                  <span>You have <strong>{currentUserRole}</strong> access. Only workspace owners and admins can update organization settings.</span>
                 </div>
               )}
-            </form>
-          </section>
+
+              <form onSubmit={handleSaveWorkspace} className="space-y-4 max-w-xl">
+                <div>
+                  <label htmlFor="ws-name" className="block text-xs font-medium text-foreground mb-1.5">
+                    Workspace Name
+                  </label>
+                  <Input
+                    id="ws-name"
+                    data-testid="workspace-name-input"
+                    type="text"
+                    disabled={!isAdmin || isPending}
+                    value={workspaceName}
+                    onChange={(e) => setWorkspaceName(e.target.value)}
+                    placeholder="e.g. Product Engineering, Design Studio"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="ws-slug" className="block text-xs font-medium text-foreground mb-1.5">
+                    Workspace Identifier & URL
+                  </label>
+                  <div className="flex items-center rounded-lg border border-input bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground font-mono">
+                    <span className="text-muted-foreground/60 mr-1">collabspace.app/</span>
+                    <span className="text-foreground font-semibold">{workspace?.slug ?? "workspace"}</span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      data-testid="copy-workspace-slug-btn"
+                      onClick={() => {
+                        if (typeof window !== "undefined") {
+                          const fullUrl = `${window.location.origin}/start?join=${workspace?.slug}`;
+                          navigator.clipboard.writeText(fullUrl);
+                          setCopiedLink(true);
+                          setTimeout(() => setCopiedLink(false), 2000);
+                        }
+                      }}
+                      className="ml-auto h-7 px-2.5 text-xs gap-1.5"
+                    >
+                      {copiedLink ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-primary shrink-0" />
+                          <span>Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                          <span>Copy Link</span>
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Share this identifier with prospective team members to let them request access.
+                  </p>
+                </div>
+
+                <div>
+                  <label htmlFor="ws-desc" className="block text-xs font-medium text-foreground mb-1.5">
+                    Workspace Description
+                  </label>
+                  <Textarea
+                    id="ws-desc"
+                    data-testid="workspace-description-input"
+                    rows={3}
+                    disabled={!isAdmin || isPending}
+                    value={workspaceDescription}
+                    onChange={(e) => setWorkspaceDescription(e.target.value)}
+                    placeholder="Describe your organization mission or team objective..."
+                  />
+                </div>
+
+                <div className="pt-1">
+                  <label className="flex items-start gap-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      data-testid="workspace-public-toggle"
+                      disabled={!isAdmin || isPending}
+                      checked={workspaceIsPublic}
+                      onChange={(e) => setWorkspaceIsPublic(e.target.checked)}
+                      className="h-4 w-4 mt-0.5 rounded border-input bg-background accent-primary disabled:opacity-60"
+                    />
+                    <div>
+                      <span className="text-xs font-medium text-foreground">Public & Discoverable</span>
+                      <p className="text-[11px] text-muted-foreground">Allow other CollabSpace members to discover and request access to this workspace.</p>
+                    </div>
+                  </label>
+                </div>
+
+                {isAdmin && (
+                  <div className="pt-2">
+                    <Button
+                      type="submit"
+                      data-testid="save-workspace-button"
+                      disabled={isPending}
+                    >
+                      {isPending ? "Saving..." : "Save Workspace"}
+                    </Button>
+                  </div>
+                )}
+              </form>
+            </CardContent>
+          </Card>
 
           {/* Workspace Danger Zone */}
-          <section className="rounded border border-error/30 bg-error/5 p-4 sm:p-5">
-            <h4 className="text-sm font-semibold text-error">Workspace Management & Danger Zone</h4>
-            <p className="mt-1 text-xs text-on-surface-variant font-body-sm">
-              {isOwner
-                ? "Permanently delete this workspace and all associated projects, tasks, events, and memberships. Or transfer ownership to another member in the Members tab."
-                : "Leave this workspace. You will lose access to all internal projects and documents."}
-            </p>
+          <Card className="border-destructive/30 bg-destructive/5">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold text-destructive flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-destructive" />
+                <span>Workspace Danger Zone</span>
+              </CardTitle>
+              <CardDescription className="text-xs text-muted-foreground">
+                {isOwner
+                  ? "Permanently delete this workspace and all associated projects, tasks, events, and memberships. Or transfer ownership to another member in the Members tab."
+                  : "Leave this workspace. You will lose access to all internal projects and documents."}
+              </CardDescription>
+            </CardHeader>
 
-            <div className="mt-3.5 flex flex-wrap gap-2.5">
-              {isOwner ? (
-                <button
-                  type="button"
-                  data-testid="workspace-delete-button"
-                  onClick={() => setShowDeleteWorkspaceModal(true)}
-                  className="rounded border border-error/30 bg-error/15 px-3 py-1.5 text-xs font-medium text-error transition hover:bg-error/25"
-                >
-                  Delete Workspace
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  data-testid="workspace-leave-button"
-                  onClick={() => setShowLeaveWorkspaceModal(true)}
-                  className="rounded border border-tertiary/30 bg-tertiary/15 px-3 py-1.5 text-xs font-medium text-tertiary transition hover:bg-tertiary/25"
-                >
-                  Leave Workspace
-                </button>
-              )}
-            </div>
-          </section>
+            <CardContent>
+              <div className="flex flex-wrap gap-2.5">
+                {isOwner ? (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    data-testid="workspace-delete-button"
+                    onClick={() => setShowDeleteWorkspaceModal(true)}
+                  >
+                    <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                    Delete Workspace
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    data-testid="workspace-leave-button"
+                    onClick={() => setShowLeaveWorkspaceModal(true)}
+                    className="border-destructive/40 text-destructive hover:bg-destructive/10"
+                  >
+                    <LogOut className="w-3.5 h-3.5 mr-1.5" />
+                    Leave Workspace
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 
@@ -771,200 +835,206 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
         <div className="space-y-6">
           {/* Add Members Section (Only for Owners & Admins) */}
           {isAdmin ? (
-            <section className="rounded border border-outline/20 bg-surface-container-low p-4 sm:p-5">
-              <div className="mb-4">
-                <h3 className="text-base font-semibold text-on-surface">Invite & Add Members</h3>
-                <p className="text-xs text-on-surface-variant font-body-sm mt-0.5">
+            <Card>
+              <CardHeader className="pb-4">
+                <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+                  <Users className="h-4 w-4 text-primary" />
+                  <span>Invite & Add Members</span>
+                </CardTitle>
+                <CardDescription className="text-xs text-muted-foreground">
                   Search registered users by @username or full name to add them to this workspace.
-                </p>
-              </div>
+                </CardDescription>
+              </CardHeader>
 
-              <div className="flex flex-col sm:flex-row gap-2.5">
-                <div className="relative flex-1">
-                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-xs text-on-surface-variant">@</span>
-                  <input
-                    type="text"
-                    data-testid="invite-user-search-input"
-                    value={memberSearchQuery}
-                    onChange={(e) => handleSearchUsersForInvite(e.target.value)}
-                    placeholder="Search by username (e.g. useradm1, usermem1) or name..."
-                    className="w-full rounded border border-outline/20 bg-surface-container-lowest pl-7 pr-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:border-primary focus:outline-none"
-                  />
+              <CardContent className="space-y-4">
+                <div className="flex flex-col sm:flex-row gap-2.5">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="text"
+                      data-testid="invite-user-search-input"
+                      value={memberSearchQuery}
+                      onChange={(e) => handleSearchUsersForInvite(e.target.value)}
+                      placeholder="Search by username (e.g. useradm1, usermem1) or name..."
+                      className="pl-9"
+                    />
+                  </div>
+
+                  <select
+                    data-testid="invite-role-select"
+                    value={selectedRoleForNewMember}
+                    onChange={(e) => setSelectedRoleForNewMember(e.target.value as "admin" | "member" | "viewer")}
+                    className="h-9 rounded-md border border-input bg-background px-3 py-1 text-xs text-foreground shadow-xs focus:border-primary focus:outline-none"
+                  >
+                    <option value="member">Member (Standard)</option>
+                    {isOwner && <option value="admin">Admin (Management)</option>}
+                    <option value="viewer">Viewer (Read-only)</option>
+                  </select>
                 </div>
 
-                <select
-                  data-testid="invite-role-select"
-                  value={selectedRoleForNewMember}
-                  onChange={(e) => setSelectedRoleForNewMember(e.target.value as "admin" | "member" | "viewer")}
-                  className="rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface focus:border-primary focus:outline-none"
-                >
-                  <option value="member">Member (Standard)</option>
-                  {isOwner && <option value="admin">Admin (Management)</option>}
-                  <option value="viewer">Viewer (Read-only)</option>
-                </select>
-              </div>
-
-              {/* Search Results for Member Invitation */}
-              {memberSearchResults.length > 0 && (
-                <div className="mt-3.5 space-y-2 rounded border border-outline/20 bg-surface-container-lowest p-3">
-                  <p className="font-label-sm text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-2">Available Users</p>
-                  {memberSearchResults.map((u) => (
-                    <div
-                      key={u.id}
-                      data-testid={`invite-user-row-${u.username || u.id}`}
-                      className="flex items-center justify-between gap-3 rounded border border-outline/10 bg-surface-container-low p-2.5"
-                    >
-                      <div className="flex items-center gap-2.5 overflow-hidden">
-                        <UserAvatar avatar={u.avatar} name={u.name} size="xs" />
-                        <div className="truncate">
-                          <span className="text-xs font-semibold text-on-surface">{u.name}</span>
-                          <span className="ml-2 font-label-sm text-[11px] text-primary">@{u.username || "user"}</span>
-                          <span className="ml-2 text-[10px] text-on-surface-variant hidden sm:inline">({u.email})</span>
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        data-testid={`add-member-btn-${u.username || u.id}`}
-                        disabled={isPending}
-                        onClick={() => handleAddMember(u.id)}
-                        className="shrink-0 rounded bg-primary px-3 py-1 text-xs font-semibold text-on-primary transition hover:bg-primary-container hover:text-on-primary-container disabled:opacity-50 shadow-sm"
+                {/* Search Results for Member Invitation */}
+                {memberSearchResults.length > 0 && (
+                  <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Available Users</p>
+                    {memberSearchResults.map((u) => (
+                      <div
+                        key={u.id}
+                        data-testid={`invite-user-row-${u.username || u.id}`}
+                        className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-card p-2.5"
                       >
-                        Add as {selectedRoleForNewMember}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+                        <div className="flex items-center gap-2.5 overflow-hidden">
+                          <UserAvatar avatar={u.avatar} name={u.name} size="xs" />
+                          <div className="truncate">
+                            <span className="text-xs font-semibold text-foreground">{u.name}</span>
+                            <span className="ml-2 text-[11px] text-primary">@{u.username || "user"}</span>
+                            <span className="ml-2 text-[10px] text-muted-foreground hidden sm:inline">({u.email})</span>
+                          </div>
+                        </div>
 
-              {memberSearchQuery.trim() !== "" && !isSearchingMembers && memberSearchResults.length === 0 && (
-                <div className="mt-3 rounded border border-outline/10 bg-surface-container-lowest p-3 text-center text-xs text-on-surface-variant">
-                  No matching users found for &quot;{memberSearchQuery}&quot;.
-                </div>
-              )}
-            </section>
+                        <Button
+                          type="button"
+                          size="sm"
+                          data-testid={`add-member-btn-${u.username || u.id}`}
+                          disabled={isPending}
+                          onClick={() => handleAddMember(u.id)}
+                          className="shrink-0 text-xs"
+                        >
+                          Add as {selectedRoleForNewMember}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {memberSearchQuery.trim() !== "" && !isSearchingMembers && memberSearchResults.length === 0 && (
+                  <div className="rounded-lg border border-dashed border-border p-4 text-center text-xs text-muted-foreground">
+                    No matching users found for &quot;{memberSearchQuery}&quot;.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           ) : (
-            <div className="rounded border border-outline/20 bg-surface-container-low p-3.5 text-xs text-on-surface-variant">
-              Only workspace owners and admins can invite new members or change team privileges.
-            </div>
+            <Card>
+              <CardContent className="py-4 text-xs text-muted-foreground">
+                Only workspace owners and admins can invite new members or change team privileges.
+              </CardContent>
+            </Card>
           )}
 
           {/* Current Workspace Members Listing */}
-          <section className="rounded border border-outline/20 bg-surface-container-low p-4 sm:p-5">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-semibold text-on-surface">Workspace Members ({members.length})</h3>
-                <p className="text-xs text-on-surface-variant font-body-sm mt-0.5">Manage member privileges under organization guidelines.</p>
+          <Card>
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-base font-semibold text-foreground">Workspace Members ({members.length})</CardTitle>
+                  <CardDescription className="text-xs text-muted-foreground mt-0.5">
+                    Manage member privileges under organization guidelines.
+                  </CardDescription>
+                </div>
               </div>
-            </div>
+            </CardHeader>
 
-            <div className="divide-y divide-outline/10">
-              {members.map((m) => {
-                const isTargetOwner = m.role === "owner";
-                const isTargetAdmin = m.role === "admin";
-                const isSelf = m.user.id === user.id;
+            <CardContent>
+              <div className="divide-y divide-border">
+                {members.map((m) => {
+                  const isTargetOwner = m.role === "owner";
+                  const isTargetAdmin = m.role === "admin";
+                  const isSelf = m.user.id === user.id;
 
-                // Authorization:
-                // - Can only edit if caller is owner OR (caller is admin and target is neither owner nor admin)
-                const canModifyRole = !isSelf && !isTargetOwner && (isOwner || (isAdmin && !isTargetAdmin));
-                const canRemove = !isSelf && !isTargetOwner && (isOwner || (isAdmin && !isTargetAdmin));
-                const canTransferOwnership = isOwner && !isTargetOwner && !isSelf;
+                  const canModifyRole = !isSelf && !isTargetOwner && (isOwner || (isAdmin && !isTargetAdmin));
+                  const canRemove = !isSelf && !isTargetOwner && (isOwner || (isAdmin && !isTargetAdmin));
+                  const canTransferOwnership = isOwner && !isTargetOwner && !isSelf;
 
-                return (
-                  <div
-                    key={m.membershipId}
-                    data-testid={`workspace-member-${m.user.username || m.user.id}`}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 py-3"
-                  >
-                    <div className="flex items-center gap-2.5 overflow-hidden">
-                      <UserAvatar avatar={m.user.avatar} name={m.user.name} size="sm" />
-                      <div className="truncate min-w-0">
-                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                          <p className="text-xs font-semibold text-on-surface truncate">{m.user.name}</p>
-                          {isSelf && (
-                            <span className="rounded bg-primary/15 text-primary border border-primary/30 px-1.5 py-0.2 font-label-sm text-[10px] font-semibold">
-                              You
-                            </span>
-                          )}
-                          {m.status === "pending" && (
-                            <span className="rounded bg-tertiary/15 text-tertiary border border-tertiary/30 px-1.5 py-0.2 font-label-sm text-[10px] font-semibold">
-                              Pending
-                            </span>
-                          )}
-                          <span className="font-label-sm text-[11px] text-primary">@{m.user.username || "user"}</span>
+                  return (
+                    <div
+                      key={m.membershipId}
+                      data-testid={`workspace-member-${m.user.username || m.user.id}`}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3.5 first:pt-0 last:pb-0"
+                    >
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        <UserAvatar avatar={m.user.avatar} name={m.user.name} size="sm" />
+                        <div className="truncate min-w-0">
+                          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                            <p className="text-xs font-semibold text-foreground truncate">{m.user.name}</p>
+                            {isSelf && (
+                              <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-semibold text-primary border-primary/30 bg-primary/10">
+                                You
+                              </Badge>
+                            )}
+                            {m.status === "pending" && (
+                              <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-semibold text-amber-600 border-amber-500/30 bg-amber-500/10">
+                                Pending
+                              </Badge>
+                            )}
+                            <span className="text-[11px] text-primary">@{m.user.username || "user"}</span>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground truncate">{m.user.email}</p>
                         </div>
-                        <p className="text-[11px] text-on-surface-variant truncate font-body-sm">{m.user.email}</p>
                       </div>
-                    </div>
 
-                    <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto pt-1 sm:pt-0 border-t border-outline/10 sm:border-t-0">
-                      {canModifyRole ? (
-                        <select
-                          data-testid={`change-role-${m.user.username || m.user.id}`}
-                          value={m.role}
-                          disabled={isPending}
-                          onChange={(e) =>
-                            handleUpdateMemberRole(
-                              m.user.id,
-                              e.target.value as "admin" | "member" | "viewer"
-                            )
-                          }
-                          aria-label={`Change role for ${m.user.name}`}
-                          className="rounded border border-outline/20 bg-surface-container-lowest px-2.5 py-1.5 text-xs font-medium text-on-surface focus:border-primary focus:outline-none font-mono"
-                        >
-                          {isOwner && <option value="admin">Admin</option>}
-                          <option value="member">Member</option>
-                          <option value="viewer">Viewer</option>
-                        </select>
-                      ) : (
-                        <span className={`rounded px-2.5 py-1 text-xs font-semibold capitalize font-label-sm ${
-                          isTargetOwner
-                            ? "bg-tertiary/15 text-tertiary border border-tertiary/30"
-                            : isTargetAdmin
-                            ? "bg-primary/15 text-primary border border-primary/30"
-                            : "bg-surface-container-high text-on-surface-variant border border-outline/20"
-                        }`}>
-                          {m.role}
-                        </span>
-                      )}
-
-                      <div className="flex items-center gap-1">
-                        {canTransferOwnership && (
-                          <button
-                            type="button"
-                            data-testid={`transfer-ownership-${m.user.username || m.user.id}`}
+                      <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto pt-1 sm:pt-0 border-t border-border/50 sm:border-t-0">
+                        {canModifyRole ? (
+                          <select
+                            data-testid={`change-role-${m.user.username || m.user.id}`}
+                            value={m.role}
                             disabled={isPending}
-                            onClick={() => setMemberToTransfer(m)}
-                            title="Transfer workspace ownership"
-                            className="rounded-lg p-2 text-tertiary hover:bg-tertiary/10 transition active:scale-95 cursor-pointer"
+                            onChange={(e) =>
+                              handleUpdateMemberRole(
+                                m.user.id,
+                                e.target.value as "admin" | "member" | "viewer"
+                              )
+                            }
+                            aria-label={`Change role for ${m.user.name}`}
+                            className="h-8 rounded-md border border-input bg-background px-2.5 text-xs font-medium text-foreground focus:border-primary focus:outline-none"
                           >
-                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                            </svg>
-                          </button>
+                            {isOwner && <option value="admin">Admin</option>}
+                            <option value="member">Member</option>
+                            <option value="viewer">Viewer</option>
+                          </select>
+                        ) : (
+                          <Badge variant={isTargetOwner ? "default" : isTargetAdmin ? "secondary" : "outline"} className="capitalize font-semibold text-xs">
+                            {m.role}
+                          </Badge>
                         )}
 
-                        {canRemove && (
-                          <button
-                            type="button"
-                            data-testid={`remove-member-${m.user.username || m.user.id}`}
-                            disabled={isPending}
-                            onClick={() => setMemberToRemove(m)}
-                            title="Remove from workspace"
-                            className="rounded-lg p-2 text-on-surface-variant hover:bg-error/10 hover:text-error transition active:scale-95 cursor-pointer"
-                          >
-                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
-                        )}
+                        <div className="flex items-center gap-1">
+                          {canTransferOwnership && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              data-testid={`transfer-ownership-${m.user.username || m.user.id}`}
+                              disabled={isPending}
+                              onClick={() => setMemberToTransfer(m)}
+                              title="Transfer workspace ownership"
+                              className="h-8 w-8 text-amber-600 hover:text-amber-700 hover:bg-amber-500/10"
+                            >
+                              <ArrowRightLeft className="h-4 w-4" />
+                            </Button>
+                          )}
+
+                          {canRemove && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              data-testid={`remove-member-${m.user.username || m.user.id}`}
+                              disabled={isPending}
+                              onClick={() => setMemberToRemove(m)}
+                              title="Remove from workspace"
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 
@@ -973,243 +1043,260 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
       {/* ------------------------------------------------------------- */}
       {activeTab === "account" && (
         <div className="space-y-6">
-          <section className="rounded border border-outline/20 bg-surface-container-low p-4 sm:p-5">
-            <div className="mb-4">
-              <h3 className="text-base font-semibold text-on-surface">Personal Profile</h3>
-              <p className="text-xs text-on-surface-variant font-body-sm mt-0.5">
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+                <User className="h-4 w-4 text-primary" />
+                <span>Personal Profile</span>
+              </CardTitle>
+              <CardDescription className="text-xs text-muted-foreground">
                 Update your account identity, handle, and avatar style across CollabSpace.
-              </p>
-            </div>
+              </CardDescription>
+            </CardHeader>
 
-            <form onSubmit={handleSaveProfile} className="space-y-4 max-w-xl">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-3.5 rounded-lg bg-surface-container border border-outline/20">
-                <UserAvatar avatar={avatarColor} name={userName} size="xl" />
+            <CardContent>
+              <form onSubmit={handleSaveProfile} className="space-y-4 max-w-xl">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 rounded-lg bg-muted/30 border border-border">
+                  <UserAvatar avatar={avatarColor} name={userName} size="xl" />
 
-                <div className="flex-1 space-y-2 w-full">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-surface-container-high hover:bg-surface-container-highest border border-outline/20 text-xs font-mono text-on-surface transition-colors shadow-xs">
-                      <svg className="w-3.5 h-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                      </svg>
-                      <span>Upload Photo</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleFileUpload}
-                        className="hidden"
+                  <div className="flex-1 space-y-2 w-full">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <label className="cursor-pointer">
+                        <Button variant="outline" size="sm" type="button" asChild>
+                          <span className="flex items-center gap-1.5 text-xs">
+                            <Upload className="w-3.5 h-3.5 text-primary" />
+                            <span>Upload Photo</span>
+                          </span>
+                        </Button>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFileUpload}
+                          className="hidden"
+                        />
+                      </label>
+
+                      {avatarColor && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setAvatarColor("")}
+                          className="text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 mr-1" />
+                          <span>Remove Photo</span>
+                        </Button>
+                      )}
+                    </div>
+
+                    <div>
+                      <Input
+                        type="text"
+                        value={avatarColor.startsWith("data:image/") ? "" : avatarColor}
+                        onChange={(e) => setAvatarColor(e.target.value)}
+                        placeholder={avatarColor.startsWith("data:image/") ? "Custom uploaded image active" : "Or enter remote image URL (https://...)"}
+                        className="font-mono text-xs"
                       />
-                    </label>
+                    </div>
 
-                    {avatarColor && (
-                      <button
-                        type="button"
-                        onClick={() => setAvatarColor("")}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded bg-surface-container-high text-xs font-mono text-error hover:bg-error/10 border border-outline/20 transition-colors"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                        <span>Remove Photo</span>
-                      </button>
-                    )}
+                    <p className="text-[11px] text-muted-foreground">
+                      JPEG, PNG, WebP or SVG under 2MB. If no image is provided, your initials or avatar will be shown as default.
+                    </p>
                   </div>
+                </div>
 
-                  <div>
-                    <input
+                <div>
+                  <label htmlFor="user-name" className="block text-xs font-medium text-foreground mb-1.5">
+                    Full Display Name
+                  </label>
+                  <Input
+                    id="user-name"
+                    data-testid="user-name-input"
+                    type="text"
+                    value={userName}
+                    onChange={(e) => setUserName(e.target.value)}
+                    placeholder="e.g. Alex Morgan"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="user-username" className="block text-xs font-medium text-foreground mb-1.5">
+                    Username Handle
+                  </label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-xs text-muted-foreground">@</span>
+                    <Input
+                      id="user-username"
+                      data-testid="user-username-input"
                       type="text"
-                      value={avatarColor.startsWith("data:image/") ? "" : avatarColor}
-                      onChange={(e) => setAvatarColor(e.target.value)}
-                      placeholder={avatarColor.startsWith("data:image/") ? "Custom uploaded image active" : "Or enter remote image URL (https://...)"}
-                      className="w-full rounded border border-outline/20 bg-surface-container-lowest px-2.5 py-1.5 text-xs text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:outline-none font-mono"
+                      value={userUsername}
+                      onChange={(e) => setUserUsername(e.target.value)}
+                      placeholder="username"
+                      className="pl-7"
+                    />
+                  </div>
+                  <p className="mt-1 text-[11px] text-muted-foreground">Used for mentions and team directory lookups.</p>
+                </div>
+
+                <div>
+                  <label htmlFor="user-bio" className="block text-xs font-medium text-foreground mb-1.5">
+                    Bio / Role Title
+                  </label>
+                  <Textarea
+                    id="user-bio"
+                    data-testid="user-bio-input"
+                    rows={2}
+                    value={userBio}
+                    onChange={(e) => setUserBio(e.target.value)}
+                    placeholder="e.g. Senior Frontend Architect & Design Systems Lead"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="user-email" className="block text-xs font-medium text-foreground mb-1.5">
+                    Email Address
+                  </label>
+                  <Input
+                    id="user-email"
+                    type="email"
+                    value={user.email}
+                    disabled
+                    className="opacity-70 cursor-not-allowed bg-muted/50"
+                  />
+                  <p className="mt-1 text-[11px] text-muted-foreground">Email address cannot be changed directly.</p>
+                </div>
+
+                <div>
+                  <Button
+                    type="submit"
+                    data-testid="save-profile-button"
+                    disabled={isPending}
+                  >
+                    {isPending ? "Saving..." : "Save Profile"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+
+          {/* Security & Password Change */}
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+                <KeyRound className="h-4 w-4 text-primary" />
+                <span>Security & Password</span>
+              </CardTitle>
+              <CardDescription className="text-xs text-muted-foreground">
+                Update your account password to maintain security across devices.
+              </CardDescription>
+            </CardHeader>
+
+            <CardContent>
+              {passwordFeedback && (
+                <div
+                  data-testid="password-feedback-banner"
+                  className={`mb-4 flex items-center gap-2 rounded-lg border p-3 text-xs ${
+                    passwordFeedback.type === "success"
+                      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                      : "border-destructive/30 bg-destructive/10 text-destructive"
+                  }`}
+                >
+                  {passwordFeedback.type === "success" ? (
+                    <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                  ) : (
+                    <AlertCircle className="h-4 w-4 shrink-0 text-destructive" />
+                  )}
+                  <span>{passwordFeedback.message}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleChangePassword} className="space-y-4 max-w-xl">
+                <div>
+                  <label htmlFor="curr-password" className="block text-xs font-medium text-foreground mb-1.5">
+                    Current Password
+                  </label>
+                  <Input
+                    id="curr-password"
+                    data-testid="current-password-input"
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="••••••••"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label htmlFor="new-password" className="block text-xs font-medium text-foreground mb-1.5">
+                      New Password
+                    </label>
+                    <Input
+                      id="new-password"
+                      data-testid="new-password-input"
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Min 6 characters"
                     />
                   </div>
 
-                  <p className="text-[10px] text-on-surface-variant font-mono">
-                    JPEG, PNG, WebP or SVG under 2MB. If no image is provided, your monogram initials or User icon will be shown as default.
-                  </p>
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="user-name" className="block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1">
-                  Full Display Name
-                </label>
-                <input
-                  id="user-name"
-                  data-testid="user-name-input"
-                  type="text"
-                  value={userName}
-                  onChange={(e) => setUserName(e.target.value)}
-                  placeholder="e.g. Alex Morgan"
-                  className="w-full rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:border-primary focus:outline-none"
-                  required
-                />
-              </div>
-
-              <div>
-                <label htmlFor="user-username" className="block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1">
-                  Username Handle
-                </label>
-                <div className="relative">
-                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-xs text-on-surface-variant">@</span>
-                  <input
-                    id="user-username"
-                    data-testid="user-username-input"
-                    type="text"
-                    value={userUsername}
-                    onChange={(e) => setUserUsername(e.target.value)}
-                    placeholder="username"
-                    className="w-full rounded border border-outline/20 bg-surface-container-lowest pl-7 pr-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:border-primary focus:outline-none font-label-sm"
-                  />
-                </div>
-                <p className="mt-1 text-[11px] text-on-surface-variant font-body-sm">Used for mentions and team directory lookups.</p>
-              </div>
-
-              <div>
-                <label htmlFor="user-bio" className="block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1">
-                  Bio / Role Title
-                </label>
-                <textarea
-                  id="user-bio"
-                  data-testid="user-bio-input"
-                  rows={2}
-                  value={userBio}
-                  onChange={(e) => setUserBio(e.target.value)}
-                  placeholder="e.g. Senior Frontend Architect & Design Systems Lead"
-                  className="w-full rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:border-primary focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="user-email" className="block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1">
-                  Email Address
-                </label>
-                <input
-                  id="user-email"
-                  type="email"
-                  value={user.email}
-                  disabled
-                  className="w-full rounded border border-outline/10 bg-surface-container-lowest/60 px-3 py-2 text-xs text-on-surface-variant cursor-not-allowed"
-                />
-                <p className="mt-1 text-[11px] text-on-surface-variant font-body-sm">Email address cannot be changed directly.</p>
-              </div>
-
-              <div>
-                <button
-                  type="submit"
-                  data-testid="save-profile-button"
-                  disabled={isPending}
-                  className="rounded bg-primary px-4 py-1.5 text-xs font-semibold text-on-primary shadow-sm transition hover:bg-primary-container hover:text-on-primary-container disabled:opacity-50"
-                >
-                  {isPending ? "Saving..." : "Save Profile"}
-                </button>
-              </div>
-            </form>
-          </section>
-
-          {/* Security & Password Change */}
-          <section className="rounded border border-outline/20 bg-surface-container-low p-4 sm:p-5">
-            <div className="mb-4">
-              <h3 className="text-base font-semibold text-on-surface">Security & Password</h3>
-              <p className="text-xs text-on-surface-variant font-body-sm mt-0.5">
-                Update your account password to maintain security across devices.
-              </p>
-            </div>
-
-            {passwordFeedback && (
-              <div
-                data-testid="password-feedback-banner"
-                className={`mb-4 flex items-center gap-2 rounded border p-3 text-xs font-body-sm ${
-                  passwordFeedback.type === "success"
-                    ? "border-secondary/30 bg-secondary/10 text-secondary"
-                    : "border-error/30 bg-error/10 text-error"
-                }`}
-              >
-                <span>{passwordFeedback.message}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleChangePassword} className="space-y-3.5 max-w-xl">
-              <div>
-                <label htmlFor="curr-password" className="block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1">
-                  Current Password
-                </label>
-                <input
-                  id="curr-password"
-                  data-testid="current-password-input"
-                  type="password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:border-primary focus:outline-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label htmlFor="new-password" className="block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1">
-                    New Password
-                  </label>
-                  <input
-                    id="new-password"
-                    data-testid="new-password-input"
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Min 6 characters"
-                    className="w-full rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:border-primary focus:outline-none"
-                  />
+                  <div>
+                    <label htmlFor="confirm-password" className="block text-xs font-medium text-foreground mb-1.5">
+                      Confirm Password
+                    </label>
+                    <Input
+                      id="confirm-password"
+                      data-testid="confirm-password-input"
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Repeat new password"
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label htmlFor="confirm-password" className="block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1">
-                    Confirm Password
-                  </label>
-                  <input
-                    id="confirm-password"
-                    data-testid="confirm-password-input"
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Repeat new password"
-                    className="w-full rounded border border-outline/20 bg-surface-container-lowest px-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:border-primary focus:outline-none"
-                  />
+                <div className="pt-1">
+                  <Button
+                    type="submit"
+                    data-testid="change-password-button"
+                    disabled={isChangingPassword}
+                  >
+                    {isChangingPassword ? "Updating..." : "Update Password"}
+                  </Button>
                 </div>
-              </div>
-
-              <div className="pt-1">
-                <button
-                  type="submit"
-                  data-testid="change-password-button"
-                  disabled={isChangingPassword}
-                  className="rounded bg-primary px-4 py-1.5 text-xs font-semibold text-on-primary shadow-sm transition hover:bg-primary-container hover:text-on-primary-container disabled:opacity-50"
-                >
-                  {isChangingPassword ? "Updating..." : "Update Password"}
-                </button>
-              </div>
-            </form>
-          </section>
+              </form>
+            </CardContent>
+          </Card>
 
           {/* Account Danger Zone */}
-          <section className="rounded border border-error/30 bg-error/5 p-4 sm:p-5">
-            <h3 className="text-sm font-semibold text-error">Account Danger Zone</h3>
-            <p className="mt-1 text-xs text-on-surface-variant font-body-sm">
-              Permanently remove your personal account and all associated memberships. This action cannot be undone.
-            </p>
-            <div className="mt-3.5">
-              <button
+          <Card className="border-destructive/30 bg-destructive/5">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold text-destructive flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-destructive" />
+                <span>Account Danger Zone</span>
+              </CardTitle>
+              <CardDescription className="text-xs text-muted-foreground">
+                Permanently remove your personal account and all associated memberships. This action cannot be undone.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
                 type="button"
+                variant="destructive"
+                size="sm"
                 data-testid="settings-delete-account-button"
                 onClick={() => {
                   setDeleteAccountError(null);
                   setShowDeleteAccountModal(true);
                 }}
-                className="rounded border border-error/30 bg-error/15 px-3 py-1.5 text-xs font-medium text-error transition hover:bg-error/25"
               >
+                <Trash2 className="w-3.5 h-3.5 mr-1.5" />
                 Delete Account
-              </button>
-            </div>
-          </section>
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       )}
 
@@ -1218,128 +1305,177 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
       {/* ------------------------------------------------------------- */}
       {activeTab === "ui" && (
         <div className="space-y-6">
-          <section className="rounded border border-outline/20 bg-surface-container-low p-4 sm:p-5">
-            <div className="mb-4">
-              <h3 className="text-base font-semibold text-on-surface">Appearance & Theme</h3>
-              <p className="text-xs text-on-surface-variant font-body-sm mt-0.5">
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+                <Palette className="h-4 w-4 text-primary" />
+                <span>Appearance & Theme</span>
+              </CardTitle>
+              <CardDescription className="text-xs text-muted-foreground">
                 Personalize visual accents and interface density for your account.
-              </p>
-            </div>
+              </CardDescription>
+            </CardHeader>
 
-            <div className="space-y-4 max-w-xl">
+            <CardContent className="space-y-5 max-w-xl">
               <div>
-                <label className="block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-2">
+                <label className="block text-xs font-medium text-foreground mb-2">
+                  Application Theme
+                </label>
+                <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
+                  <Button
+                    type="button"
+                    data-testid="settings-app-theme-system-btn"
+                    variant={appTheme === "system" ? "secondary" : "outline"}
+                    onClick={() => handleAppThemeChange("system")}
+                    className={`h-auto py-2.5 px-3 flex flex-col sm:flex-row items-center gap-1.5 text-xs ${
+                      appTheme === "system" ? "border-primary bg-primary/10 text-primary font-semibold" : ""
+                    }`}
+                  >
+                    <Laptop className="h-4 w-4 shrink-0" />
+                    <span>System</span>
+                  </Button>
+
+                  <Button
+                    type="button"
+                    data-testid="settings-app-theme-dark-btn"
+                    variant={appTheme === "dark" ? "secondary" : "outline"}
+                    onClick={() => handleAppThemeChange("dark")}
+                    className={`h-auto py-2.5 px-3 flex flex-col sm:flex-row items-center gap-1.5 text-xs ${
+                      appTheme === "dark" ? "border-primary bg-primary/10 text-primary font-semibold" : ""
+                    }`}
+                  >
+                    <Moon className="h-4 w-4 shrink-0" />
+                    <span>Dark</span>
+                  </Button>
+
+                  <Button
+                    type="button"
+                    data-testid="settings-app-theme-light-btn"
+                    variant={appTheme === "light" ? "secondary" : "outline"}
+                    onClick={() => handleAppThemeChange("light")}
+                    className={`h-auto py-2.5 px-3 flex flex-col sm:flex-row items-center gap-1.5 text-xs ${
+                      appTheme === "light" ? "border-primary bg-primary/10 text-primary font-semibold" : ""
+                    }`}
+                  >
+                    <Sun className="h-4 w-4 shrink-0" />
+                    <span>Light</span>
+                  </Button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-foreground mb-2">
                   Theme Accent Color
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
                   {COLOR_THEMES.map((theme) => {
                     const isSelected = accentTheme.toLowerCase() === theme.name.toLowerCase();
                     return (
-                      <button
+                      <Button
                         key={theme.name}
                         type="button"
+                        variant={isSelected ? "secondary" : "outline"}
                         onClick={() => handleAccentChange(theme.name)}
-                        className={`flex items-center gap-2 rounded border p-2.5 text-left transition ${
-                          isSelected
-                            ? "border-primary bg-primary/10 text-on-surface font-semibold"
-                            : "border-outline/20 bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
+                        className={`h-auto py-2 px-2.5 flex items-center justify-start gap-2 text-xs ${
+                          isSelected ? "border-primary bg-primary/10 font-semibold text-primary" : ""
                         }`}
                       >
-                        <div className={`h-3.5 w-3.5 rounded-full bg-gradient-to-br ${theme.class}`} />
-                        <span className="text-xs">{theme.name}</span>
-                      </button>
+                        <div className={`h-3 w-3 rounded-full shrink-0 bg-gradient-to-br ${theme.class}`} />
+                        <span className="truncate">{theme.name}</span>
+                      </Button>
                     );
                   })}
                 </div>
               </div>
 
               <div>
-                <label className="block font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-2">
+                <label className="block text-xs font-medium text-foreground mb-2">
                   Interface Layout Density
                 </label>
-                <div className="grid grid-cols-2 gap-2.5">
-                  <button
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <Button
                     type="button"
+                    variant={density === "comfortable" ? "secondary" : "outline"}
                     onClick={() => handleDensityChange("comfortable")}
-                    className={`rounded border p-3 text-left transition ${
-                      density === "comfortable"
-                        ? "border-primary bg-primary/10 text-on-surface font-semibold"
-                        : "border-outline/20 bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
+                    className={`h-auto p-3 flex flex-col items-start text-left ${
+                      density === "comfortable" ? "border-primary bg-primary/10 text-primary font-semibold" : ""
                     }`}
                   >
-                    <p className="text-xs font-semibold text-on-surface">Comfortable</p>
-                    <p className="mt-0.5 text-[11px] text-on-surface-variant font-body-sm">Generous padding and card spacing</p>
-                  </button>
+                    <p className="text-xs font-semibold">Comfortable</p>
+                    <p className="text-[11px] text-muted-foreground font-normal">Generous padding and card spacing</p>
+                  </Button>
 
-                  <button
+                  <Button
                     type="button"
+                    variant={density === "compact" ? "secondary" : "outline"}
                     onClick={() => handleDensityChange("compact")}
-                    className={`rounded border p-3 text-left transition ${
-                      density === "compact"
-                        ? "border-primary bg-primary/10 text-on-surface font-semibold"
-                        : "border-outline/20 bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
+                    className={`h-auto p-3 flex flex-col items-start text-left ${
+                      density === "compact" ? "border-primary bg-primary/10 text-primary font-semibold" : ""
                     }`}
                   >
-                    <p className="text-xs font-semibold text-on-surface">Compact</p>
-                    <p className="mt-0.5 text-[11px] text-on-surface-variant font-body-sm">High information density for larger screens</p>
-                  </button>
+                    <p className="text-xs font-semibold">Compact</p>
+                    <p className="text-[11px] text-muted-foreground font-normal">High information density for larger screens</p>
+                  </Button>
                 </div>
               </div>
-            </div>
-          </section>
+            </CardContent>
+          </Card>
 
-          <section className="rounded border border-outline/20 bg-surface-container-low p-4 sm:p-5">
-            <div className="mb-4">
-              <h3 className="text-base font-semibold text-on-surface">Notification Preferences</h3>
-              <p className="text-xs text-on-surface-variant font-body-sm mt-0.5">
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+                <Bell className="h-4 w-4 text-primary" />
+                <span>Notification Preferences</span>
+              </CardTitle>
+              <CardDescription className="text-xs text-muted-foreground">
                 Choose how and when you receive workspace updates (saved to local preferences).
-              </p>
-            </div>
+              </CardDescription>
+            </CardHeader>
 
-            <div className="space-y-3 max-w-xl">
-              <label className="flex items-center justify-between p-3 rounded border border-outline/10 bg-surface-container-lowest cursor-pointer">
+            <CardContent className="space-y-3 max-w-xl">
+              <label className="flex items-center justify-between p-3 rounded-lg border border-border bg-card cursor-pointer hover:bg-muted/30 transition-colors">
                 <div>
-                  <p className="text-xs font-medium text-on-surface">Email Notifications</p>
-                  <p className="text-[11px] text-on-surface-variant font-body-sm">Receive email alerts for important workspace events</p>
+                  <p className="text-xs font-medium text-foreground">Email Notifications</p>
+                  <p className="text-[11px] text-muted-foreground">Receive email alerts for important workspace events</p>
                 </div>
                 <input
                   type="checkbox"
                   data-testid="email-alerts-toggle"
                   checked={emailAlerts}
                   onChange={(e) => handleToggleNotification("email", e.target.checked)}
-                  className="h-4 w-4 rounded border-outline/30 bg-surface-container accent-primary"
+                  className="h-4 w-4 rounded border-input bg-background accent-primary"
                 />
               </label>
 
-              <label className="flex items-center justify-between p-3 rounded border border-outline/10 bg-surface-container-lowest cursor-pointer">
+              <label className="flex items-center justify-between p-3 rounded-lg border border-border bg-card cursor-pointer hover:bg-muted/30 transition-colors">
                 <div>
-                  <p className="text-xs font-medium text-on-surface">Task Assignment Alerts</p>
-                  <p className="text-[11px] text-on-surface-variant font-body-sm">Notify when someone assigns or mentions you in a task</p>
+                  <p className="text-xs font-medium text-foreground">Task Assignment Alerts</p>
+                  <p className="text-[11px] text-muted-foreground">Notify when someone assigns or mentions you in a task</p>
                 </div>
                 <input
                   type="checkbox"
                   data-testid="task-alerts-toggle"
                   checked={taskAlerts}
                   onChange={(e) => handleToggleNotification("task", e.target.checked)}
-                  className="h-4 w-4 rounded border-outline/30 bg-surface-container accent-primary"
+                  className="h-4 w-4 rounded border-input bg-background accent-primary"
                 />
               </label>
 
-              <label className="flex items-center justify-between p-3 rounded border border-outline/10 bg-surface-container-lowest cursor-pointer">
+              <label className="flex items-center justify-between p-3 rounded-lg border border-border bg-card cursor-pointer hover:bg-muted/30 transition-colors">
                 <div>
-                  <p className="text-xs font-medium text-on-surface">Weekly Performance Digest</p>
-                  <p className="text-[11px] text-on-surface-variant font-body-sm">Summary of project completion rates sent every Monday</p>
+                  <p className="text-xs font-medium text-foreground">Weekly Performance Digest</p>
+                  <p className="text-[11px] text-muted-foreground">Summary of project completion rates sent every Monday</p>
                 </div>
                 <input
                   type="checkbox"
                   data-testid="weekly-digest-toggle"
                   checked={weeklyDigest}
                   onChange={(e) => handleToggleNotification("digest", e.target.checked)}
-                  className="h-4 w-4 rounded border-outline/30 bg-surface-container accent-primary"
+                  className="h-4 w-4 rounded border-input bg-background accent-primary"
                 />
               </label>
-            </div>
-          </section>
+            </CardContent>
+          </Card>
         </div>
       )}
 
@@ -1351,45 +1487,45 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
       {showDeleteAccountModal && (
         <div
           data-testid="settings-delete-modal"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-surface-container-lowest/80 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
         >
-          <div className="w-full max-w-md rounded border border-error/30 bg-surface-container-low p-5 shadow-2xl">
-            <div className="flex items-center gap-2.5 text-error">
-              <div className="flex h-9 w-9 items-center justify-center rounded bg-error/15">
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
+          <div className="w-full max-w-md rounded-xl border border-destructive/30 bg-card p-4 sm:p-6 shadow-2xl max-h-[88dvh] overflow-y-auto">
+            <div className="flex items-center gap-3 text-destructive">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/15">
+                <AlertTriangle className="h-5 w-5" />
               </div>
-              <h3 className="text-base font-bold text-on-surface">Delete Account</h3>
+              <h3 className="text-base font-bold text-foreground">Delete Account</h3>
             </div>
-            <p className="mt-3 text-xs text-on-surface-variant font-body-sm leading-relaxed">
+            <p className="mt-3 text-xs text-muted-foreground leading-relaxed">
               Are you sure you want to delete your account? All your workspace memberships and data will be permanently removed.
             </p>
 
             {deleteAccountError && (
-              <div className="mt-3 rounded border border-error/30 bg-error/10 p-2.5 text-xs text-error font-body-sm">
+              <div className="mt-3 rounded-lg border border-destructive/30 bg-destructive/10 p-2.5 text-xs text-destructive">
                 {deleteAccountError}
               </div>
             )}
 
-            <div className="mt-5 flex justify-end gap-2.5">
-              <button
+            <div className="mt-6 flex justify-end gap-2.5">
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => setShowDeleteAccountModal(false)}
                 disabled={isDeletingAccount}
-                className="rounded px-3 py-1.5 text-xs font-medium text-on-surface-variant transition hover:bg-surface-container hover:text-on-surface"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="destructive"
+                size="sm"
                 data-testid="confirm-delete-account-button"
                 onClick={handleDeleteAccount}
                 disabled={isDeletingAccount}
-                className="rounded bg-error px-3.5 py-1.5 text-xs font-semibold text-on-error shadow transition hover:bg-error/90 disabled:opacity-50"
               >
                 {isDeletingAccount ? "Deleting..." : "Yes, Delete Account"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -1399,38 +1535,38 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
       {showDeleteWorkspaceModal && (
         <div
           data-testid="delete-workspace-modal"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-surface-container-lowest/80 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
         >
-          <div className="w-full max-w-md rounded border border-error/30 bg-surface-container-low p-5 shadow-2xl">
-            <div className="flex items-center gap-2.5 text-error">
-              <div className="flex h-9 w-9 items-center justify-center rounded bg-error/15">
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
+          <div className="w-full max-w-md rounded-xl border border-destructive/30 bg-card p-4 sm:p-6 shadow-2xl max-h-[88dvh] overflow-y-auto">
+            <div className="flex items-center gap-3 text-destructive">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/15">
+                <Trash2 className="h-5 w-5" />
               </div>
-              <h3 className="text-base font-bold text-on-surface">Delete Workspace</h3>
+              <h3 className="text-base font-bold text-foreground">Delete Workspace</h3>
             </div>
-            <p className="mt-3 text-xs text-on-surface-variant font-body-sm leading-relaxed">
-              Are you sure you want to permanently delete <strong className="text-on-surface">{workspace?.name}</strong>? All projects, tasks, and member access will be permanently destroyed.
+            <p className="mt-3 text-xs text-muted-foreground leading-relaxed">
+              Are you sure you want to permanently delete <strong className="text-foreground">{workspace?.name}</strong>? All projects, tasks, and member access will be permanently destroyed.
             </p>
-            <div className="mt-5 flex justify-end gap-2.5">
-              <button
+            <div className="mt-6 flex justify-end gap-2.5">
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => setShowDeleteWorkspaceModal(false)}
                 disabled={isDeletingWorkspace}
-                className="rounded px-3 py-1.5 text-xs font-medium text-on-surface-variant transition hover:bg-surface-container hover:text-on-surface"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="destructive"
+                size="sm"
                 data-testid="confirm-delete-workspace-button"
                 onClick={handleDeleteWorkspace}
                 disabled={isDeletingWorkspace}
-                className="rounded bg-error px-3.5 py-1.5 text-xs font-semibold text-on-error shadow transition hover:bg-error/90 disabled:opacity-50"
               >
                 {isDeletingWorkspace ? "Deleting..." : "Yes, Delete Workspace"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -1440,38 +1576,38 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
       {showLeaveWorkspaceModal && (
         <div
           data-testid="leave-workspace-modal"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-surface-container-lowest/80 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
         >
-          <div className="w-full max-w-md rounded border border-tertiary/30 bg-surface-container-low p-5 shadow-2xl">
-            <div className="flex items-center gap-2.5 text-tertiary">
-              <div className="flex h-9 w-9 items-center justify-center rounded bg-tertiary/15">
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
+          <div className="w-full max-w-md rounded-xl border border-border bg-card p-4 sm:p-6 shadow-2xl max-h-[88dvh] overflow-y-auto">
+            <div className="flex items-center gap-3 text-amber-600 dark:text-amber-400">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/15">
+                <LogOut className="h-5 w-5" />
               </div>
-              <h3 className="text-base font-bold text-on-surface">Leave Workspace</h3>
+              <h3 className="text-base font-bold text-foreground">Leave Workspace</h3>
             </div>
-            <p className="mt-3 text-xs text-on-surface-variant font-body-sm leading-relaxed">
-              Are you sure you want to leave <strong className="text-on-surface">{workspace?.name}</strong>? You will need an invitation to regain access.
+            <p className="mt-3 text-xs text-muted-foreground leading-relaxed">
+              Are you sure you want to leave <strong className="text-foreground">{workspace?.name}</strong>? You will need an invitation to regain access.
             </p>
-            <div className="mt-5 flex justify-end gap-2.5">
-              <button
+            <div className="mt-6 flex justify-end gap-2.5">
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => setShowLeaveWorkspaceModal(false)}
                 disabled={isLeavingWorkspace}
-                className="rounded px-3 py-1.5 text-xs font-medium text-on-surface-variant transition hover:bg-surface-container hover:text-on-surface"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                size="sm"
                 data-testid="confirm-leave-workspace-button"
                 onClick={handleLeaveWorkspace}
                 disabled={isLeavingWorkspace}
-                className="rounded bg-tertiary px-3.5 py-1.5 text-xs font-semibold text-on-tertiary shadow transition hover:bg-tertiary/90 disabled:opacity-50"
+                className="bg-amber-600 hover:bg-amber-700 text-white"
               >
                 {isLeavingWorkspace ? "Leaving..." : "Leave Workspace"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -1481,38 +1617,38 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
       {memberToRemove && (
         <div
           data-testid="confirm-remove-member-modal"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-surface-container-lowest/80 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
         >
-          <div className="w-full max-w-md rounded border border-error/30 bg-surface-container-low p-5 shadow-2xl">
-            <div className="flex items-center gap-2.5 text-error">
-              <div className="flex h-9 w-9 items-center justify-center rounded bg-error/15">
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
+          <div className="w-full max-w-md rounded-xl border border-destructive/30 bg-card p-4 sm:p-6 shadow-2xl max-h-[88dvh] overflow-y-auto">
+            <div className="flex items-center gap-3 text-destructive">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/15">
+                <Trash2 className="h-5 w-5" />
               </div>
-              <h3 className="text-base font-bold text-on-surface">Remove Member</h3>
+              <h3 className="text-base font-bold text-foreground">Remove Member</h3>
             </div>
-            <p className="mt-3 text-xs text-on-surface-variant font-body-sm leading-relaxed">
-              Are you sure you want to remove <strong className="text-on-surface">{memberToRemove.user.name}</strong> from this workspace?
+            <p className="mt-3 text-xs text-muted-foreground leading-relaxed">
+              Are you sure you want to remove <strong className="text-foreground">{memberToRemove.user.name}</strong> from this workspace?
             </p>
-            <div className="mt-5 flex justify-end gap-2.5">
-              <button
+            <div className="mt-6 flex justify-end gap-2.5">
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => setMemberToRemove(null)}
                 disabled={isPending}
-                className="rounded px-3 py-1.5 text-xs font-medium text-on-surface-variant transition hover:bg-surface-container hover:text-on-surface"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="destructive"
+                size="sm"
                 data-testid="confirm-remove-member-btn"
                 onClick={handleRemoveMember}
                 disabled={isPending}
-                className="rounded bg-error px-3.5 py-1.5 text-xs font-semibold text-on-error shadow transition hover:bg-error/90 disabled:opacity-50"
               >
                 {isPending ? "Removing..." : "Remove Member"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -1522,41 +1658,41 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
       {memberToTransfer && (
         <div
           data-testid="transfer-ownership-modal"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-surface-container-lowest/80 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
         >
-          <div className="w-full max-w-md rounded border border-tertiary/30 bg-surface-container-low p-5 shadow-2xl">
-            <div className="flex items-center gap-2.5 text-tertiary">
-              <div className="flex h-9 w-9 items-center justify-center rounded bg-tertiary/15">
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                </svg>
+          <div className="w-full max-w-md rounded-xl border border-border bg-card p-4 sm:p-6 shadow-2xl max-h-[88dvh] overflow-y-auto">
+            <div className="flex items-center gap-3 text-amber-600 dark:text-amber-400">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/15">
+                <ArrowRightLeft className="h-5 w-5" />
               </div>
-              <h3 className="text-base font-bold text-on-surface">Transfer Ownership</h3>
+              <h3 className="text-base font-bold text-foreground">Transfer Ownership</h3>
             </div>
-            <p className="mt-3 text-xs text-on-surface-variant font-body-sm leading-relaxed">
-              Are you sure you want to transfer ownership of <strong className="text-on-surface">{workspace?.name}</strong> to <strong className="text-on-surface">{memberToTransfer.user.name}</strong>?
+            <p className="mt-3 text-xs text-muted-foreground leading-relaxed">
+              Are you sure you want to transfer ownership of <strong className="text-foreground">{workspace?.name}</strong> to <strong className="text-foreground">{memberToTransfer.user.name}</strong>?
             </p>
-            <p className="mt-1.5 text-[11px] text-tertiary font-body-sm">
-              You will remain an Admin of the workspace, but <strong className="text-on-surface">{memberToTransfer.user.name}</strong> will become the primary Owner.
+            <p className="mt-1.5 text-[11px] text-amber-700 dark:text-amber-400">
+              You will remain an Admin of the workspace, but <strong className="text-foreground">{memberToTransfer.user.name}</strong> will become the primary Owner.
             </p>
-            <div className="mt-5 flex justify-end gap-2.5">
-              <button
+            <div className="mt-6 flex justify-end gap-2.5">
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => setMemberToTransfer(null)}
                 disabled={isTransferringOwnership}
-                className="rounded px-3 py-1.5 text-xs font-medium text-on-surface-variant transition hover:bg-surface-container hover:text-on-surface"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                size="sm"
                 data-testid="confirm-transfer-ownership-btn"
                 onClick={handleTransferOwnership}
                 disabled={isTransferringOwnership}
-                className="rounded bg-tertiary px-3.5 py-1.5 text-xs font-semibold text-on-tertiary shadow transition hover:bg-tertiary/90 disabled:opacity-50"
+                className="bg-amber-600 hover:bg-amber-700 text-white"
               >
                 {isTransferringOwnership ? "Transferring..." : "Yes, Transfer Ownership"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

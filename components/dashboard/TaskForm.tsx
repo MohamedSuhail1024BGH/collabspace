@@ -2,6 +2,20 @@
 
 import { useEffect } from "react";
 import type { TaskPriority } from "@/data/mock-data";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Field, FieldLabel } from "@/components/ui/field";
+import { Badge } from "@/components/ui/badge";
+import { CheckSquare } from "lucide-react";
 
 export type TaskDraft = {
   id?: string;
@@ -51,145 +65,158 @@ export function TaskForm({
   }, [onCancel]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 p-0 sm:p-4 backdrop-blur-md animate-fade-in">
-      <div className="w-full max-w-2xl rounded-t-2xl sm:rounded-2xl bg-surface-container border border-outline-variant/30 p-4 sm:p-6 shadow-2xl max-h-[92dvh] flex flex-col">
-        <div className="mb-4 sm:mb-5 flex items-center justify-between gap-3 pb-3 sm:pb-4 border-b border-outline-variant/15 shrink-0">
-          <div>
-            <p className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">
-              {mode === "create" ? "New task" : "Edit task"}
-            </p>
-            <h3 className="text-base sm:text-lg font-bold text-on-surface font-headline-sm">
-              {mode === "create" ? "Create a task" : "Update task details"}
-            </h3>
+    <Dialog open onOpenChange={(open) => !open && onCancel()}>
+      <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <div className="flex items-center justify-between pr-6">
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <CheckSquare className="size-5 text-primary" />
+              {mode === "create" ? "Create a New Task" : "Update Task Details"}
+            </DialogTitle>
+            <Badge variant="outline" className="text-[10px] font-mono">
+              Draft
+            </Badge>
           </div>
-          <span className="rounded-md bg-surface-container-high px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider text-primary">
-            Draft
-          </span>
-        </div>
+          <DialogDescription>
+            {mode === "create"
+              ? "Assign a task, set deadlines, and configure priority for team visibility."
+              : "Modify task metadata, assignees, and progress status."}
+          </DialogDescription>
+        </DialogHeader>
 
-        <div className="overflow-y-auto flex-1 pr-1 custom-scrollbar">
-          <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
-          <div className="md:col-span-2">
-            <label className="mb-1.5 block text-xs font-mono text-on-surface-variant">Title</label>
-            <input
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            onSave();
+          }}
+          className="flex flex-col gap-4 py-2"
+        >
+          <Field>
+            <FieldLabel htmlFor="task-title">Title</FieldLabel>
+            <Input
+              id="task-title"
               value={draft.title}
-              onChange={(event) => onFieldChange("title", event.target.value)}
-              placeholder="Task title"
-              className="w-full rounded-lg bg-surface-lowest border border-outline-variant/25 px-3.5 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 focus:outline-none transition-all"
+              onChange={(e) => onFieldChange("title", e.target.value)}
+              placeholder="e.g. Redesign navigation bar"
+              required
+              autoFocus
             />
-          </div>
+          </Field>
 
-          <div className="md:col-span-2">
-            <label className="mb-1.5 block text-xs font-mono text-on-surface-variant">Description</label>
-            <textarea
+          <Field>
+            <FieldLabel htmlFor="task-description">Description</FieldLabel>
+            <Textarea
+              id="task-description"
               rows={3}
               value={draft.description}
-              onChange={(event) => onFieldChange("description", event.target.value)}
-              placeholder="Add context, blockers, or notes"
-              className="w-full rounded-lg bg-surface-lowest border border-outline-variant/25 px-3.5 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 focus:outline-none transition-all"
+              onChange={(e) => onFieldChange("description", e.target.value)}
+              placeholder="Add context, blockers, or acceptance criteria..."
             />
+          </Field>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field>
+              <FieldLabel htmlFor="task-assignee">Assignee</FieldLabel>
+              <select
+                id="task-assignee"
+                value={draft.assignee}
+                onChange={(e) => onFieldChange("assignee", e.target.value)}
+                className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer h-9"
+              >
+                {assigneeOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="task-project">Project</FieldLabel>
+              <select
+                id="task-project"
+                value={draft.projectId || draft.project}
+                onChange={(e) => {
+                  const selectedVal = e.target.value;
+                  const matched = projectOptions.find(
+                    (p) => p.id === selectedVal || p.name === selectedVal
+                  );
+                  if (matched) {
+                    onFieldChange("project", matched.name);
+                    onFieldChange("projectId", matched.id);
+                  } else {
+                    onFieldChange("project", selectedVal);
+                  }
+                }}
+                className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer h-9"
+              >
+                <option value="General">General</option>
+                {projectOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="task-priority">Priority</FieldLabel>
+              <select
+                id="task-priority"
+                value={draft.priority}
+                onChange={(e) => onFieldChange("priority", e.target.value as TaskPriority)}
+                className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer font-mono h-9"
+              >
+                {priorityOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="task-status">Status</FieldLabel>
+              <select
+                id="task-status"
+                value={draft.status}
+                onChange={(e) => onFieldChange("status", e.target.value)}
+                className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer font-mono h-9"
+              >
+                {statusOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <Field className="sm:col-span-2">
+              <FieldLabel htmlFor="task-due">Due Date</FieldLabel>
+              <Input
+                id="task-due"
+                type="date"
+                value={draft.due}
+                onChange={(e) => onFieldChange("due", e.target.value)}
+                className="font-mono h-9"
+              />
+            </Field>
           </div>
 
-          <div>
-            <label className="mb-1.5 block text-xs font-mono text-on-surface-variant">Assignee</label>
-            <select
-              value={draft.assignee}
-              onChange={(event) => onFieldChange("assignee", event.target.value)}
-              className="w-full rounded-lg bg-surface-lowest border border-outline-variant/25 px-3.5 py-2 text-xs text-on-surface focus:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 focus:outline-none transition-all"
-            >
-              {assigneeOptions.map((option) => (
-                <option key={option} value={option} className="bg-surface-container-high text-on-surface">
-                  {option}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-xs font-mono text-on-surface-variant">Project</label>
-            <select
-              value={draft.projectId || draft.project}
-              onChange={(event) => {
-                const selectedVal = event.target.value;
-                const matched = projectOptions.find((p) => p.id === selectedVal || p.name === selectedVal);
-                if (matched) {
-                  onFieldChange("project", matched.name);
-                  onFieldChange("projectId", matched.id);
-                } else {
-                  onFieldChange("project", selectedVal);
-                }
-              }}
-              className="w-full rounded-lg bg-surface-lowest border border-outline-variant/25 px-3.5 py-2 text-xs text-on-surface focus:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 focus:outline-none transition-all"
-            >
-              <option value="General" className="bg-surface-container-high text-on-surface">General</option>
-              {projectOptions.map((option) => (
-                <option key={option.id} value={option.id} className="bg-surface-container-high text-on-surface">
-                  {option.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-xs font-mono text-on-surface-variant">Priority</label>
-            <select
-              value={draft.priority}
-              onChange={(event) => onFieldChange("priority", event.target.value)}
-              className="w-full rounded-lg bg-surface-lowest border border-outline-variant/25 px-3.5 py-2 text-xs text-on-surface focus:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 focus:outline-none font-mono transition-all"
-            >
-              {priorityOptions.map((option) => (
-                <option key={option} value={option} className="bg-surface-container-high text-on-surface">
-                  {option}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-xs font-mono text-on-surface-variant">Status</label>
-            <select
-              value={draft.status}
-              onChange={(event) => onFieldChange("status", event.target.value)}
-              className="w-full rounded-lg bg-surface-lowest border border-outline-variant/25 px-3.5 py-2 text-xs text-on-surface focus:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 focus:outline-none font-mono transition-all"
-            >
-              {statusOptions.map((option) => (
-                <option key={option} value={option} className="bg-surface-container-high text-on-surface">
-                  {option}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="mb-1.5 block text-xs font-mono text-on-surface-variant">Due date</label>
-            <input
-              type="date"
-              value={draft.due}
-              onChange={(event) => onFieldChange("due", event.target.value)}
-              className="w-full rounded-lg bg-surface-lowest border border-outline-variant/25 px-3.5 py-2 text-xs text-on-surface focus:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 focus:outline-none font-mono transition-all"
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-3 sm:mt-6 flex justify-end gap-2.5 sm:gap-3 pt-3 sm:pt-4 border-t border-outline-variant/15 shrink-0">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded-lg bg-surface-high hover:bg-surface-highest px-4 py-2 text-xs font-medium text-on-surface transition-colors active:scale-95 cursor-pointer"
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          disabled={isSaving}
-          onClick={onSave}
-          className="rounded-lg bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-5 py-2 text-xs font-medium transition-all shadow-sm disabled:opacity-50 active:scale-95 cursor-pointer"
-        >
-          {isSaving ? "Saving..." : mode === "create" ? "Create task" : "Save changes"}
-        </button>
-      </div>
-    </div>
-  </div>
-);
+          <DialogFooter className="mt-2">
+            <Button type="button" variant="outline" onClick={onCancel} disabled={isSaving}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSaving || !draft.title.trim()}>
+              {isSaving
+                ? "Saving..."
+                : mode === "create"
+                ? "Create task"
+                : "Save changes"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
 }
