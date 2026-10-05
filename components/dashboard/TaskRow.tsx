@@ -1,19 +1,8 @@
 import type { DashboardTask } from "@/data/mock-data";
-
-const priorityStyles = {
-  High: "border-error/30 bg-error-container/20 text-error",
-  Medium: "border-tertiary/30 bg-tertiary-container/20 text-tertiary",
-  Low: "border-secondary/30 bg-secondary-container/20 text-secondary",
-} as const;
-
-const statusStyles: Record<string, string> = {
-  "Not started": "border-outline/30 bg-surface-container text-on-surface-variant",
-  "In progress": "border-primary/30 bg-primary/10 text-primary",
-  Pending: "border-tertiary/30 bg-tertiary-container/20 text-tertiary",
-  Review: "border-primary/30 bg-primary-container/20 text-on-surface",
-  Blocked: "border-error/30 bg-error-container/20 text-error",
-  Completed: "border-secondary/30 bg-secondary-container/20 text-secondary",
-};
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Calendar, User, Edit3, Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const statusOptions = ["Not started", "In progress", "Pending", "Review", "Blocked", "Completed"];
 
@@ -55,104 +44,114 @@ export function TaskRow({ task, onEdit, onDelete, onStatusChange }: TaskRowProps
   const project = isTaskDetail ? task.project : undefined;
   const taskId = isTaskDetail ? task.id : `${title}-${assignee}`;
 
+  const priorityVariant =
+    priority === "High" ? "destructive" : priority === "Medium" ? "warning" : "secondary";
+
+  const statusVariant =
+    status === "Completed"
+      ? "success"
+      : status === "In progress" || status === "Review"
+      ? "default"
+      : status === "Blocked"
+      ? "destructive"
+      : "secondary";
+
   return (
     <div
-      className={`rounded-lg bg-surface-container-low border p-2.5 sm:p-3.5 hover:border-primary/40 hover:bg-surface-container transition-all duration-150 group shadow-xs min-w-0 overflow-hidden w-full max-w-full ${
-        priority === "High"
-          ? "border-outline-variant/20 border-l-4 border-l-error"
-          : "border-outline-variant/20"
-      }`}
+      className={cn(
+        "rounded-xl border border-border bg-card p-3 sm:p-4 hover:border-primary/40 hover:shadow-sm transition-all duration-150 group w-full max-w-full",
+        priority === "High" && "border-l-4 border-l-destructive"
+      )}
     >
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex-1 min-w-0">
           <div className="flex items-start gap-2.5">
             <span
-              className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
-                priority === "High" ? "bg-error animate-pulse" : "bg-primary"
-              }`}
+              className={cn(
+                "mt-1.5 size-2 shrink-0 rounded-full",
+                priority === "High" ? "bg-destructive animate-pulse" : "bg-primary"
+              )}
               aria-hidden="true"
             />
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-on-surface group-hover:text-primary transition-colors truncate font-headline-sm">
+              <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors truncate">
                 {title}
               </p>
               {description ? (
-                <p className="mt-0.5 text-xs text-on-surface-variant line-clamp-2 leading-relaxed">{description}</p>
+                <p className="mt-1 text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                  {description}
+                </p>
               ) : null}
             </div>
           </div>
 
           <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-            <span
-              className={`rounded-md border px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider font-medium ${
-                priorityStyles[priority] ?? "border-outline/30 bg-surface-container text-on-surface-variant"
-              }`}
-            >
+            <Badge variant={priorityVariant} className="text-[10px] font-mono">
               {priority === "High" ? "P0 • High" : priority}
-            </span>
-            <span
-              className={`rounded-md border px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider font-medium ${
-                statusStyles[status] ?? "border-outline/30 bg-surface-container text-on-surface-variant"
-              }`}
-            >
+            </Badge>
+            <Badge variant={statusVariant} className="text-[10px] font-mono">
               {status}
-            </span>
+            </Badge>
             {project ? (
-              <span className="rounded-md border border-outline-variant/25 bg-surface-lowest px-2 py-0.5 text-[10px] font-mono text-on-surface-variant">
+              <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground">
                 {project}
-              </span>
+              </Badge>
             ) : null}
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2 shrink-0 text-xs">
-          <div className="rounded-lg bg-surface-lowest border border-outline-variant/20 px-2.5 py-1">
-            <p className="text-[10px] font-mono uppercase text-on-surface-variant/70">Assignee</p>
-            <p className="font-medium text-on-surface">{assignee}</p>
+        <div className="flex flex-wrap sm:flex-col items-start sm:items-end gap-1.5 shrink-0 text-xs text-muted-foreground">
+          <div className="flex items-center gap-1.5 rounded-md bg-secondary/60 px-2 py-1">
+            <User className="size-3 text-muted-foreground" />
+            <span className="font-medium text-foreground">{assignee}</span>
           </div>
-          <div className="rounded-lg bg-surface-lowest border border-outline-variant/20 px-2.5 py-1">
-            <p className="text-[10px] font-mono uppercase text-on-surface-variant/70">Due</p>
-            <p className="font-mono text-on-surface">{formatDate(dueValue)}</p>
+          <div className="flex items-center gap-1.5 rounded-md bg-secondary/60 px-2 py-1">
+            <Calendar className="size-3 text-muted-foreground" />
+            <span className="font-mono text-foreground">{formatDate(dueValue)}</span>
           </div>
         </div>
       </div>
 
       {onEdit || onDelete || onStatusChange ? (
-        <div className="mt-3 pt-2.5 border-t border-outline-variant/15 flex flex-wrap items-center justify-between gap-2">
-          <label className="flex items-center gap-2 text-xs text-on-surface-variant">
-            <span className="font-mono text-[11px]">Status</span>
+        <div className="mt-3 pt-2.5 border-t border-border flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground font-mono">Status:</span>
             <select
               value={status}
               onChange={(event) => onStatusChange?.(taskId, event.target.value)}
               aria-label="Change task status"
-              className="rounded-lg bg-surface-lowest border border-outline-variant/25 px-2.5 py-1.5 text-xs text-on-surface focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none cursor-pointer transition-all font-mono"
+              className="rounded-lg border border-input bg-card px-2.5 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer font-mono"
             >
               {statusOptions.map((option) => (
-                <option key={option} value={option} className="bg-surface-container-high text-on-surface">
+                <option key={option} value={option}>
                   {option}
                 </option>
               ))}
             </select>
-          </label>
+          </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             {onEdit && (
-              <button
-                type="button"
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => onEdit?.(task as DashboardTask)}
-                className="rounded-lg bg-surface-container-high hover:bg-surface-container-highest px-3 py-1.5 text-xs font-medium text-on-surface transition active:scale-95 cursor-pointer"
+                className="h-7 px-2.5 text-xs gap-1"
               >
-                Edit
-              </button>
+                <Edit3 className="size-3" />
+                <span>Edit</span>
+              </Button>
             )}
             {onDelete && (
-              <button
-                type="button"
+              <Button
+                variant="destructive"
+                size="sm"
                 onClick={() => onDelete?.(taskId)}
-                className="rounded-lg bg-error-container/20 hover:bg-error-container/30 px-3 py-1.5 text-xs font-medium text-error transition active:scale-95 cursor-pointer"
+                className="h-7 px-2.5 text-xs gap-1"
               >
-                Delete
-              </button>
+                <Trash2 className="size-3" />
+                <span>Delete</span>
+              </Button>
             )}
           </div>
         </div>

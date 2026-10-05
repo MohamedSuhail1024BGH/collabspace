@@ -3,6 +3,17 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Calendar, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export type TimelineTask = {
   id: string;
@@ -19,8 +30,7 @@ type TimelinePhase = {
   subtitle: string;
   startDate: string;
   endDate: string;
-  colorClass: string;
-  textClass: string;
+  badgeVariant: "default" | "secondary" | "outline" | "info" | "success" | "warning";
   members: { name: string; initials: string; color: string; avatar?: string | null }[];
 };
 
@@ -33,7 +43,6 @@ export function ProjectTimelineWidget({
 }) {
   const hasTasks = tasks && tasks.length > 0;
 
-  // Generate milestone timeline phases dynamically when tasks exist
   const phases = useMemo<TimelinePhase[]>(() => {
     if (!hasTasks) return [];
 
@@ -58,28 +67,25 @@ export function ProjectTimelineWidget({
         subtitle: "Define goals, Research, Scope outline",
         startDate: formatShortDate(d0),
         endDate: formatShortDate(d1),
-        colorClass: "bg-tertiary-container/15 border-tertiary/30",
-        textClass: "text-tertiary",
+        badgeVariant: "warning",
         members: teamMembers.slice(0, 3),
       },
       {
         id: "p2",
         name: "Design & UX Prototyping",
-        subtitle: "Wireframes, UI - UX, Revisions",
+        subtitle: "Wireframes, UI/UX, Component specs",
         startDate: formatShortDate(d1),
         endDate: formatShortDate(d2),
-        colorClass: "bg-primary-container/15 border-primary/30",
-        textClass: "text-primary",
+        badgeVariant: "default",
         members: teamMembers.slice(1, 4),
       },
       {
         id: "p3",
         name: "Core Development",
-        subtitle: "Front End, Back End, Integration",
+        subtitle: "Frontend, Backend, Integration",
         startDate: formatShortDate(d2),
         endDate: formatShortDate(d3),
-        colorClass: "bg-surface-container-high border-outline/30",
-        textClass: "text-on-surface",
+        badgeVariant: "info",
         members: teamMembers.slice(0, 2),
       },
       {
@@ -88,8 +94,7 @@ export function ProjectTimelineWidget({
         subtitle: "Unit tests, E2E QA, Regression",
         startDate: formatShortDate(d3),
         endDate: formatShortDate(d4),
-        colorClass: "bg-secondary-container/15 border-secondary/30",
-        textClass: "text-secondary",
+        badgeVariant: "success",
         members: teamMembers.slice(2, 5),
       },
     ];
@@ -107,97 +112,86 @@ export function ProjectTimelineWidget({
   }, []);
 
   return (
-    <div
-      data-testid="project-timeline-widget"
-      className="rounded-lg bg-surface-container-low border border-outline/20 p-3 sm:p-4 flex flex-col text-on-surface h-full w-full max-w-full min-w-0 overflow-hidden"
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between mb-2.5 sm:mb-3">
-        <div>
-          <h3 className="text-sm font-semibold tracking-tight text-on-surface">Project timeline</h3>
-          <p className="text-[10px] sm:text-[11px] text-on-surface-variant font-mono">
-            Sprint stages and milestone tracking
-          </p>
+    <Card data-testid="project-timeline-widget" className="flex flex-col h-full w-full">
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <div className="flex flex-col gap-1">
+          <CardTitle className="text-base font-semibold">Project Timeline</CardTitle>
+          <CardDescription className="text-xs">
+            Sprint stages and milestone delivery schedule
+          </CardDescription>
         </div>
-        <Link href="/tasks" className="text-xs text-primary font-mono hover:underline">
-          Details &rsaquo;
-        </Link>
-      </div>
+        <Button variant="ghost" size="sm" asChild className="gap-1 text-xs text-primary">
+          <Link href="/tasks">
+            Details
+            <ChevronRight className="size-3.5" />
+          </Link>
+        </Button>
+      </CardHeader>
 
-      {hasTasks ? (
-        <>
-          {/* Date Header Markers (desktop/tablet only to eliminate mobile horizontal expansion) */}
-          <div className="hidden sm:block border-b border-outline/10 pb-2 mb-3">
-            <div className="grid grid-cols-6 gap-2 text-[10px] font-mono text-on-surface-variant text-center font-medium">
+      <CardContent className="flex-1 flex flex-col pt-2">
+        {hasTasks ? (
+          <div className="flex flex-col gap-3">
+            {/* Desktop timeline markers */}
+            <div className="hidden sm:grid grid-cols-6 gap-2 border-b border-border pb-2.5 text-center">
               {timelineDateMarkers.map((date, idx) => (
                 <div key={idx} className="flex flex-col items-center">
-                  <span className="truncate">{date}</span>
-                  <span className="mt-1 h-1.5 w-1.5 rounded-full bg-outline/40" />
+                  <span className="text-[11px] font-mono text-muted-foreground">{date}</span>
+                  <span className="mt-1 size-1.5 rounded-full bg-border" />
+                </div>
+              ))}
+            </div>
+
+            {/* Phases list */}
+            <div className="flex flex-col gap-2">
+              {phases.map((phase) => (
+                <div
+                  key={phase.id}
+                  className="rounded-lg border border-border bg-card/60 p-3 hover:bg-secondary/30 transition-colors"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-xs sm:text-sm font-semibold text-foreground truncate">
+                          {phase.name}
+                        </p>
+                        <Badge variant={phase.badgeVariant} className="text-[10px] font-mono">
+                          {phase.startDate} – {phase.endDate}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                        {phase.subtitle}
+                      </p>
+                    </div>
+
+                    {phase.members.length > 0 && (
+                      <div className="flex -space-x-1.5 shrink-0">
+                        {phase.members.map((m, idx) => (
+                          <div key={idx} className="shrink-0 ring-2 ring-card rounded-full" title={m.name}>
+                            <UserAvatar avatar={m.avatar} name={m.name} size="xs" />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
           </div>
-
-          {/* Timeline Gantt Track */}
-          <div className="space-y-1.5 sm:space-y-2 min-w-0 w-full">
-            {phases.map((phase) => (
-              <div
-                key={phase.id}
-                className={`rounded-lg border p-2 sm:p-2.5 transition-colors ${phase.colorClass}`}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <p className={`text-xs font-semibold truncate ${phase.textClass}`}>
-                        {phase.name}
-                      </p>
-                      <span className="text-[9px] sm:text-[10px] font-mono text-on-surface-variant px-1.5 py-0.5 rounded bg-surface-container-highest/60 shrink-0">
-                        {phase.startDate} – {phase.endDate}
-                      </span>
-                    </div>
-                    <p className="text-[10px] sm:text-[11px] text-on-surface-variant mt-0.5 truncate">
-                      {phase.subtitle}
-                    </p>
-                  </div>
-
-                  {/* Members */}
-                  {phase.members.length > 0 && (
-                    <div className="flex -space-x-1 shrink-0">
-                      {phase.members.map((m, idx) => (
-                        <div key={idx} className="shrink-0" title={m.name}>
-                          <UserAvatar
-                            avatar={m.avatar}
-                            name={m.name}
-                            size="xs"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
+        ) : (
+          <div className="my-auto py-8 flex flex-col items-center justify-center text-center px-4">
+            <div className="size-10 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground mb-3">
+              <Calendar className="size-5" />
+            </div>
+            <p className="text-sm font-semibold text-foreground">No project timeline yet</p>
+            <p className="text-xs text-muted-foreground max-w-xs mt-1">
+              Create tasks with due dates to visualize milestone stages and sprint delivery.
+            </p>
+            <Button variant="outline" size="sm" asChild className="mt-4">
+              <Link href="/tasks">+ Create a task</Link>
+            </Button>
           </div>
-        </>
-      ) : (
-        <div className="my-auto py-6 sm:py-8 flex flex-col items-center justify-center text-center px-4">
-          <div className="h-10 w-10 rounded-xl bg-surface-container flex items-center justify-center text-on-surface-variant mb-2.5 border border-outline-variant/15">
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-          </div>
-          <p className="text-xs sm:text-sm font-semibold text-on-surface font-headline-sm">No project timeline yet</p>
-          <p className="text-[10px] sm:text-[11px] font-mono text-on-surface-variant max-w-xs mt-1">
-            Create tasks with due dates to visualize milestone stages and sprint delivery.
-          </p>
-          <Link
-            href="/tasks"
-            className="mt-3.5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-high border border-outline-variant/25 text-xs font-mono text-primary transition shadow-xs active:scale-95"
-          >
-            <span>+ Create a task</span>
-          </Link>
-        </div>
-      )}
-    </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

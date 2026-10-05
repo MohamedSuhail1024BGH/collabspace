@@ -1,5 +1,8 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+import { Download, SlidersHorizontal } from "lucide-react";
+
 type Props = {
   period: "week" | "month" | "quarter";
   onPeriodChange: (p: "week" | "month" | "quarter") => void;
@@ -17,18 +20,18 @@ export function ReportFilters({
 }: Props) {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between py-1">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2.5 w-full sm:w-auto">
-        <span className="font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground font-mono">
           Period:
         </span>
-        <div className="flex items-center p-0.5 bg-surface-container-lowest rounded border border-outline/20 w-full sm:w-auto">
+        <div className="flex items-center p-0.5 bg-muted/40 rounded-lg border border-border/50 w-full sm:w-auto">
           <button
             type="button"
             onClick={() => onPeriodChange("week")}
-            className={`flex-1 sm:flex-initial text-center font-label-sm text-xs px-2.5 sm:px-3 py-1.5 sm:py-1 rounded transition-colors active:scale-95 cursor-pointer ${
+            className={`flex-1 sm:flex-initial text-center text-xs font-medium px-3 py-1.5 rounded-md transition-all cursor-pointer ${
               period === "week"
-                ? "bg-surface-container text-on-surface font-medium shadow-sm"
-                : "text-on-surface-variant hover:text-on-surface"
+                ? "bg-background text-foreground shadow-xs font-semibold"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             This week
@@ -36,10 +39,10 @@ export function ReportFilters({
           <button
             type="button"
             onClick={() => onPeriodChange("month")}
-            className={`flex-1 sm:flex-initial text-center font-label-sm text-xs px-2.5 sm:px-3 py-1.5 sm:py-1 rounded transition-colors active:scale-95 cursor-pointer ${
+            className={`flex-1 sm:flex-initial text-center text-xs font-medium px-3 py-1.5 rounded-md transition-all cursor-pointer ${
               period === "month"
-                ? "bg-surface-container text-on-surface font-medium shadow-sm"
-                : "text-on-surface-variant hover:text-on-surface"
+                ? "bg-background text-foreground shadow-xs font-semibold"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             This month
@@ -47,10 +50,10 @@ export function ReportFilters({
           <button
             type="button"
             onClick={() => onPeriodChange("quarter")}
-            className={`flex-1 sm:flex-initial text-center font-label-sm text-xs px-2.5 sm:px-3 py-1.5 sm:py-1 rounded transition-colors active:scale-95 cursor-pointer ${
+            className={`flex-1 sm:flex-initial text-center text-xs font-medium px-3 py-1.5 rounded-md transition-all cursor-pointer ${
               period === "quarter"
-                ? "bg-surface-container text-on-surface font-medium shadow-sm"
-                : "text-on-surface-variant hover:text-on-surface"
+                ? "bg-background text-foreground shadow-xs font-semibold"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             This quarter
@@ -60,7 +63,7 @@ export function ReportFilters({
 
       <div className="flex flex-wrap items-center gap-2.5">
         <div className="flex items-center gap-2">
-          <span className="font-label-sm text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
+          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground font-mono">
             View:
           </span>
           <select
@@ -68,7 +71,7 @@ export function ReportFilters({
             onChange={(e) =>
               onCategoryChange(e.target.value as "Overview" | "Projects" | "Tasks" | "Team")
             }
-            className="rounded border border-outline/20 bg-surface-container-lowest px-3 py-1 text-xs text-on-surface focus:border-primary focus:outline-none"
+            className="h-8 rounded-md border border-input bg-background px-2.5 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring font-mono"
           >
             <option value="Overview">Overview</option>
             <option value="Projects">Projects</option>
@@ -78,27 +81,17 @@ export function ReportFilters({
         </div>
 
         {onExport && (
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             data-testid="export-report-btn"
             onClick={onExport}
-            className="inline-flex items-center gap-1.5 rounded border border-outline/20 bg-surface-container px-3 py-1 text-xs font-medium text-on-surface transition hover:bg-surface-container-high shadow-sm"
+            className="h-8 text-xs font-medium cursor-pointer"
           >
-            <svg
-              className="h-3.5 w-3.5 text-primary"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-              />
-            </svg>
+            <Download className="size-3.5 mr-1 text-primary" />
             <span>Export report</span>
-          </button>
+          </Button>
         )}
       </div>
     </div>

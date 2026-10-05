@@ -2,20 +2,18 @@
 
 import type { DashboardTask } from "@/data/mock-data";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Edit3, Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const COLUMNS = [
-  { id: "Not started", label: "Not started", dot: "bg-outline-variant" },
+  { id: "Not started", label: "Not started", dot: "bg-muted-foreground" },
   { id: "In progress", label: "In progress", dot: "bg-primary animate-pulse" },
-  { id: "Review", label: "Review", dot: "bg-tertiary" },
-  { id: "Blocked", label: "Blocked", dot: "bg-error" },
-  { id: "Completed", label: "Completed", dot: "bg-secondary" },
+  { id: "Review", label: "Review", dot: "bg-sky-500" },
+  { id: "Blocked", label: "Blocked", dot: "bg-destructive" },
+  { id: "Completed", label: "Completed", dot: "bg-emerald-500" },
 ] as const;
-
-const priorityStyles: Record<string, string> = {
-  High: "border-error/30 bg-error-container/20 text-error",
-  Medium: "border-tertiary/30 bg-tertiary-container/20 text-tertiary",
-  Low: "border-secondary/30 bg-secondary-container/20 text-secondary",
-};
 
 const formatDate = (value: string) => {
   if (!value) return "No due date";
@@ -51,7 +49,7 @@ export function TaskBoard({
   }
 
   return (
-    <div className="flex md:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 overflow-x-auto pb-4 snap-x snap-mandatory md:snap-none scrollbar-thin">
+    <div className="flex md:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 overflow-x-auto pb-4 snap-x snap-mandatory md:snap-none">
       {COLUMNS.map((column) => {
         const columnTasks = tasks.filter((t) => {
           if (column.id === "In progress") {
@@ -63,51 +61,48 @@ export function TaskBoard({
         return (
           <div
             key={column.id}
-            className="flex flex-col bg-surface-lowest/70 border border-outline-variant/15 rounded-xl p-3 min-h-[380px] sm:min-h-[420px] w-[85vw] sm:w-[320px] md:w-auto shrink-0 md:shrink snap-center md:snap-none"
+            className="flex flex-col bg-secondary/30 border border-border rounded-xl p-3 min-h-[380px] sm:min-h-[420px] w-[85vw] sm:w-[320px] md:w-auto shrink-0 md:shrink snap-center md:snap-none"
           >
             {/* Column Header */}
-            <div className="flex items-center justify-between pb-3 mb-3 border-b border-outline-variant/15">
+            <div className="flex items-center justify-between pb-3 mb-3 border-b border-border">
               <div className="flex items-center gap-2">
-                <span className={`w-2 h-2 rounded-full ${column.dot}`} aria-hidden="true" />
-                <h2 className="font-headline-sm text-xs font-semibold text-on-surface uppercase tracking-wider">
+                <span className={cn("size-2 rounded-full", column.dot)} aria-hidden="true" />
+                <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">
                   {column.label}
-                </h2>
+                </h3>
               </div>
-              <span className="font-mono text-xs px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-medium">
+              <Badge variant="secondary" className="text-xs font-mono px-2 py-0.5">
                 {columnTasks.length}
-              </span>
+              </Badge>
             </div>
 
             {/* Column Body / Cards */}
             <div className="flex-1 flex flex-col gap-2.5">
               {columnTasks.length === 0 ? (
-                <div className="flex-1 flex items-center justify-center border border-dashed border-outline-variant/15 rounded-lg p-6 text-[11px] font-mono text-on-surface-variant/40">
+                <div className="flex-1 flex items-center justify-center border border-dashed border-border rounded-lg p-6 text-xs text-muted-foreground">
                   No tasks
                 </div>
               ) : (
                 columnTasks.map((task) => {
                   const isHigh = task.priority === "High";
+                  const priorityVariant =
+                    isHigh ? "destructive" : task.priority === "Medium" ? "warning" : "secondary";
+
                   return (
                     <div
                       key={task.id}
-                      className={`group rounded-xl bg-surface-container border p-3.5 hover:border-primary/40 hover:bg-surface-high transition-all shadow-xs ${
-                        isHigh
-                          ? "border-outline-variant/20 border-l-4 border-l-error"
-                          : "border-outline-variant/20"
-                      }`}
+                      className={cn(
+                        "group rounded-xl bg-card border border-border p-3.5 hover:border-primary/40 hover:shadow-sm transition-all shadow-xs",
+                        isHigh && "border-l-4 border-l-destructive"
+                      )}
                     >
                       {/* Priority & Project row */}
                       <div className="flex items-center justify-between gap-1.5 mb-2">
-                        <span
-                          className={`rounded-md border px-1.5 py-0.5 text-[9px] font-mono uppercase tracking-wider font-medium ${
-                            priorityStyles[task.priority] ??
-                            "border-outline/30 bg-surface-lowest text-on-surface-variant"
-                          }`}
-                        >
+                        <Badge variant={priorityVariant} className="text-[10px] font-mono">
                           {isHigh ? "P0 • High" : task.priority}
-                        </span>
+                        </Badge>
                         {task.project ? (
-                          <span className="truncate max-w-[120px] rounded-md border border-outline-variant/25 bg-surface-lowest px-1.5 py-0.5 text-[9px] font-mono text-on-surface-variant">
+                          <span className="truncate max-w-[120px] text-[10px] font-mono text-muted-foreground bg-secondary/60 rounded px-1.5 py-0.5 border border-border/50">
                             {task.project}
                           </span>
                         ) : null}
@@ -116,22 +111,22 @@ export function TaskBoard({
                       {/* Title & Description */}
                       <p
                         onClick={() => onEdit?.(task)}
-                        className="text-xs font-semibold text-on-surface group-hover:text-primary transition-colors line-clamp-2 cursor-pointer font-headline-sm"
+                        className="text-xs sm:text-sm font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2 cursor-pointer"
                       >
                         {task.title}
                       </p>
                       {task.description ? (
-                        <p className="mt-1 text-[11px] text-on-surface-variant line-clamp-2 leading-relaxed">
+                        <p className="mt-1 text-xs text-muted-foreground line-clamp-2 leading-relaxed">
                           {task.description}
                         </p>
                       ) : null}
 
                       {/* Assignee & Due */}
-                      <div className="mt-3 pt-2.5 border-t border-outline-variant/15 flex items-center justify-between text-[11px]">
-                        <span className="font-mono text-on-surface-variant truncate max-w-[90px]">
+                      <div className="mt-3 pt-2.5 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
+                        <span className="font-medium text-foreground truncate max-w-[90px]">
                           {task.assignee}
                         </span>
-                        <span className="font-mono text-[10px] text-on-surface-variant/80">
+                        <span className="font-mono text-[11px]">
                           {formatDate(task.due)}
                         </span>
                       </div>
@@ -143,14 +138,10 @@ export function TaskBoard({
                             <select
                               value={task.status}
                               onChange={(e) => onStatusChange(task.id, e.target.value)}
-                              className="rounded bg-surface-lowest border border-outline-variant/25 px-1.5 py-0.5 text-[10px] text-on-surface font-mono cursor-pointer focus-visible:ring-1 focus-visible:ring-primary/60 outline-none"
+                              className="rounded border border-input bg-card px-1.5 py-0.5 text-[10px] text-foreground font-mono cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                             >
                               {COLUMNS.map((col) => (
-                                <option
-                                  key={col.id}
-                                  value={col.id}
-                                  className="bg-surface-container-high text-on-surface"
-                                >
+                                <option key={col.id} value={col.id}>
                                   {col.label}
                                 </option>
                               ))}
@@ -159,28 +150,26 @@ export function TaskBoard({
 
                           <div className="flex items-center gap-1">
                             {onEdit ? (
-                              <button
-                                type="button"
+                              <Button
+                                variant="ghost"
+                                size="icon"
                                 onClick={() => onEdit(task)}
-                                className="p-1 rounded hover:bg-surface-container-highest text-on-surface-variant hover:text-on-surface transition"
+                                className="size-6 text-muted-foreground hover:text-foreground"
                                 title="Edit task"
                               >
-                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                </svg>
-                              </button>
+                                <Edit3 className="size-3.5" />
+                              </Button>
                             ) : null}
                             {onDelete ? (
-                              <button
-                                type="button"
+                              <Button
+                                variant="ghost"
+                                size="icon"
                                 onClick={() => onDelete(task.id)}
-                                className="p-1 rounded hover:bg-error-container/20 text-on-surface-variant hover:text-error transition"
+                                className="size-6 text-muted-foreground hover:text-destructive"
                                 title="Delete task"
                               >
-                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                              </button>
+                                <Trash2 className="size-3.5" />
+                              </Button>
                             ) : null}
                           </div>
                         </div>
@@ -196,4 +185,3 @@ export function TaskBoard({
     </div>
   );
 }
-

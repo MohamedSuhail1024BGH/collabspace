@@ -1,11 +1,10 @@
-"use client";
-
 import type { HTMLAttributes } from "react";
+import { cn } from "@/lib/utils";
 
 export function Skeleton({ className = "", ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={`relative overflow-hidden rounded bg-surface-container-high/60 before:absolute before:inset-0 before:-translate-x-full before:animate-[stitch-shimmer_1.8s_infinite] before:bg-gradient-to-r before:from-transparent before:via-surface-container-highest/50 before:to-transparent ${className}`}
+      className={cn("animate-pulse rounded-md bg-muted/60", className)}
       {...props}
     />
   );

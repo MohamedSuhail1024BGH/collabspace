@@ -13,6 +13,18 @@ import CalendarAgendaView from "@/components/dashboard/CalendarAgendaView";
 import CalendarToolbar, { type CalendarViewMode } from "@/components/dashboard/CalendarToolbar";
 import EventDetails from "@/components/dashboard/EventDetails";
 import EventForm, { type WorkspaceMemberItem } from "@/components/dashboard/EventForm";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Calendar as CalendarIcon,
+  Clock,
+  AlertCircle,
+  Users,
+  Plus,
+  Trash2,
+  CalendarDays,
+} from "lucide-react";
 import type { CalendarEvent } from "@/data/mock-data";
 import type { ParsedCalendarEvent } from "@/lib/db/queries";
 
@@ -243,65 +255,60 @@ export function CalendarClient({
       <div className="space-y-6">
         {/* Metric Cards Banner */}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4" data-testid="calendar-metrics-banner">
-          <div className="rounded-xl border border-outline-variant/20 bg-surface-container-low p-4 transition hover:bg-surface-high shadow-xs">
-            <div className="flex items-center justify-between text-on-surface-variant">
-              <span className="font-label-sm text-xs font-semibold uppercase tracking-wider">Today</span>
+          <Card className="p-4 border-border/60 hover:bg-card/80 transition shadow-xs">
+            <div className="flex items-center justify-between text-muted-foreground">
+              <span className="text-xs font-semibold uppercase tracking-wider font-mono">Today</span>
               <span className="rounded-md bg-primary/10 p-1.5 text-primary">
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                <Clock className="size-4" />
               </span>
             </div>
-            <div className="mt-2 text-2xl font-bold text-on-surface tracking-tight font-headline-sm">{metrics.todayCount}</div>
-            <p className="mt-0.5 text-xs text-on-surface-variant font-body-sm">Events scheduled today</p>
-          </div>
+            <div className="mt-2 text-2xl font-bold text-foreground tracking-tight">{metrics.todayCount}</div>
+            <p className="mt-0.5 text-xs text-muted-foreground">Events scheduled today</p>
+          </Card>
 
-          <div className="rounded-xl border border-outline-variant/20 bg-surface-container-low p-4 transition hover:bg-surface-high shadow-xs">
-            <div className="flex items-center justify-between text-on-surface-variant">
-              <span className="font-label-sm text-xs font-semibold uppercase tracking-wider">This Month</span>
-              <span className="rounded-md bg-secondary/10 p-1.5 text-secondary">
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
+          <Card className="p-4 border-border/60 hover:bg-card/80 transition shadow-xs">
+            <div className="flex items-center justify-between text-muted-foreground">
+              <span className="text-xs font-semibold uppercase tracking-wider font-mono">This Month</span>
+              <span className="rounded-md bg-secondary/15 p-1.5 text-secondary-foreground">
+                <CalendarIcon className="size-4" />
               </span>
             </div>
-            <div className="mt-2 text-2xl font-bold text-on-surface tracking-tight font-headline-sm">{metrics.thisMonthCount}</div>
-            <p className="mt-0.5 text-xs text-on-surface-variant font-body-sm">Active monthly items</p>
-          </div>
+            <div className="mt-2 text-2xl font-bold text-foreground tracking-tight">{metrics.thisMonthCount}</div>
+            <p className="mt-0.5 text-xs text-muted-foreground">Active monthly items</p>
+          </Card>
 
-          <div className="rounded-xl border border-outline-variant/20 bg-surface-container-low p-4 transition hover:bg-surface-high shadow-xs">
-            <div className="flex items-center justify-between text-on-surface-variant">
-              <span className="font-label-sm text-xs font-semibold uppercase tracking-wider">Deadlines</span>
-              <span className="rounded-md bg-error/10 p-1.5 text-error">
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
+          <Card className="p-4 border-border/60 hover:bg-card/80 transition shadow-xs">
+            <div className="flex items-center justify-between text-muted-foreground">
+              <span className="text-xs font-semibold uppercase tracking-wider font-mono">Deadlines</span>
+              <span className="rounded-md bg-destructive/10 p-1.5 text-destructive">
+                <AlertCircle className="size-4" />
               </span>
             </div>
-            <div className="mt-2 text-2xl font-bold text-on-surface tracking-tight font-headline-sm">{metrics.deadlinesCount}</div>
-            <p className="mt-0.5 text-xs text-on-surface-variant font-body-sm">Critical deadlines</p>
-          </div>
+            <div className="mt-2 text-2xl font-bold text-foreground tracking-tight">{metrics.deadlinesCount}</div>
+            <p className="mt-0.5 text-xs text-muted-foreground">Critical deadlines</p>
+          </Card>
 
-          <div className="rounded-xl border border-outline-variant/20 bg-surface-container-low p-4 transition hover:bg-surface-high shadow-xs">
-            <div className="flex items-center justify-between text-on-surface-variant">
-              <span className="font-label-sm text-xs font-semibold uppercase tracking-wider">Meetings</span>
-              <span className="rounded-md bg-tertiary/10 p-1.5 text-tertiary">
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
+          <Card className="p-4 border-border/60 hover:bg-card/80 transition shadow-xs">
+            <div className="flex items-center justify-between text-muted-foreground">
+              <span className="text-xs font-semibold uppercase tracking-wider font-mono">Meetings</span>
+              <span className="rounded-md bg-primary/10 p-1.5 text-primary">
+                <Users className="size-4" />
               </span>
             </div>
-            <div className="mt-2 text-2xl font-bold text-on-surface tracking-tight font-headline-sm">{metrics.meetingsCount}</div>
-            <p className="mt-0.5 text-xs text-on-surface-variant font-body-sm">Team syncs & calls</p>
-          </div>
+            <div className="mt-2 text-2xl font-bold text-foreground tracking-tight">{metrics.meetingsCount}</div>
+            <p className="mt-0.5 text-xs text-muted-foreground">Team syncs & calls</p>
+          </Card>
         </div>
 
         {/* Main Calendar Section */}
-        <section className="rounded-xl border border-outline-variant/20 bg-surface-container-low p-4 sm:p-5 shadow-xs">
-          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-3 border-b border-outline-variant/15">
+        <Card className="p-4 sm:p-5 border-border/60 shadow-xs">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-3.5 border-b border-border/60">
             <div>
-              <h3 className="text-xl font-bold text-on-surface tracking-tight font-headline-sm">Calendar</h3>
-              <p className="text-xs text-on-surface-variant mt-0.5 font-body-sm">
+              <h3 className="text-xl font-bold text-foreground tracking-tight flex items-center gap-2">
+                <CalendarDays className="size-5 text-primary" />
+                <span>Calendar</span>
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
                 Organize team schedules, deadlines, and project milestones.
               </p>
             </div>
@@ -311,24 +318,25 @@ export function CalendarClient({
                 value={category}
                 data-testid="calendar-category-filter"
                 onChange={(e) => setCategory(e.target.value)}
-                className="rounded-lg border border-outline-variant/25 bg-surface-lowest px-3 py-1.5 text-xs text-on-surface focus:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 focus:outline-none font-mono transition-all"
+                className="h-9 rounded-md border border-input bg-background px-3 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring font-mono"
               >
                 {categories.map((c) => (
-                  <option key={c} value={c} className="bg-surface-container-high text-on-surface">
+                  <option key={c} value={c} className="bg-background text-foreground">
                     {c === "All" ? "All categories" : c}
                   </option>
                 ))}
               </select>
 
               {!isViewer && (
-                <button
-                  type="button"
+                <Button
+                  size="sm"
                   data-testid="calendar-add-event-btn"
                   onClick={handleOpenCreateForm}
-                  className="rounded-lg bg-primary px-3.5 py-1.5 text-xs font-semibold text-on-primary transition hover:bg-primary-container hover:text-on-primary-container shadow-xs"
+                  className="h-9 text-xs font-semibold cursor-pointer"
                 >
-                  + Add event
-                </button>
+                  <Plus className="size-3.5 mr-1" />
+                  Add event
+                </Button>
               )}
             </div>
           </div>
@@ -343,7 +351,7 @@ export function CalendarClient({
             onToday={handleToday}
           />
 
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 mt-4">
             <div className="lg:col-span-2">
               {viewMode === "month" && (
                 <CalendarGrid
@@ -391,44 +399,48 @@ export function CalendarClient({
                     canManage={!isViewer}
                   />
                 ) : selectedDate ? (
-                  <div className="w-full rounded border border-outline/20 bg-surface-container-lowest p-4">
-                    <div className="flex items-center justify-between">
+                  <Card className="p-4 border-border/60 bg-muted/10 shadow-xs">
+                    <div className="flex items-center justify-between pb-3 border-b border-border/40">
                       <div>
-                        <p className="font-label-sm text-[10px] font-semibold uppercase tracking-wider text-on-surface-variant">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground font-mono">
                           Selected date
                         </p>
-                        <h4 className="mt-0.5 text-sm font-semibold text-on-surface">{selectedDate}</h4>
+                        <h4 className="mt-0.5 text-sm font-semibold text-foreground">{selectedDate}</h4>
                       </div>
                       {!isViewer && (
-                        <button
-                          type="button"
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={handleOpenCreateForm}
-                          className="rounded border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/20 transition"
+                          className="h-7 px-2 text-xs text-primary"
                         >
-                          + Event
-                        </button>
+                          <Plus className="size-3 mr-1" />
+                          Event
+                        </Button>
                       )}
                     </div>
 
-                    <div className="mt-3 space-y-1.5 max-h-80 overflow-y-auto">
+                    <div className="mt-3 space-y-2 max-h-80 overflow-y-auto">
                       {(eventsByDate.get(selectedDate) ?? [])
                         .filter((ev) => category === "All" || ev.category === category)
                         .map((ev) => (
                           <div
                             key={ev.id}
                             onClick={() => handleSelectEvent(ev)}
-                            className="cursor-pointer rounded border border-outline/10 bg-surface-container-low p-2.5 text-on-surface transition hover:bg-surface-container hover:border-primary/40"
+                            className="cursor-pointer rounded-lg border border-border/50 bg-card p-3 text-foreground transition hover:border-primary/50 hover:shadow-xs"
                           >
                             <div className="flex items-center justify-between gap-2">
-                              <div className="font-medium text-xs text-on-surface truncate">
+                              <div className="font-medium text-xs text-foreground truncate">
                                 {ev.title}
                               </div>
-                              <div className="text-[11px] text-on-surface-variant whitespace-nowrap font-mono">
+                              <div className="text-[11px] text-muted-foreground whitespace-nowrap font-mono">
                                 {ev.startTime}
                               </div>
                             </div>
-                            <div className="mt-1 flex items-center justify-between text-[11px] text-on-surface-variant">
-                              <span>{ev.category}</span>
+                            <div className="mt-1.5 flex items-center justify-between text-[11px] text-muted-foreground">
+                              <Badge variant="outline" className="text-[9px] font-mono px-1.5 py-0 h-4">
+                                {ev.category}
+                              </Badge>
                               {ev.attendees && ev.attendees.length > 0 && (
                                 <span>{ev.attendees.length} attendee{ev.attendees.length > 1 ? "s" : ""}</span>
                               )}
@@ -439,29 +451,27 @@ export function CalendarClient({
                       {(eventsByDate.get(selectedDate) ?? []).filter(
                         (ev) => category === "All" || ev.category === category,
                       ).length === 0 && (
-                        <p className="text-xs text-on-surface-variant py-2">
+                        <p className="text-xs text-muted-foreground py-4 text-center font-mono">
                           No events scheduled for this day.
                         </p>
                       )}
                     </div>
-                  </div>
+                  </Card>
                 ) : (
-                  <div className="w-full rounded border border-outline/20 bg-surface-container-lowest p-5 text-center">
-                    <div className="mx-auto flex h-9 w-9 items-center justify-center rounded bg-primary/10 text-primary mb-2.5">
-                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
+                  <Card className="p-6 border-border/60 text-center bg-muted/10">
+                    <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary mb-3">
+                      <CalendarDays className="size-5" />
                     </div>
-                    <p className="text-xs font-medium text-on-surface">No date selected</p>
-                    <p className="mt-1 text-[11px] text-on-surface-variant font-body-sm">
+                    <p className="text-xs font-semibold text-foreground">No date selected</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
                       Click any day on the calendar or select an event to view full details.
                     </p>
-                  </div>
+                  </Card>
                 )}
               </div>
             </div>
           </div>
-        </section>
+        </Card>
       </div>
 
       {/* Create / Edit Event Modal */}
@@ -483,42 +493,45 @@ export function CalendarClient({
       {/* Delete Event Confirmation Modal */}
       {eventToDelete && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-surface-container-lowest/80 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
           data-testid="confirm-delete-event-modal"
         >
-          <div className="w-full max-w-md rounded border border-error/30 bg-surface-container-low p-5 shadow-2xl">
+          <Card className="w-full max-w-md p-5 shadow-2xl border-destructive/40">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded bg-error/15 text-error">
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-destructive/15 text-destructive shrink-0">
+                <Trash2 className="size-5" />
               </div>
-              <h3 className="text-base font-bold text-on-surface">Delete Event</h3>
+              <div>
+                <h3 className="text-base font-bold text-foreground">Delete Event</h3>
+                <p className="text-xs text-muted-foreground">This action cannot be undone.</p>
+              </div>
             </div>
-            <p className="mt-3 text-xs text-on-surface-variant leading-relaxed">
-              Are you sure you want to remove <strong className="text-on-surface">{eventToDelete.title}</strong>? This event will be permanently deleted from the workspace schedule.
+            <p className="mt-3 text-xs text-muted-foreground leading-relaxed">
+              Are you sure you want to remove <strong className="text-foreground">{eventToDelete.title}</strong>? This event will be permanently deleted from the workspace schedule.
             </p>
-            <div className="mt-5 flex justify-end gap-2.5">
-              <button
-                type="button"
+            <div className="mt-5 flex justify-end gap-2">
+              <Button
+                variant="outline"
+                size="sm"
                 data-testid="cancel-delete-event-btn"
                 onClick={() => setEventToDelete(null)}
                 disabled={isDeleting}
-                className="rounded px-3 py-1.5 text-xs font-medium text-on-surface-variant transition hover:bg-surface-container hover:text-on-surface"
+                className="h-8 text-xs"
               >
                 Cancel
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
                 data-testid="confirm-delete-event-btn"
                 onClick={handleConfirmDelete}
                 disabled={isDeleting}
-                className="rounded bg-error px-3.5 py-1.5 text-xs font-semibold text-on-error shadow transition hover:bg-error/90 disabled:opacity-50"
+                className="h-8 text-xs font-semibold"
               >
                 {isDeleting ? "Deleting..." : "Yes, Delete Event"}
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
         </div>
       )}
     </>

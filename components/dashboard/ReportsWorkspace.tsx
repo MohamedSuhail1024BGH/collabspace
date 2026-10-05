@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { WorkspaceReportData } from "@/lib/db/queries";
 import { StatCard } from "@/components/dashboard/StatCard";
+import { Card } from "@/components/ui/card";
 import { ReportFilters } from "./ReportFilters";
 import { ProjectReport } from "./ProjectReport";
 import { TaskReport } from "./TaskReport";
@@ -105,16 +106,16 @@ export function ReportsWorkspace({
             visible={category === "Overview" || category === "Team"}
           />
 
-          <div className="rounded-xl border border-outline-variant/20 bg-surface-container-low p-4 shadow-xs">
+          <Card className="p-4 border-border/60 bg-muted/10 shadow-xs">
             <div className="flex items-center gap-2 mb-2">
-              <span className="h-2 w-2 rounded-full bg-secondary animate-pulse" />
-              <h4 className="text-xs font-semibold text-on-surface">Live Workspace Metrics</h4>
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <h4 className="text-xs font-semibold text-foreground">Live Workspace Metrics</h4>
             </div>
-            <p className="text-[11px] text-on-surface-variant leading-relaxed font-body-sm">
+            <p className="text-xs text-muted-foreground leading-relaxed">
               Analytics generated dynamically from active workspace projects, tasks, and assigned members.
               Refreshes in real-time on database mutation.
             </p>
-          </div>
+          </Card>
         </aside>
       </div>
     </div>

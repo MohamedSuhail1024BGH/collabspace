@@ -12,6 +12,10 @@ import { TaskForm, type TaskDraft } from "@/components/dashboard/TaskForm";
 import { TaskList } from "@/components/dashboard/TaskList";
 import { TaskBoard } from "@/components/dashboard/TaskBoard";
 import { TaskSummary } from "@/components/dashboard/TaskSummary";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { List, Kanban } from "lucide-react";
 import type { DashboardTask, TaskPriority } from "@/data/mock-data";
 import type { DbTask } from "@/lib/db/schema";
 
@@ -212,87 +216,76 @@ export function TasksClient({
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6 pb-12">
+    <div className="flex flex-col gap-5 sm:gap-6 pb-12">
       <TaskSummary tasks={tasks} />
 
-      <section className="rounded-xl bg-surface-container-low border border-outline-variant/20 p-4 sm:p-5 text-on-surface shadow-xs">
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-3 border-b border-outline-variant/15">
-          <div>
-            <h1 className="text-lg font-bold tracking-tight text-on-surface font-headline-sm">Task queue</h1>
-            <p className="text-[11px] font-mono text-on-surface-variant">Engineering tasks and execution queue</p>
+      <Card>
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4">
+          <div className="flex flex-col gap-1">
+            <CardTitle className="text-lg font-bold">Task Queue</CardTitle>
+            <CardDescription className="text-xs">
+              Engineering work items, priorities, and execution status
+            </CardDescription>
           </div>
+
           <div className="flex items-center gap-3">
-            <span className="rounded-md bg-surface-container-high px-2 py-0.5 text-xs font-mono text-secondary">
+            <Badge variant="secondary" className="font-mono text-xs">
               {filteredTasks.length} items
-            </span>
+            </Badge>
 
-            {/* Segmented View Switcher */}
-            <div className="flex items-center gap-1 bg-surface-lowest p-0.5 rounded-lg border border-outline-variant/20">
-              <button
-                type="button"
-                onClick={() => setViewMode("list")}
-                className={`px-2.5 py-1 rounded-md font-mono text-xs flex items-center gap-1.5 transition-all ${
-                  viewMode === "list"
-                    ? "bg-surface-high text-on-surface shadow-xs font-medium"
-                    : "text-on-surface-variant hover:text-on-surface"
-                }`}
-              >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
+            <ToggleGroup
+              type="single"
+              value={viewMode}
+              onValueChange={(val) => val && setViewMode(val as "list" | "board")}
+              className="bg-secondary/60 p-0.5 rounded-lg border border-border"
+            >
+              <ToggleGroupItem value="list" size="sm" className="h-7 px-2.5 gap-1.5 text-xs font-medium">
+                <List className="size-3.5" />
                 <span>List</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode("board")}
-                className={`px-2.5 py-1 rounded-md font-mono text-xs flex items-center gap-1.5 transition-all ${
-                  viewMode === "board"
-                    ? "bg-surface-high text-on-surface shadow-xs font-medium"
-                    : "text-on-surface-variant hover:text-on-surface"
-                }`}
-              >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 4H5a1 1 0 00-1 1v14a1 1 0 001 1h4a1 1 0 001-1V5a1 1 0 00-1-1zm10 0h-4a1 1 0 00-1 1v14a1 1 0 001 1h4a1 1 0 001-1V5a1 1 0 00-1-1z" />
-                </svg>
+              </ToggleGroupItem>
+              <ToggleGroupItem value="board" size="sm" className="h-7 px-2.5 gap-1.5 text-xs font-medium">
+                <Kanban className="size-3.5" />
                 <span>Board</span>
-              </button>
-            </div>
+              </ToggleGroupItem>
+            </ToggleGroup>
           </div>
-        </div>
+        </CardHeader>
 
-        <TaskFilters
-          search={search}
-          status={statusFilter}
-          priority={priorityFilter}
-          assignee={assigneeFilter}
-          statusOptions={statusOptions}
-          priorityOptions={priorityOptions}
-          assigneeOptions={assigneeOptions}
-          onSearchChange={setSearch}
-          onStatusChange={setStatusFilter}
-          onPriorityChange={setPriorityFilter}
-          onAssigneeChange={setAssigneeFilter}
-          onClear={handleResetFilters}
-        />
+        <CardContent className="pt-0 flex flex-col gap-4">
+          <TaskFilters
+            search={search}
+            status={statusFilter}
+            priority={priorityFilter}
+            assignee={assigneeFilter}
+            statusOptions={statusOptions}
+            priorityOptions={priorityOptions}
+            assigneeOptions={assigneeOptions}
+            onSearchChange={setSearch}
+            onStatusChange={setStatusFilter}
+            onPriorityChange={setPriorityFilter}
+            onAssigneeChange={setAssigneeFilter}
+            onClear={handleResetFilters}
+          />
 
-        {viewMode === "list" ? (
-          <TaskList
-            tasks={filteredTasks}
-            onEdit={!isViewer ? openEditTask : undefined}
-            onDelete={!isViewer ? handleDeleteTask : undefined}
-            onStatusChange={!isViewer ? handleStatusChange : undefined}
-            onResetFilters={handleResetFilters}
-          />
-        ) : (
-          <TaskBoard
-            tasks={filteredTasks}
-            onEdit={!isViewer ? openEditTask : undefined}
-            onDelete={!isViewer ? handleDeleteTask : undefined}
-            onStatusChange={!isViewer ? handleStatusChange : undefined}
-            onResetFilters={handleResetFilters}
-          />
-        )}
-      </section>
+          {viewMode === "list" ? (
+            <TaskList
+              tasks={filteredTasks}
+              onEdit={!isViewer ? openEditTask : undefined}
+              onDelete={!isViewer ? handleDeleteTask : undefined}
+              onStatusChange={!isViewer ? handleStatusChange : undefined}
+              onResetFilters={handleResetFilters}
+            />
+          ) : (
+            <TaskBoard
+              tasks={filteredTasks}
+              onEdit={!isViewer ? openEditTask : undefined}
+              onDelete={!isViewer ? handleDeleteTask : undefined}
+              onStatusChange={!isViewer ? handleStatusChange : undefined}
+              onResetFilters={handleResetFilters}
+            />
+          )}
+        </CardContent>
+      </Card>
 
       {isFormOpen && draftTask ? (
         <TaskForm

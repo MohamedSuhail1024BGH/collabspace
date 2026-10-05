@@ -5,6 +5,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
 import { loginAction } from "@/app/actions";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Field, FieldLabel } from "@/components/ui/field";
+import { CheckCircle2, AlertCircle, Eye, EyeOff, Mail, Lock } from "lucide-react";
 
 export function LoginClient() {
   const [email, setEmail] = useState("");
@@ -33,109 +38,119 @@ export function LoginClient() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-surface p-4 text-on-surface">
+    <main className="flex min-h-screen items-center justify-center bg-background p-4 text-foreground">
       <div className="w-full max-w-md">
         {/* Brand Header */}
         <div className="mb-6 text-center">
           <div className="mx-auto mb-3 flex items-center justify-center">
             <Logo size={48} className="h-12 w-12 shadow-md" />
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-on-surface">Welcome back</h1>
-          <p className="mt-1 text-xs font-mono text-on-surface-variant">Sign in to your CollabSpace workspace</p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Welcome back</h1>
+          <p className="mt-1 text-xs text-muted-foreground">Sign in to your CollabSpace workspace</p>
         </div>
 
         {/* Login Card */}
-        <div className="rounded-lg border border-outline/20 bg-surface-container-low p-6 shadow-2xl backdrop-blur-xl sm:p-7">
-          {registered && (
-            <div
-              data-testid="registered-success-banner"
-              className="mb-4 rounded border border-secondary/30 bg-secondary/10 p-3 text-xs font-mono text-secondary flex items-start gap-2"
-            >
-              <svg className="h-4 w-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              <span>Account created successfully! Please sign in with your credentials.</span>
-            </div>
-          )}
-
-          {deleted && (
-            <div
-              data-testid="deleted-success-banner"
-              className="mb-4 rounded border border-primary/30 bg-primary/10 p-3 text-xs font-mono text-primary flex items-start gap-2"
-            >
-              <svg className="h-4 w-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span>Your account has been successfully deleted.</span>
-            </div>
-          )}
-
-          {error && (
-            <div className="mb-4 rounded border border-error/30 bg-error/10 p-3 text-xs font-mono text-error flex items-start gap-2">
-              <svg className="h-4 w-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              <span>{error}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="mb-1 block text-[11px] font-mono uppercase tracking-wider text-on-surface-variant">
-                Email address
-              </label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@company.com"
-                className="w-full rounded bg-surface-container-lowest border border-outline/20 px-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:outline-none transition"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-[11px] font-mono uppercase tracking-wider text-on-surface-variant">
-                Password
-              </label>
-              <input
-                type={showPassword ? "text" : "password"}
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full rounded bg-surface-container-lowest border border-outline/20 px-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:outline-none transition font-mono"
-              />
-              <div className="mt-2 flex items-center gap-2">
-                <input
-                  id="login-show-password"
-                  data-testid="login-show-password"
-                  type="checkbox"
-                  checked={showPassword}
-                  onChange={(e) => setShowPassword(e.target.checked)}
-                  className="h-3.5 w-3.5 rounded border-outline/30 bg-surface-container-lowest text-primary focus:ring-0 focus:ring-offset-0 cursor-pointer"
-                />
-                <label
-                  htmlFor="login-show-password"
-                  className="cursor-pointer select-none text-xs text-on-surface-variant hover:text-on-surface transition font-mono text-[11px]"
-                >
-                  Show password
-                </label>
+        <Card className="border-border/60 shadow-xl backdrop-blur-xl">
+          <CardContent className="p-6 sm:p-7">
+            {registered && (
+              <div
+                data-testid="registered-success-banner"
+                className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-600 dark:text-emerald-400 flex items-start gap-2"
+              >
+                <CheckCircle2 className="size-4 shrink-0 mt-0.5" />
+                <span>Account created successfully! Please sign in with your credentials.</span>
               </div>
-            </div>
+            )}
 
-            <button
-              type="submit"
-              disabled={isPending}
-              className="mt-2 flex w-full items-center justify-center rounded bg-primary hover:bg-primary/90 text-on-primary py-2.5 text-xs font-medium tracking-wide shadow-sm transition disabled:opacity-50"
-            >
-              {isPending ? "Signing in..." : "Sign In"}
-            </button>
-          </form>
-        </div>
+            {deleted && (
+              <div
+                data-testid="deleted-success-banner"
+                className="mb-4 rounded-lg border border-primary/30 bg-primary/10 p-3 text-xs text-primary flex items-start gap-2"
+              >
+                <CheckCircle2 className="size-4 shrink-0 mt-0.5" />
+                <span>Your account has been successfully deleted.</span>
+              </div>
+            )}
+
+            {error && (
+              <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive flex items-start gap-2">
+                <AlertCircle className="size-4 shrink-0 mt-0.5" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleLogin} className="space-y-4">
+              <Field>
+                <FieldLabel className="text-xs uppercase tracking-wider text-muted-foreground font-mono">
+                  Email address
+                </FieldLabel>
+                <div className="relative">
+                  <Mail className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                  <Input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="name@company.com"
+                    className="pl-8 text-xs"
+                  />
+                </div>
+              </Field>
+
+              <Field>
+                <FieldLabel className="text-xs uppercase tracking-wider text-muted-foreground font-mono">
+                  Password
+                </FieldLabel>
+                <div className="relative">
+                  <Lock className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="pl-8 pr-9 text-xs font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  </button>
+                </div>
+                <div className="mt-2 flex items-center gap-2">
+                  <input
+                    id="login-show-password"
+                    data-testid="login-show-password"
+                    type="checkbox"
+                    checked={showPassword}
+                    onChange={(e) => setShowPassword(e.target.checked)}
+                    className="h-3.5 w-3.5 rounded border-input text-primary focus:ring-0 cursor-pointer"
+                  />
+                  <label
+                    htmlFor="login-show-password"
+                    className="cursor-pointer select-none text-xs text-muted-foreground hover:text-foreground transition font-mono"
+                  >
+                    Show password
+                  </label>
+                </div>
+              </Field>
+
+              <Button
+                type="submit"
+                disabled={isPending}
+                className="w-full h-10 text-xs font-semibold cursor-pointer"
+              >
+                {isPending ? "Signing in..." : "Sign In"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
 
         {/* Signup Link */}
-        <p className="mt-5 text-center text-xs font-mono text-on-surface-variant">
+        <p className="mt-5 text-center text-xs font-mono text-muted-foreground">
           Don&apos;t have an account?{" "}
           <Link href="/signup" className="text-primary hover:underline font-medium">
             Create an account

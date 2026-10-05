@@ -23,7 +23,7 @@ export function TaskList({ tasks, onEdit, onDelete, onStatusChange, onResetFilte
   }
 
   return (
-    <div className="space-y-2.5">
+    <div className="flex flex-col gap-2.5">
       {tasks.map((task) => (
         <TaskRow
           key={task.id}

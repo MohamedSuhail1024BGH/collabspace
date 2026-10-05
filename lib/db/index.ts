@@ -62,11 +62,11 @@ export const sql = new Proxy((() => {}) as unknown as postgres.Sql, {
   },
   apply(_target, _thisArg, args) {
     const instance = getClient();
-    return Reflect.apply(instance as unknown as Function, _thisArg, args);
+    return Reflect.apply(instance as unknown as (...args: unknown[]) => unknown, _thisArg, args);
   },
 });
 
-export const sqlite: any = sql;
+export const sqlite: unknown = sql;
 
 export function setDatabaseForTesting(_customSqlite?: unknown) {
   // Compatibility stub for unit test suites

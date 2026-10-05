@@ -1,3 +1,6 @@
+import { CheckCircle2, Zap, Clock } from "lucide-react";
+import { cn } from "@/lib/utils";
+
 type ActivityItemProps = {
   item: string;
   index?: number;
@@ -10,39 +13,34 @@ export function ActivityItem({ item, time }: ActivityItemProps) {
   const displayTime = time || "Recently";
 
   return (
-    <div className="flex items-start gap-2.5 p-1.5 sm:p-2 rounded-lg hover:bg-surface-container transition-colors group">
+    <div className="flex items-start gap-3 p-2 rounded-lg hover:bg-secondary/40 transition-colors group">
       <div
-        className={`mt-0.5 p-1 rounded-md flex-shrink-0 flex items-center justify-center ${
+        className={cn(
+          "mt-0.5 size-7 rounded-lg shrink-0 flex items-center justify-center transition-transform group-hover:scale-105",
           isApproval
-            ? "bg-secondary/15 text-secondary border border-secondary/30"
+            ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
             : isShipment
-            ? "bg-primary/15 text-primary border border-primary/30"
-            : "bg-tertiary/15 text-tertiary border border-tertiary/30"
-        }`}
+            ? "bg-primary/10 text-primary border border-primary/20"
+            : "bg-secondary text-muted-foreground border border-border"
+        )}
       >
         {isApproval ? (
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-          </svg>
+          <CheckCircle2 className="size-4" />
         ) : isShipment ? (
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
+          <Zap className="size-4" />
         ) : (
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
+          <Clock className="size-4" />
         )}
       </div>
 
       <div className="flex-1 min-w-0">
-        <p className="text-xs text-on-surface leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+        <p className="text-xs sm:text-sm text-foreground leading-snug line-clamp-2 group-hover:text-primary transition-colors font-medium">
           {item}
         </p>
-        <div className="flex items-center gap-1.5 mt-0.5 text-[10px] font-mono text-on-surface-variant">
+        <div className="flex items-center gap-1.5 mt-1 text-[11px] font-mono text-muted-foreground">
           <span>{displayTime}</span>
           <span>·</span>
-          <span className="text-on-surface-variant/70">Audit Log</span>
+          <span>Audit Log</span>
         </div>
       </div>
     </div>

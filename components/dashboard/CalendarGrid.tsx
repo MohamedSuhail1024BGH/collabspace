@@ -2,6 +2,8 @@
 
 import type { CalendarEvent } from "@/data/mock-data";
 import { formatTimeShort } from "@/lib/format-time";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 type Props = {
   year: number;
@@ -14,13 +16,13 @@ type Props = {
 };
 
 const categoryChipStyles: Record<string, string> = {
-  Meeting: "border-secondary/30 bg-secondary-container/20 text-secondary hover:brightness-110",
-  Planning: "border-primary/30 bg-primary-container/20 text-primary hover:brightness-110",
-  Design: "border-primary/30 bg-surface-container-high text-on-surface hover:brightness-110",
-  Engineering: "border-tertiary/30 bg-tertiary-container/20 text-tertiary hover:brightness-110",
-  Deadline: "border-error/30 bg-error-container/20 text-error hover:brightness-110",
-  Client: "border-secondary/30 bg-secondary-container/20 text-secondary hover:brightness-110",
-  Other: "border-outline/30 bg-surface-container text-on-surface-variant hover:brightness-110",
+  Meeting: "border-sky-500/30 bg-sky-500/10 text-sky-500 hover:brightness-110",
+  Planning: "border-primary/30 bg-primary/10 text-primary hover:brightness-110",
+  Design: "border-purple-500/30 bg-purple-500/10 text-purple-500 hover:brightness-110",
+  Engineering: "border-amber-500/30 bg-amber-500/10 text-amber-500 hover:brightness-110",
+  Deadline: "border-destructive/30 bg-destructive/10 text-destructive hover:brightness-110",
+  Client: "border-emerald-500/30 bg-emerald-500/10 text-emerald-500 hover:brightness-110",
+  Other: "border-border bg-secondary text-foreground hover:brightness-110",
 };
 
 function pad(n: number) {
@@ -44,7 +46,6 @@ export default function CalendarGrid({
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
   const prevMonthDays = firstDay; // number of leading blanks
-
   const cells: Array<{ date: string; day: number; inMonth: boolean }> = [];
 
   // previous month's tail
@@ -93,13 +94,10 @@ export default function CalendarGrid({
   };
 
   return (
-    <div data-testid="calendar-grid-view" className="overflow-x-auto select-none scrollbar-thin">
-      <div className="grid grid-cols-7 gap-1 sm:gap-1.5 border-b border-outline-variant/15 pb-2.5 text-center text-[10px] sm:text-[11px] font-mono uppercase text-on-surface-variant w-full min-w-0 sm:min-w-[580px] font-medium">
+    <div data-testid="calendar-grid-view" className="overflow-x-auto select-none">
+      <div className="grid grid-cols-7 gap-1 sm:gap-1.5 border-b border-border pb-2.5 text-center text-xs font-medium uppercase text-muted-foreground w-full min-w-0 sm:min-w-[580px]">
         {daysOfWeek.map((d) => (
-          <div
-            key={d}
-            className="py-1"
-          >
+          <div key={d} className="py-1">
             <span className="sm:hidden">{d.charAt(0)}</span>
             <span className="hidden sm:inline">{d}</span>
           </div>
@@ -116,43 +114,45 @@ export default function CalendarGrid({
             <div
               key={cell.date}
               onClick={() => onSelectDate(cell.date)}
-              className={`min-h-[52px] sm:min-h-[100px] cursor-pointer rounded-lg p-1 sm:p-2 text-xs transition-all ${
+              className={cn(
+                "min-h-[56px] sm:min-h-[105px] cursor-pointer rounded-xl p-1.5 sm:p-2 text-xs transition-all",
                 isSelected
-                  ? "border-2 border-primary bg-surface-high shadow-xs"
+                  ? "border-2 border-primary bg-secondary/80 shadow-xs"
                   : isToday
-                  ? "border-t-2 border-t-primary border-x border-b border-outline-variant/25 bg-surface-lowest hover:bg-surface-high/60"
+                  ? "border-t-2 border-t-primary border-x border-b border-border bg-card hover:bg-secondary/60"
                   : cell.inMonth
-                  ? "border border-outline-variant/15 bg-surface-container-lowest hover:bg-surface-high/60"
-                  : "border border-outline-variant/10 bg-surface-container-lowest/30 opacity-40 hover:opacity-70"
-              }`}
+                  ? "border border-border bg-card/60 hover:bg-secondary/50"
+                  : "border border-border/40 bg-card/20 opacity-40 hover:opacity-70"
+              )}
             >
               <div className="flex items-center justify-between">
                 <span
-                  className={`flex h-5 w-5 items-center justify-center rounded text-[10px] sm:text-[11px] font-mono transition ${
+                  className={cn(
+                    "flex size-5 items-center justify-center rounded-full text-[11px] font-mono transition",
                     isToday
-                      ? "bg-primary font-bold text-on-primary"
+                      ? "bg-primary font-bold text-primary-foreground"
                       : isSelected
                       ? "font-bold text-primary"
                       : cell.inMonth
-                      ? "font-medium text-on-surface"
-                      : "text-on-surface-variant/60"
-                  }`}
+                      ? "font-medium text-foreground"
+                      : "text-muted-foreground"
+                  )}
                 >
                   {cell.day}
                 </span>
                 {evs.length > 0 && (
-                  <span className="text-[9px] sm:text-[10px] font-mono text-on-surface-variant">
+                  <Badge variant="secondary" className="text-[10px] font-mono px-1.5 py-0 h-4">
                     {evs.length}
-                  </span>
+                  </Badge>
                 )}
               </div>
 
               {/* Desktop chips */}
-              <div className="hidden sm:block mt-1 space-y-1">
+              <div className="hidden sm:flex flex-col gap-1 mt-1.5">
                 {evs.slice(0, 2).map((ev) => {
                   const style =
                     categoryChipStyles[ev.category] ||
-                    "border-outline/20 bg-surface-container text-on-surface";
+                    "border-border bg-secondary text-foreground";
 
                   return (
                     <div
@@ -161,7 +161,10 @@ export default function CalendarGrid({
                         e.stopPropagation();
                         onSelectEvent(ev);
                       }}
-                      className={`truncate rounded border px-1.5 py-0.5 text-[10px] font-medium transition cursor-pointer ${style}`}
+                      className={cn(
+                        "truncate rounded-md border px-1.5 py-0.5 text-[10px] font-medium transition cursor-pointer",
+                        style
+                      )}
                       title={`${ev.title} (${formatTimeShort(ev.startTime)})`}
                     >
                       <span className="font-mono text-[9px] opacity-75 mr-1">
@@ -173,7 +176,7 @@ export default function CalendarGrid({
                 })}
 
                 {evs.length > 2 && (
-                  <div className="text-[9px] font-mono text-on-surface-variant px-1">
+                  <div className="text-[10px] font-mono text-muted-foreground px-1">
                     +{evs.length - 2} more
                   </div>
                 )}
@@ -184,12 +187,12 @@ export default function CalendarGrid({
                 {evs.slice(0, 3).map((ev) => (
                   <span
                     key={ev.id}
-                    className="w-1.5 h-1.5 rounded-full bg-primary"
+                    className="size-1.5 rounded-full bg-primary"
                     title={ev.title}
                   />
                 ))}
                 {evs.length > 3 && (
-                  <span className="text-[8px] font-mono text-primary font-bold">
+                  <span className="text-[9px] font-mono text-primary font-bold">
                     +
                   </span>
                 )}

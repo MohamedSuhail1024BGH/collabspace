@@ -1,3 +1,8 @@
+import { Card, CardHeader, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { cn } from "@/lib/utils";
+
 type StatCardProps = {
   label: string;
   value: string;
@@ -9,28 +14,30 @@ export function StatCard({ label, value, change }: StatCardProps) {
   const isNeutral = !change.startsWith("+") && !change.startsWith("-");
 
   return (
-    <div className="rounded-lg bg-surface-container-low border border-outline/20 p-2.5 sm:p-3.5 hover:border-primary/40 hover:bg-surface-container transition-all group shadow-xs min-w-0 overflow-hidden">
-      <div className="flex items-center justify-between mb-1">
-        <span className="font-mono text-[9px] sm:text-[10px] uppercase tracking-wider text-on-surface-variant font-medium truncate">
+    <Card className="hover:border-primary/40 hover:shadow-md transition-all duration-200 overflow-hidden">
+      <CardHeader className="flex flex-row items-center justify-between pb-2 pt-4 px-4 sm:pt-5 sm:px-5">
+        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider truncate">
           {label}
         </span>
-      </div>
-      <div className="flex items-baseline justify-between gap-1.5 mt-0.5">
-        <span className="font-mono text-xl sm:text-2xl font-bold tracking-tight text-on-surface truncate">
-          {value}
-        </span>
-        <div
-          className={`shrink-0 flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono ${
-            isPositive
-              ? "bg-secondary/15 text-secondary border border-secondary/25"
-              : isNeutral
-              ? "bg-surface-container-high text-on-surface-variant border border-outline-variant/15"
-              : "bg-surface-container-high text-tertiary border border-tertiary/25"
-          }`}
+        <Badge
+          variant={isPositive ? "success" : isNeutral ? "secondary" : "destructive"}
+          className="text-[11px] font-mono px-2 py-0.5 gap-1 shrink-0"
         >
-          <span className="truncate">{change}</span>
+          {isPositive ? (
+            <TrendingUp className="size-3" />
+          ) : isNeutral ? (
+            <Minus className="size-3" />
+          ) : (
+            <TrendingDown className="size-3" />
+          )}
+          <span>{change}</span>
+        </Badge>
+      </CardHeader>
+      <CardContent className="px-4 pb-4 sm:px-5 sm:pb-5">
+        <div className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+          {value}
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

@@ -3,6 +3,10 @@
 import { useMemo } from "react";
 import type { CalendarEvent } from "@/data/mock-data";
 import { formatTimeShort } from "@/lib/format-time";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Calendar as CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type Props = {
   events: CalendarEvent[];
@@ -12,14 +16,14 @@ type Props = {
   category?: string;
 };
 
-const categoryBadgeStyles: Record<string, string> = {
-  Meeting: "border-secondary/30 bg-secondary-container/20 text-secondary",
-  Planning: "border-primary/30 bg-primary-container/20 text-primary",
-  Design: "border-outline/30 bg-surface-container-high text-on-surface",
-  Engineering: "border-tertiary/30 bg-tertiary-container/20 text-tertiary",
-  Deadline: "border-error/30 bg-error-container/20 text-error",
-  Client: "border-secondary/30 bg-secondary-container/20 text-secondary",
-  Other: "border-outline/30 bg-surface-container text-on-surface-variant",
+const categoryBadgeVariants: Record<string, "default" | "secondary" | "outline" | "success" | "warning" | "info" | "destructive"> = {
+  Meeting: "info",
+  Planning: "default",
+  Design: "secondary",
+  Engineering: "warning",
+  Deadline: "destructive",
+  Client: "success",
+  Other: "outline",
 };
 
 function formatDateHeading(dateStr: string): { label: string; tag?: string } {
@@ -81,55 +85,57 @@ export default function CalendarAgendaView({
     return (
       <div
         data-testid="calendar-agenda-view"
-        className="rounded border border-dashed border-outline/20 bg-surface-container-lowest p-8 text-center"
+        className="rounded-xl border border-dashed border-border bg-card/40 p-8 text-center"
       >
-        <h4 className="text-base font-semibold text-on-surface">No events found</h4>
-        <p className="mt-1 text-xs font-mono text-on-surface-variant max-w-sm mx-auto">
+        <div className="size-10 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground mx-auto mb-3">
+          <CalendarIcon className="size-5" />
+        </div>
+        <h4 className="text-base font-semibold text-foreground">No events found</h4>
+        <p className="mt-1 text-xs text-muted-foreground max-w-sm mx-auto">
           {category && category !== "All"
             ? `There are no scheduled events categorized under "${category}".`
-            : "No events are currently scheduled in this workspace. Click \"+ Add event\" to create one."}
+            : 'No events are currently scheduled in this workspace. Click "+ Add event" to create one.'}
         </p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4" data-testid="calendar-agenda-view">
+    <div className="flex flex-col gap-4" data-testid="calendar-agenda-view">
       {groupedByDate.map(([dateStr, dayEvents]) => {
         const { label, tag } = formatDateHeading(dateStr);
         const isSelected = selectedDate === dateStr;
 
         return (
-          <div
+          <Card
             key={dateStr}
-            className={`rounded border transition-all overflow-hidden ${
-              isSelected
-                ? "border-primary bg-surface-container shadow-xs"
-                : "border-outline/20 bg-surface-container-low hover:bg-surface-container"
-            }`}
+            className={cn(
+              "overflow-hidden transition-all",
+              isSelected && "border-primary shadow-xs"
+            )}
           >
             <div
               onClick={() => onSelectDate(dateStr)}
-              className="flex cursor-pointer items-center justify-between border-b border-outline/10 px-3.5 py-2 bg-surface-container-lowest/50"
+              className="flex cursor-pointer items-center justify-between border-b border-border px-4 py-2.5 bg-secondary/30"
             >
               <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold uppercase tracking-wider text-on-surface font-mono">
+                <span className="text-xs font-semibold uppercase tracking-wider text-foreground">
                   {label}
                 </span>
                 {tag && (
-                  <span className="rounded bg-primary/20 px-2 py-0.2 text-[10px] font-mono text-primary">
+                  <Badge variant="default" className="text-[10px] font-mono px-2 py-0">
                     {tag}
-                  </span>
+                  </Badge>
                 )}
               </div>
-              <span className="text-xs font-mono text-on-surface-variant">
+              <span className="text-xs font-mono text-muted-foreground">
                 {dayEvents.length} event{dayEvents.length > 1 ? "s" : ""}
               </span>
             </div>
 
-            <div className="divide-y divide-outline/10">
+            <div className="divide-y divide-border">
               {dayEvents.map((ev) => {
-                const badgeStyle = categoryBadgeStyles[ev.category] || categoryBadgeStyles.Other;
+                const badgeVariant = categoryBadgeVariants[ev.category] || "secondary";
                 return (
                   <div
                     key={ev.id}
@@ -137,21 +143,21 @@ export default function CalendarAgendaView({
                       onSelectDate(ev.date);
                       onSelectEvent(ev);
                     }}
-                    className="flex cursor-pointer flex-col gap-2 p-3 transition sm:flex-row sm:items-center sm:justify-between hover:bg-surface-container-high/40"
+                    className="flex cursor-pointer flex-col gap-2 p-3.5 transition sm:flex-row sm:items-center sm:justify-between hover:bg-secondary/40"
                   >
                     <div className="flex items-start gap-3">
                       <div className="min-w-[80px] text-xs font-mono font-medium text-primary">
                         {formatTimeShort(`${ev.date}T${ev.startTime}`)}
                         {ev.endTime && (
-                          <span className="block text-[10px] text-on-surface-variant">
+                          <span className="block text-[10px] text-muted-foreground">
                             to {formatTimeShort(`${ev.date}T${ev.endTime}`)}
                           </span>
                         )}
                       </div>
                       <div>
-                        <p className="text-xs font-medium text-on-surface">{ev.title}</p>
+                        <p className="text-xs sm:text-sm font-medium text-foreground">{ev.title}</p>
                         {ev.description && (
-                          <p className="text-[11px] text-on-surface-variant line-clamp-1 mt-0.5">
+                          <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
                             {ev.description}
                           </p>
                         )}
@@ -159,15 +165,15 @@ export default function CalendarAgendaView({
                     </div>
 
                     <div className="flex items-center gap-2 self-start sm:self-auto">
-                      <span className={`rounded border px-2 py-0.5 text-[10px] font-mono ${badgeStyle}`}>
+                      <Badge variant={badgeVariant} className="text-[10px] font-mono">
                         {ev.category}
-                      </span>
+                      </Badge>
                     </div>
                   </div>
                 );
               })}
             </div>
-          </div>
+          </Card>
         );
       })}
     </div>

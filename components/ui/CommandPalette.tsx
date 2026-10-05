@@ -3,6 +3,19 @@
 import { useEffect, useState, useRef, useMemo, useCallback, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Search,
+  FolderKanban,
+  CheckSquare,
+  MessageSquare,
+  Calendar,
+  BarChart3,
+  Compass,
+  Plus,
+  Settings,
+} from "lucide-react";
 
 type CommandItem = {
   id: string;
@@ -100,72 +113,54 @@ export function CommandPalette({
 
       if (isTyping) return;
 
-      // Ignore modifier combinations (Ctrl, Alt, Meta) for chords and single-letter hotkeys
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
-
+      // 4. Two-Key Navigation Sequences ("G then ...")
       const key = e.key.toLowerCase();
-
-      // 4. Quick Help / Palette Trigger: '?' or '/'
-      if (e.key === "?" || (!chordRef.current && e.key === "/")) {
-        e.preventDefault();
-        openPalette();
+      if (!chordRef.current && key === "g") {
+        chordRef.current = "g";
+        if (chordTimeoutRef.current) clearTimeout(chordTimeoutRef.current);
+        chordTimeoutRef.current = setTimeout(() => {
+          chordRef.current = null;
+        }, 1200);
         return;
       }
 
-      // 5. Two-Key "G" Chord Navigation (e.g. G O, G P, G T, G M, G C, G R, G S)
       if (chordRef.current === "g") {
-        if (chordTimeoutRef.current) clearTimeout(chordTimeoutRef.current);
         chordRef.current = null;
+        if (chordTimeoutRef.current) clearTimeout(chordTimeoutRef.current);
 
         switch (key) {
+          case "h":
           case "o":
             e.preventDefault();
             router.push("/");
-            return;
+            break;
           case "p":
             e.preventDefault();
             router.push("/projects");
-            return;
+            break;
           case "t":
             e.preventDefault();
             router.push("/tasks");
-            return;
+            break;
           case "m":
             e.preventDefault();
             router.push("/messages");
-            return;
+            break;
           case "c":
             e.preventDefault();
             router.push("/calendar");
-            return;
+            break;
           case "r":
             e.preventDefault();
             router.push("/reports");
-            return;
+            break;
           case "s":
             e.preventDefault();
             router.push("/start");
-            return;
+            break;
           default:
             break;
         }
-      }
-
-      // Start "G" chord listener with 1.5s timeout window
-      if (key === "g") {
-        if (chordTimeoutRef.current) clearTimeout(chordTimeoutRef.current);
-        chordRef.current = "g";
-        chordTimeoutRef.current = setTimeout(() => {
-          chordRef.current = null;
-        }, 1500);
-        return;
-      }
-
-      // 6. Contextual 'C' hotkey for Quick Issue / Task queue navigation
-      if (key === "c") {
-        e.preventDefault();
-        router.push("/tasks");
-        return;
       }
     };
 
@@ -174,14 +169,13 @@ export function CommandPalette({
       window.removeEventListener("keydown", handleKeyDown);
       if (chordTimeoutRef.current) clearTimeout(chordTimeoutRef.current);
     };
-  }, [isOpen, togglePalette, closePalette, openPalette, router]);
+  }, [isOpen, togglePalette, closePalette, router]);
 
   useEffect(() => {
     if (isOpen) {
-      const raf = requestAnimationFrame(() => {
+      setTimeout(() => {
         inputRef.current?.focus();
-      });
-      return () => cancelAnimationFrame(raf);
+      }, 50);
     }
   }, [isOpen]);
 
@@ -189,14 +183,10 @@ export function CommandPalette({
     {
       id: "nav-overview",
       category: "Navigation",
-      title: "Overview",
-      subtitle: "Workspace metrics and active stream",
-      icon: (
-        <svg className="h-4 w-4 text-primary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 5a1 1 0 011-1h4a1 1 0 011 1v5a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v2a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 13a1 1 0 011-1h4a1 1 0 011 1v6a1 1 0 01-1 1h-4a1 1 0 01-1-1v-6z" />
-        </svg>
-      ),
-      shortcut: "G O",
+      title: "Overview Dashboard",
+      subtitle: "Workspace metrics, sprint progress, and workload",
+      icon: <FolderKanban className="size-4 text-primary shrink-0" />,
+      shortcut: "G H",
       action: () => { router.push("/"); closePalette(); },
     },
     {
@@ -204,11 +194,7 @@ export function CommandPalette({
       category: "Navigation",
       title: "Projects",
       subtitle: "Project portfolio & milestone roadmap",
-      icon: (
-        <svg className="h-4 w-4 text-primary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-        </svg>
-      ),
+      icon: <FolderKanban className="size-4 text-primary shrink-0" />,
       shortcut: "G P",
       action: () => { router.push("/projects"); closePalette(); },
     },
@@ -217,11 +203,7 @@ export function CommandPalette({
       category: "Navigation",
       title: "Tasks & Execution Queue",
       subtitle: "Sprint tasks, backlog, and Kanban board",
-      icon: (
-        <svg className="h-4 w-4 text-secondary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-        </svg>
-      ),
+      icon: <CheckSquare className="size-4 text-secondary-foreground shrink-0" />,
       shortcut: "G T",
       action: () => { router.push("/tasks"); closePalette(); },
     },
@@ -230,11 +212,7 @@ export function CommandPalette({
       category: "Navigation",
       title: "Messages",
       subtitle: "Team channels, direct chats, and threads",
-      icon: (
-        <svg className="h-4 w-4 text-primary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-        </svg>
-      ),
+      icon: <MessageSquare className="size-4 text-primary shrink-0" />,
       shortcut: "G M",
       action: () => { router.push("/messages"); closePalette(); },
     },
@@ -243,11 +221,7 @@ export function CommandPalette({
       category: "Navigation",
       title: "Calendar",
       subtitle: "Sprint deadlines, meetings, and reviews",
-      icon: (
-        <svg className="h-4 w-4 text-tertiary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
-      ),
+      icon: <Calendar className="size-4 text-primary shrink-0" />,
       shortcut: "G C",
       action: () => { router.push("/calendar"); closePalette(); },
     },
@@ -256,11 +230,7 @@ export function CommandPalette({
       category: "Navigation",
       title: "Reports & Workload",
       subtitle: "Engineering velocity and resource allocation",
-      icon: (
-        <svg className="h-4 w-4 text-primary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-        </svg>
-      ),
+      icon: <BarChart3 className="size-4 text-primary shrink-0" />,
       shortcut: "G R",
       action: () => { router.push("/reports"); closePalette(); },
     },
@@ -269,11 +239,7 @@ export function CommandPalette({
       category: "Navigation",
       title: "Smart Hub & Discovery",
       subtitle: "Switch organization or explore workspaces",
-      icon: (
-        <svg className="h-4 w-4 text-secondary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-        </svg>
-      ),
+      icon: <Compass className="size-4 text-primary shrink-0" />,
       shortcut: "G S",
       action: () => { router.push("/start"); closePalette(); },
     },
@@ -282,11 +248,7 @@ export function CommandPalette({
       category: "Quick Actions",
       title: "Create New Task",
       subtitle: "Add an issue or story to the execution queue",
-      icon: (
-        <svg className="h-4 w-4 text-primary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
-        </svg>
-      ),
+      icon: <Plus className="size-4 text-primary shrink-0" />,
       action: () => { router.push("/tasks"); closePalette(); },
     },
     {
@@ -294,11 +256,7 @@ export function CommandPalette({
       category: "Quick Actions",
       title: "Start Direct Message or Channel",
       subtitle: "Open real-time communication modal",
-      icon: (
-        <svg className="h-4 w-4 text-secondary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-        </svg>
-      ),
+      icon: <MessageSquare className="size-4 text-secondary-foreground shrink-0" />,
       action: () => { router.push("/messages"); closePalette(); },
     },
     {
@@ -306,12 +264,7 @@ export function CommandPalette({
       category: "Settings",
       title: "Workspace Preferences",
       subtitle: "Customize themes, density, and notification policies",
-      icon: (
-        <svg className="h-4 w-4 text-on-surface-variant shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
-      ),
+      icon: <Settings className="size-4 text-muted-foreground shrink-0" />,
       action: () => { router.push("/preferences"); closePalette(); },
     },
   ], [router, closePalette]);
@@ -347,36 +300,36 @@ export function CommandPalette({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[120] flex items-start justify-center bg-black/75 p-4 pt-16 sm:pt-24 backdrop-blur-md animate-in fade-in duration-150 select-none outline-none"
+      className="fixed inset-0 z-[120] flex items-start justify-center bg-black/60 p-4 pt-16 sm:pt-24 backdrop-blur-sm animate-in fade-in duration-150 select-none outline-none"
       onClick={closePalette}
       onKeyDown={handleKeyDown}
       tabIndex={-1}
     >
-      <div
-        className="w-full max-w-xl rounded-2xl bg-surface-container border border-outline-variant/30 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150 flex flex-col"
+      <Card
+        className="w-full max-w-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150 flex flex-col border-border/80"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Command Search Bar */}
-        <div className="flex items-center gap-3 px-4 py-3.5 bg-surface-container border-b border-outline-variant/20">
-          <svg className="h-5 w-5 text-on-surface-variant shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
+        <div className="flex items-center gap-3 px-4 py-3 bg-card border-b border-border/60">
+          <Search className="size-4 text-muted-foreground shrink-0" />
           <input
             ref={inputRef}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Type a command or search workspace... (↑↓ to navigate, ↵ to run)"
-            className="w-full bg-transparent border-none outline-none font-body-md text-sm text-on-surface placeholder:text-on-surface-variant/50"
+            className="w-full bg-transparent border-none outline-none text-xs sm:text-sm text-foreground placeholder:text-muted-foreground"
           />
-          <kbd className="stitch-kbd shrink-0">ESC</kbd>
+          <kbd className="font-mono text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded border border-border/40 shrink-0">
+            ESC
+          </kbd>
         </div>
 
         {/* Command Results List */}
-        <div className="max-h-80 overflow-y-auto p-2 space-y-1 custom-scrollbar">
+        <div className="max-h-80 overflow-y-auto p-2 space-y-1">
           {filteredCommands.length === 0 ? (
-            <div className="p-8 text-center text-on-surface-variant font-mono text-xs">
-              No matching commands or routes found for &quot;{search}&quot;
+            <div className="p-8 text-center text-muted-foreground font-mono text-xs">
+              No matching commands found for &quot;{search}&quot;
             </div>
           ) : (
             filteredCommands.map((cmd, index) => {
@@ -387,22 +340,22 @@ export function CommandPalette({
                   type="button"
                   onClick={cmd.action}
                   onMouseEnter={() => setSelectedIndex(index)}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left transition-all ${
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-left transition-all cursor-pointer ${
                     isSelected
-                      ? "bg-surface-container-high text-on-surface border-l-2 border-primary shadow-xs"
-                      : "text-on-surface-variant hover:bg-surface-container-high/50 hover:text-on-surface"
+                      ? "bg-accent text-accent-foreground border-l-2 border-primary shadow-xs"
+                      : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="p-1.5 rounded-lg bg-surface-lowest border border-outline-variant/20 shrink-0 flex items-center justify-center">
+                    <div className="p-1.5 rounded-md bg-muted/40 border border-border/40 shrink-0 flex items-center justify-center">
                       {cmd.icon}
                     </div>
                     <div className="flex flex-col min-w-0">
-                      <span className={`text-xs font-semibold truncate ${isSelected ? "text-primary" : "text-on-surface"}`}>
+                      <span className={`text-xs font-semibold truncate ${isSelected ? "text-primary" : "text-foreground"}`}>
                         {cmd.title}
                       </span>
                       {cmd.subtitle && (
-                        <span className="text-[11px] font-mono text-on-surface-variant/80 truncate">
+                        <span className="text-[11px] font-mono text-muted-foreground truncate">
                           {cmd.subtitle}
                         </span>
                       )}
@@ -410,11 +363,13 @@ export function CommandPalette({
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-surface-container-lowest text-on-surface-variant/70 border border-outline-variant/15">
+                    <Badge variant="outline" className="text-[9px] font-mono uppercase bg-background">
                       {cmd.category}
-                    </span>
+                    </Badge>
                     {cmd.shortcut && (
-                      <kbd className="stitch-kbd">{cmd.shortcut}</kbd>
+                      <kbd className="font-mono text-[10px] bg-muted px-1.5 py-0.5 rounded border border-border/40 text-muted-foreground">
+                        {cmd.shortcut}
+                      </kbd>
                     )}
                   </div>
                 </button>
@@ -424,22 +379,21 @@ export function CommandPalette({
         </div>
 
         {/* Footer Hotkeys Guide */}
-        <div className="px-4 py-2 bg-surface-container-lowest border-t border-outline-variant/15 flex items-center justify-between text-[10px] font-mono text-on-surface-variant select-none">
+        <div className="px-4 py-2 bg-muted/20 border-t border-border/60 flex items-center justify-between text-[10px] font-mono text-muted-foreground select-none">
           <div className="flex items-center gap-2">
             <span>Navigation:</span>
-            <kbd className="stitch-kbd">↑</kbd>
-            <kbd className="stitch-kbd">↓</kbd>
+            <kbd className="font-mono bg-muted px-1 py-0.5 rounded border border-border/40">↑</kbd>
+            <kbd className="font-mono bg-muted px-1 py-0.5 rounded border border-border/40">↓</kbd>
             <span>Select:</span>
-            <kbd className="stitch-kbd">↵</kbd>
+            <kbd className="font-mono bg-muted px-1 py-0.5 rounded border border-border/40">↵</kbd>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-secondary"></span>
-            <span>Enterprise Palette</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            <span>CollabSpace Command</span>
           </div>
         </div>
-      </div>
+      </Card>
     </div>,
     document.body
   );
 }
-

@@ -5,6 +5,11 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
 import { signupAction } from "@/app/actions";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Field, FieldLabel } from "@/components/ui/field";
+import { User, Mail, Lock, AtSign, Eye, EyeOff, AlertCircle } from "lucide-react";
 
 export function SignupClient() {
   const [name, setName] = useState("");
@@ -39,118 +44,137 @@ export function SignupClient() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-surface p-4 text-on-surface">
+    <main className="flex min-h-screen items-center justify-center bg-background p-4 text-foreground">
       <div className="w-full max-w-md">
         {/* Brand Header */}
         <div className="mb-6 text-center">
           <div className="mx-auto mb-3 flex items-center justify-center">
             <Logo size={48} className="h-12 w-12 shadow-md" />
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-on-surface">Create your account</h1>
-          <p className="mt-1 text-xs font-mono text-on-surface-variant">Start organizing projects and team execution today</p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Create your account</h1>
+          <p className="mt-1 text-xs text-muted-foreground">Start organizing projects and team execution today</p>
         </div>
 
         {/* Signup Card */}
-        <div className="rounded-lg border border-outline/20 bg-surface-container-low p-6 shadow-2xl backdrop-blur-xl sm:p-7">
-          {error && (
-            <div className="mb-4 rounded border border-error/30 bg-error/10 p-3 text-xs font-mono text-error flex items-start gap-2">
-              <svg className="h-4 w-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              <span>{error}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSignup} className="space-y-4">
-            <div>
-              <label className="mb-1 block text-[11px] font-mono uppercase tracking-wider text-on-surface-variant">
-                Full Name
-              </label>
-              <input
-                type="text"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Alex Morgan"
-                className="w-full rounded bg-surface-container-lowest border border-outline/20 px-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:outline-none transition"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-[11px] font-mono uppercase tracking-wider text-on-surface-variant">
-                Work Email
-              </label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="alex@company.com"
-                className="w-full rounded bg-surface-container-lowest border border-outline/20 px-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:outline-none transition"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-[11px] font-mono uppercase tracking-wider text-on-surface-variant">
-                Password
-              </label>
-              <input
-                type={showPassword ? "text" : "password"}
-                required
-                minLength={6}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="At least 6 characters"
-                className="w-full rounded bg-surface-container-lowest border border-outline/20 px-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:outline-none transition font-mono"
-              />
-              <div className="mt-2 flex items-center gap-2">
-                <input
-                  id="signup-show-password"
-                  data-testid="signup-show-password"
-                  type="checkbox"
-                  checked={showPassword}
-                  onChange={(e) => setShowPassword(e.target.checked)}
-                  className="h-3.5 w-3.5 rounded border-outline/30 bg-surface-container-lowest text-primary focus:ring-0 focus:ring-offset-0 cursor-pointer"
-                />
-                <label
-                  htmlFor="signup-show-password"
-                  className="cursor-pointer select-none text-xs text-on-surface-variant hover:text-on-surface transition font-mono text-[11px]"
-                >
-                  Show password
-                </label>
+        <Card className="border-border/60 shadow-xl backdrop-blur-xl">
+          <CardContent className="p-6 sm:p-7">
+            {error && (
+              <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive flex items-start gap-2">
+                <AlertCircle className="size-4 shrink-0 mt-0.5" />
+                <span>{error}</span>
               </div>
-            </div>
+            )}
 
-            <div>
-              <label className="mb-1 block text-[11px] font-mono uppercase tracking-wider text-on-surface-variant">
-                Username <span className="text-primary font-normal">(@handle)</span>
-              </label>
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-xs font-mono text-on-surface-variant/60">@</span>
-                <input
-                  type="text"
-                  required
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
-                  placeholder="alexmorgan"
-                  className="w-full rounded bg-surface-container-lowest border border-outline/20 pl-7 pr-3 py-2 text-xs text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:outline-none transition font-mono"
-                />
-              </div>
-              <p className="mt-1 text-[10px] font-mono text-on-surface-variant">People can discover and invite you using this handle.</p>
-            </div>
+            <form onSubmit={handleSignup} className="space-y-4">
+              <Field>
+                <FieldLabel className="text-xs uppercase tracking-wider text-muted-foreground font-mono">
+                  Full Name
+                </FieldLabel>
+                <div className="relative">
+                  <User className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g. Alex Morgan"
+                    className="pl-8 text-xs"
+                  />
+                </div>
+              </Field>
 
-            <button
-              type="submit"
-              disabled={isPending}
-              className="mt-2 flex w-full items-center justify-center rounded bg-primary hover:bg-primary/90 text-on-primary py-2.5 text-xs font-medium tracking-wide shadow-sm transition disabled:opacity-50"
-            >
-              {isPending ? "Creating Account..." : "Create Account"}
-            </button>
-          </form>
-        </div>
+              <Field>
+                <FieldLabel className="text-xs uppercase tracking-wider text-muted-foreground font-mono">
+                  Work Email
+                </FieldLabel>
+                <div className="relative">
+                  <Mail className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                  <Input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="alex@company.com"
+                    className="pl-8 text-xs"
+                  />
+                </div>
+              </Field>
+
+              <Field>
+                <FieldLabel className="text-xs uppercase tracking-wider text-muted-foreground font-mono">
+                  Password
+                </FieldLabel>
+                <div className="relative">
+                  <Lock className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    minLength={6}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="At least 6 characters"
+                    className="pl-8 pr-9 text-xs font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  </button>
+                </div>
+                <div className="mt-2 flex items-center gap-2">
+                  <input
+                    id="signup-show-password"
+                    data-testid="signup-show-password"
+                    type="checkbox"
+                    checked={showPassword}
+                    onChange={(e) => setShowPassword(e.target.checked)}
+                    className="h-3.5 w-3.5 rounded border-input text-primary focus:ring-0 cursor-pointer"
+                  />
+                  <label
+                    htmlFor="signup-show-password"
+                    className="cursor-pointer select-none text-xs text-muted-foreground hover:text-foreground transition font-mono"
+                  >
+                    Show password
+                  </label>
+                </div>
+              </Field>
+
+              <Field>
+                <FieldLabel className="text-xs uppercase tracking-wider text-muted-foreground font-mono">
+                  Username <span className="text-primary font-normal">(@handle)</span>
+                </FieldLabel>
+                <div className="relative">
+                  <AtSign className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    required
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
+                    placeholder="alexmorgan"
+                    className="pl-8 text-xs font-mono"
+                  />
+                </div>
+                <p className="mt-1 text-[11px] font-mono text-muted-foreground">
+                  People can discover and invite you using this handle.
+                </p>
+              </Field>
+
+              <Button
+                type="submit"
+                disabled={isPending}
+                className="w-full h-10 text-xs font-semibold cursor-pointer"
+              >
+                {isPending ? "Creating Account..." : "Create Account"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
 
         {/* Login Link */}
-        <p className="mt-5 text-center text-xs font-mono text-on-surface-variant">
+        <p className="mt-5 text-center text-xs font-mono text-muted-foreground">
           Already have an account?{" "}
           <Link href="/login" className="text-primary hover:underline font-medium">
             Sign in

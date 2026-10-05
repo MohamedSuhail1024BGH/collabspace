@@ -1,5 +1,9 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
+
 export type CalendarViewMode = "month" | "week" | "agenda";
 
 type Props = {
@@ -37,51 +41,60 @@ export default function CalendarToolbar({
   onToday,
 }: Props) {
   return (
-    <div className="mb-4 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex items-center justify-between sm:justify-start gap-1.5 w-full sm:w-auto">
+    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-center justify-between sm:justify-start gap-3 w-full sm:w-auto">
         <div className="flex items-center gap-1">
-          <button
-            type="button"
+          <Button
+            variant="outline"
+            size="icon"
             onClick={onPrev}
-            className="rounded bg-surface-container hover:bg-surface-container-highest border border-outline/20 px-2.5 py-1.5 text-xs font-mono text-on-surface transition active:scale-95 cursor-pointer"
+            className="size-8"
+            aria-label="Previous month"
           >
-            Prev
-          </button>
+            <ChevronLeft className="size-4" />
+          </Button>
 
-          <button
-            type="button"
+          <Button
+            variant="outline"
+            size="sm"
             onClick={onToday}
-            className="rounded bg-surface-container hover:bg-surface-container-highest border border-outline/20 px-3 py-1.5 text-xs font-mono text-primary transition active:scale-95 cursor-pointer"
+            className="h-8 px-3 text-xs font-medium text-primary"
           >
             Today
-          </button>
+          </Button>
 
-          <button
-            type="button"
+          <Button
+            variant="outline"
+            size="icon"
             onClick={onNext}
-            className="rounded bg-surface-container hover:bg-surface-container-highest border border-outline/20 px-2.5 py-1.5 text-xs font-mono text-on-surface transition active:scale-95 cursor-pointer"
+            className="size-8"
+            aria-label="Next month"
           >
-            Next
-          </button>
+            <ChevronRight className="size-4" />
+          </Button>
         </div>
 
-        <h3 className="font-mono text-xs font-semibold uppercase tracking-wider text-on-surface">
-          {monthNames[month]} {year}
-        </h3>
+        <div className="flex items-center gap-2">
+          <CalendarIcon className="size-4 text-primary hidden sm:inline-block" />
+          <h2 className="text-sm sm:text-base font-bold text-foreground">
+            {monthNames[month]} {year}
+          </h2>
+        </div>
       </div>
 
       {/* View Mode Switching Controls */}
       {onViewModeChange && (
-        <div className="flex items-center rounded bg-surface-container-lowest border border-outline/20 p-0.5 w-full sm:w-auto">
+        <div className="flex items-center rounded-lg bg-secondary/60 border border-border p-0.5 w-full sm:w-auto">
           <button
             type="button"
             data-testid="calendar-view-month-btn"
             onClick={() => onViewModeChange("month")}
-            className={`flex-1 sm:flex-initial text-center rounded px-3 py-1.5 text-xs font-mono transition active:scale-95 cursor-pointer ${
+            className={cn(
+              "flex-1 sm:flex-initial text-center rounded-md px-3 py-1 text-xs font-medium transition active:scale-95 cursor-pointer",
               viewMode === "month"
-                ? "bg-surface-container-highest text-on-surface font-semibold shadow-xs"
-                : "text-on-surface-variant hover:text-on-surface"
-            }`}
+                ? "bg-card text-foreground font-semibold shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            )}
           >
             Month
           </button>
@@ -89,11 +102,12 @@ export default function CalendarToolbar({
             type="button"
             data-testid="calendar-view-week-btn"
             onClick={() => onViewModeChange("week")}
-            className={`flex-1 sm:flex-initial text-center rounded px-3 py-1.5 text-xs font-mono transition active:scale-95 cursor-pointer ${
+            className={cn(
+              "flex-1 sm:flex-initial text-center rounded-md px-3 py-1 text-xs font-medium transition active:scale-95 cursor-pointer",
               viewMode === "week"
-                ? "bg-surface-container-highest text-on-surface font-semibold shadow-xs"
-                : "text-on-surface-variant hover:text-on-surface"
-            }`}
+                ? "bg-card text-foreground font-semibold shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            )}
           >
             Week
           </button>
@@ -101,11 +115,12 @@ export default function CalendarToolbar({
             type="button"
             data-testid="calendar-view-agenda-btn"
             onClick={() => onViewModeChange("agenda")}
-            className={`flex-1 sm:flex-initial text-center rounded px-3 py-1.5 text-xs font-mono transition active:scale-95 cursor-pointer ${
+            className={cn(
+              "flex-1 sm:flex-initial text-center rounded-md px-3 py-1 text-xs font-medium transition active:scale-95 cursor-pointer",
               viewMode === "agenda"
-                ? "bg-surface-container-highest text-on-surface font-semibold shadow-xs"
-                : "text-on-surface-variant hover:text-on-surface"
-            }`}
+                ? "bg-card text-foreground font-semibold shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            )}
           >
             Agenda
           </button>

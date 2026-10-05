@@ -9,6 +9,26 @@ import {
   updateProjectAction,
 } from "@/app/actions";
 import { StatCard } from "@/components/dashboard/StatCard";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Search,
+  Plus,
+  FolderKanban,
+  Calendar,
+  User,
+  ArrowUpRight,
+  Edit3,
+  Trash2,
+  Sparkles,
+  CheckCircle2,
+  AlertCircle,
+  X,
+} from "lucide-react";
 import type { Project } from "@/data/mock-data";
 import type { FullProject } from "@/lib/db/queries";
 
@@ -221,97 +241,100 @@ export function ProjectsClient({
     const isHighCapacity = project.progress >= 80;
 
     return (
-      <div
+      <Card
         key={project.id}
-        className={[
-          "rounded-xl border p-4 transition-all text-left",
+        className={`group transition-all duration-200 text-left ${
           isSelected
-            ? "border-primary/50 bg-surface-high shadow-md ring-1 ring-primary/40"
-            : "border-outline-variant/20 bg-surface-container hover:bg-surface-high hover:border-outline/40 shadow-xs",
-        ].join(" ")}
+            ? "border-primary ring-1 ring-primary/40 bg-card shadow-sm"
+            : "border-border/60 bg-card/60 hover:bg-card hover:border-border hover:shadow-xs"
+        }`}
       >
         <button
           type="button"
           onClick={() => setSelectedProjectId(project.id)}
-          className="block w-full text-left cursor-pointer"
+          className="block w-full p-4 sm:p-5 text-left cursor-pointer focus:outline-none"
         >
-          <div className="mb-3 flex items-start justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-on-surface hover:text-primary transition-colors font-headline-sm">
+          <div className="mb-3.5 flex items-start justify-between gap-3">
+            <div className="space-y-1">
+              <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-1">
                 {project.name}
+              </h3>
+              <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <User className="size-3 text-muted-foreground/80" />
+                <span>{project.owner}</span>
               </p>
-              <p className="mt-0.5 text-xs text-on-surface-variant font-mono">Owner: {project.owner}</p>
             </div>
-            <span className="rounded-md bg-surface-lowest border border-outline-variant/25 px-2 py-0.5 text-[10px] font-mono text-secondary">
+            <Badge
+              variant="outline"
+              className="text-[10px] font-medium font-mono shrink-0 bg-muted/40 border-border/60"
+            >
               {project.status}
-            </span>
+            </Badge>
           </div>
 
-          <div className="mb-1.5 flex items-center justify-between text-xs text-on-surface-variant">
-            <span className="font-mono text-[11px]">Progress</span>
+          <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
+            <span className="font-medium text-[11px]">Progress</span>
             <span
-              className={`inline-flex items-center gap-1 font-mono text-[11px] ${
-                isHighCapacity ? "text-tertiary font-semibold" : "text-secondary"
+              className={`inline-flex items-center gap-1 font-mono text-[11px] font-semibold ${
+                isHighCapacity ? "text-emerald-500" : "text-primary"
               }`}
             >
               <span>{project.progress}%</span>
-              {isHighCapacity && (
-                <svg className="w-3 h-3 text-tertiary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              )}
+              {isHighCapacity && <Sparkles className="size-3 text-emerald-500" />}
             </span>
-          </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-lowest">
-            <div
-              className={`h-full rounded-full transition-all duration-300 ${
-                isHighCapacity ? "bg-tertiary" : "bg-secondary"
-              }`}
-              style={{ width: `${project.progress}%` }}
-            />
           </div>
 
-          <div className="mt-3 flex items-center justify-between text-xs text-on-surface-variant font-mono">
-            <span className="rounded bg-surface-lowest px-1.5 py-0.5 border border-outline-variant/15 text-[10px]">
+          <Progress value={project.progress} className="h-2" />
+
+          <div className="mt-3.5 flex items-center justify-between text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1 rounded bg-muted/40 px-2 py-0.5 text-[10px] font-mono border border-border/40">
+              <Calendar className="size-3 text-muted-foreground/70" />
               Due {project.due}
             </span>
-            <span className="text-[10px] text-on-surface-variant/60">Portfolio</span>
+            <span className="text-[10px] text-muted-foreground/70 font-mono">
+              {project.tasks.length} tasks
+            </span>
           </div>
         </button>
 
-        <div className="mt-3 pt-2.5 border-t border-outline/10 flex items-center justify-between gap-2">
+        <CardFooter className="px-4 sm:px-5 py-2.5 border-t border-border/50 flex items-center justify-between gap-2 bg-muted/10">
           <Link
             href={`/projects/${project.id}`}
-            className="text-xs font-mono font-medium text-primary hover:underline"
+            className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
           >
-            Open details
+            <span>Open details</span>
+            <ArrowUpRight className="size-3" />
           </Link>
           {!isViewer && (
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => setDraftProject({ ...project })}
-                className="rounded bg-surface-container hover:bg-surface-container-highest px-2 py-1 text-xs font-mono text-on-surface transition"
+                className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
               >
+                <Edit3 className="size-3 mr-1" />
                 Edit
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => handleDeleteProject(project.id)}
-                className="rounded bg-error-container/20 hover:bg-error-container/30 px-2 py-1 text-xs font-mono text-error transition"
+                className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10"
               >
+                <Trash2 className="size-3 mr-1" />
                 Delete
-              </button>
+              </Button>
             </div>
           )}
-        </div>
-      </div>
+        </CardFooter>
+      </Card>
     );
   };
 
   return (
     <div className="space-y-4 sm:space-y-6 pb-12">
-      {/* Metrics Row (2x2 grid on mobile) */}
+      {/* Metrics Row (2x2 grid on mobile, 4 columns on desktop) */}
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         {liveReportCards.map((report) => (
           <StatCard key={report.title} label={report.title} value={report.value} change={report.trend} />
@@ -320,21 +343,25 @@ export function ProjectsClient({
 
       {/* Main Portfolio Grid */}
       <section className="grid gap-5 xl:grid-cols-[1.8fr_1fr]">
-        <div className="rounded-xl bg-surface-container-low border border-outline-variant/20 p-4 sm:p-5 shadow-xs">
-          <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between pb-3 border-b border-outline-variant/15">
+        <Card className="p-4 sm:p-5 border-border/60 shadow-xs">
+          <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between pb-3.5 border-b border-border/60">
             <div>
-              <h1 className="text-lg font-bold tracking-tight text-on-surface font-headline-sm">Project portfolio</h1>
-              <p className="text-[11px] font-mono text-on-surface-variant">Active initiatives and engineering deliverables</p>
+              <h1 className="text-lg font-bold tracking-tight text-foreground flex items-center gap-2">
+                <FolderKanban className="size-5 text-primary" />
+                <span>Project portfolio</span>
+              </h1>
+              <p className="text-xs text-muted-foreground">Active initiatives and engineering deliverables</p>
             </div>
 
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
-              <div className="relative flex-1">
-                <input
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full lg:w-auto">
+              <div className="relative flex-1 sm:w-64">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+                <Input
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   type="search"
                   placeholder="Search projects..."
-                  className="w-full rounded-lg bg-surface-lowest border border-outline-variant/25 px-3 py-1.5 text-xs text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 focus:outline-none transition-all"
+                  className="pl-8 h-9 text-xs"
                 />
               </div>
               <div className="flex items-center gap-2">
@@ -342,40 +369,55 @@ export function ProjectsClient({
                   value={statusFilter}
                   onChange={(event) => setStatusFilter(event.target.value)}
                   aria-label="Filter by project status"
-                  className="flex-1 sm:flex-initial rounded-lg bg-surface-lowest border border-outline-variant/25 px-3 py-1.5 text-xs text-on-surface focus:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 focus:outline-none font-mono transition-all"
+                  className="h-9 rounded-md border border-input bg-background px-3 py-1 text-xs font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                 >
                   {statusOptions.map((option) => (
-                    <option key={option} value={option} className="bg-surface-container-high text-on-surface">
+                    <option key={option} value={option} className="bg-background text-foreground">
                       {option}
                     </option>
                   ))}
                 </select>
                 {!isViewer && (
-                  <button
-                    type="button"
+                  <Button
+                    size="sm"
                     onClick={() => setShowNewProject((current) => !current)}
-                    className="rounded-lg bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-3.5 py-1.5 text-xs font-medium transition shadow-xs active:scale-95 shrink-0 cursor-pointer"
+                    className="h-9 px-3.5 text-xs font-medium shrink-0 cursor-pointer"
                   >
-                    {showNewProject ? "Close" : "New project"}
-                  </button>
+                    {showNewProject ? (
+                      <>
+                        <X className="size-3.5 mr-1" />
+                        Close
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="size-3.5 mr-1" />
+                        New project
+                      </>
+                    )}
+                  </Button>
                 )}
               </div>
             </div>
           </div>
 
           {showNewProject && (
-            <div className="mb-4 rounded bg-surface-container border border-primary/30 p-4">
+            <Card className="mb-5 border-primary/40 bg-muted/20 p-4">
               <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-on-surface">Create new project</h2>
-                <span className="text-[10px] font-mono text-primary bg-surface-container-high px-1.5 py-0.5 rounded">Draft</span>
+                <h2 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                  <Plus className="size-4 text-primary" />
+                  <span>Create new project</span>
+                </h2>
+                <Badge variant="secondary" className="text-[10px] font-mono">
+                  Draft
+                </Badge>
               </div>
 
-              <div className="grid gap-2.5 md:grid-cols-2">
-                <input
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Input
                   value={newProject.name}
                   onChange={(event) => setNewProject((current) => ({ ...current, name: event.target.value }))}
                   placeholder="Project name"
-                  className="rounded bg-surface-container-lowest border border-outline/20 px-2.5 py-1.5 text-xs text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:outline-none"
+                  className="text-xs"
                 />
                 <select
                   data-testid="new-project-owner-select"
@@ -388,7 +430,7 @@ export function ProjectsClient({
                       ownerName: selected ? selected.user.name : current.ownerName,
                     }));
                   }}
-                  className="rounded bg-surface-container-lowest border border-outline/20 px-2.5 py-1.5 text-xs text-on-surface focus:border-primary focus:outline-none"
+                  className="h-9 rounded-md border border-input bg-background px-3 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                 >
                   {workspaceMembers.length > 0 ? (
                     workspaceMembers.map((m) => (
@@ -403,7 +445,7 @@ export function ProjectsClient({
                 <select
                   value={newProject.status}
                   onChange={(event) => setNewProject((current) => ({ ...current, status: event.target.value }))}
-                  className="rounded bg-surface-container-lowest border border-outline/20 px-2.5 py-1.5 text-xs text-on-surface focus:border-primary focus:outline-none"
+                  className="h-9 rounded-md border border-input bg-background px-3 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                 >
                   <option value="Planning">Planning</option>
                   <option value="Ready">Ready</option>
@@ -411,13 +453,13 @@ export function ProjectsClient({
                   <option value="On track">On track</option>
                   <option value="At risk">At risk</option>
                 </select>
-                <input
+                <Input
                   value={newProject.due}
                   onChange={(event) => setNewProject((current) => ({ ...current, due: event.target.value }))}
-                  placeholder="Due date"
-                  className="rounded bg-surface-container-lowest border border-outline/20 px-2.5 py-1.5 text-xs text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:outline-none"
+                  placeholder="Due date (e.g. Next week, Oct 24)"
+                  className="text-xs"
                 />
-                <input
+                <Input
                   type="number"
                   min={0}
                   max={100}
@@ -425,195 +467,221 @@ export function ProjectsClient({
                   onChange={(event) =>
                     setNewProject((current) => ({ ...current, progress: Number(event.target.value) || 0 }))
                   }
-                  placeholder="Progress"
-                  className="rounded bg-surface-container-lowest border border-outline/20 px-2.5 py-1.5 text-xs text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:outline-none"
+                  placeholder="Progress percentage"
+                  className="text-xs"
                 />
-                <div className="md:col-span-2">
-                  <textarea
+                <div className="sm:col-span-2">
+                  <Textarea
                     value={newProject.overview}
                     onChange={(event) => setNewProject((current) => ({ ...current, overview: event.target.value }))}
                     rows={2}
-                    placeholder="Project overview"
-                    className="w-full rounded bg-surface-container-lowest border border-outline/20 px-2.5 py-1.5 text-xs text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:outline-none"
+                    placeholder="Project overview, goals and milestones"
+                    className="text-xs resize-none"
                   />
                 </div>
               </div>
 
-              <div className="mt-3 flex justify-end gap-2">
-                <button
-                  type="button"
+              <div className="mt-4 flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setShowNewProject(false)}
-                  className="rounded bg-surface-container-high hover:bg-surface-container-highest px-3 py-1 text-xs text-on-surface transition"
+                  className="h-8 text-xs"
                 >
                   Cancel
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <Button
+                  size="sm"
                   disabled={isSubmitting}
                   onClick={handleCreateProject}
-                  className="rounded bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-3.5 py-1 text-xs font-medium transition disabled:opacity-50"
+                  className="h-8 text-xs"
                 >
                   {isSubmitting ? "Creating..." : "Save project"}
-                </button>
+                </Button>
               </div>
-            </div>
+            </Card>
           )}
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3.5 sm:grid-cols-2">
             {filteredProjects.length > 0 ? (
               filteredProjects.map((project) => renderProjectCard(project))
             ) : (
-              <div className="col-span-full rounded border border-dashed border-outline/20 bg-surface-container-lowest p-8 text-center text-xs font-mono text-on-surface-variant">
+              <div className="col-span-full rounded-lg border border-dashed border-border p-10 text-center text-xs text-muted-foreground">
+                <FolderKanban className="size-8 mx-auto mb-2 text-muted-foreground/40" />
                 No projects match your current filters.
               </div>
             )}
           </div>
-        </div>
+        </Card>
 
         {/* Selected Project Details Panel */}
-        <aside className="rounded-xl bg-surface-container-low border border-outline-variant/20 p-4 sm:p-5 shadow-xs">
-          {selectedProject ? (
-            <>
-              <div className="mb-4 flex items-center justify-between gap-3 pb-3 border-b border-outline-variant/15">
-                <div>
-                  <p className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant">Selected</p>
-                  <h2 className="text-base font-bold text-on-surface font-headline-sm">{selectedProject.name}</h2>
-                </div>
-                <span className="rounded-md bg-surface-lowest border border-outline-variant/25 px-2 py-0.5 text-[10px] font-mono text-secondary">
-                  {selectedProject.status}
-                </span>
-              </div>
-
-              {draftProject && draftProject.id === selectedProject.id ? (
-                <div className="space-y-2.5">
-                  <input
-                    value={draftProject.name}
-                    onChange={(event) => updateSelectedProject({ name: event.target.value })}
-                    className="w-full rounded bg-surface-container-lowest border border-outline/20 px-2.5 py-1.5 text-xs text-on-surface focus:border-primary focus:outline-none"
-                  />
-                  <input
-                    value={draftProject.owner}
-                    onChange={(event) => updateSelectedProject({ owner: event.target.value })}
-                    className="w-full rounded bg-surface-container-lowest border border-outline/20 px-2.5 py-1.5 text-xs text-on-surface focus:border-primary focus:outline-none"
-                  />
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <select
-                      value={draftProject.status}
-                      onChange={(event) => updateSelectedProject({ status: event.target.value })}
-                      className="rounded bg-surface-container-lowest border border-outline/20 px-2.5 py-1.5 text-xs text-on-surface focus:border-primary focus:outline-none"
-                    >
-                      <option value="Planning">Planning</option>
-                      <option value="Ready">Ready</option>
-                      <option value="Review">Review</option>
-                      <option value="On track">On track</option>
-                      <option value="At risk">At risk</option>
-                    </select>
-                    <input
-                      value={draftProject.due}
-                      onChange={(event) => updateSelectedProject({ due: event.target.value })}
-                      className="rounded bg-surface-container-lowest border border-outline/20 px-2.5 py-1.5 text-xs text-on-surface focus:border-primary focus:outline-none"
-                    />
+        <aside className="space-y-4">
+          <Card className="p-4 sm:p-5 border-border/60 shadow-xs">
+            {selectedProject ? (
+              <>
+                <div className="mb-4 flex items-center justify-between gap-3 pb-3 border-b border-border/60">
+                  <div>
+                    <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Inspector</p>
+                    <h2 className="text-base font-bold text-foreground line-clamp-1">{selectedProject.name}</h2>
                   </div>
-                  <input
-                    type="number"
-                    min={0}
-                    max={100}
-                    value={draftProject.progress}
-                    onChange={(event) =>
-                      updateSelectedProject({ progress: Number(event.target.value) || 0 })
-                    }
-                    className="w-full rounded bg-surface-container-lowest border border-outline/20 px-2.5 py-1.5 text-xs text-on-surface focus:border-primary focus:outline-none"
-                  />
-                  <textarea
-                    value={draftProject.overview}
-                    rows={3}
-                    onChange={(event) => updateSelectedProject({ overview: event.target.value })}
-                    className="w-full rounded bg-surface-container-lowest border border-outline/20 px-2.5 py-1.5 text-xs text-on-surface focus:border-primary focus:outline-none"
-                  />
-
-                  <div className="flex justify-end gap-2 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => setDraftProject(null)}
-                      className="rounded bg-surface-container-high hover:bg-surface-container-highest px-3 py-1 text-xs text-on-surface transition"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleSaveProjectEdits}
-                      className="rounded bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-3.5 py-1 text-xs font-medium transition"
-                    >
-                      Save changes
-                    </button>
-                  </div>
+                  <Badge variant="outline" className="text-[10px] font-mono bg-muted/40">
+                    {selectedProject.status}
+                  </Badge>
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="rounded bg-surface-container-lowest border border-outline/20 p-3">
-                    <div className="mb-1.5 flex items-center justify-between text-xs text-on-surface-variant font-mono">
-                      <span>Progress</span>
-                      <span className="text-secondary">{selectedProject.progress}%</span>
-                    </div>
-                    <div className="h-1.5 overflow-hidden rounded-full bg-surface-container-highest">
-                      <div
-                        className="h-full rounded-full bg-secondary"
-                        style={{ width: `${selectedProject.progress}%` }}
+
+                {draftProject && draftProject.id === selectedProject.id ? (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-[11px] font-medium text-muted-foreground block mb-1">Name</label>
+                      <Input
+                        value={draftProject.name}
+                        onChange={(event) => updateSelectedProject({ name: event.target.value })}
+                        className="text-xs"
                       />
                     </div>
-                  </div>
-
-                  <dl className="space-y-2 text-xs">
-                    <div className="flex items-center justify-between gap-2">
-                      <dt className="text-on-surface-variant font-mono">Owner</dt>
-                      <dd className="font-medium text-on-surface">{selectedProject.owner}</dd>
+                    <div>
+                      <label className="text-[11px] font-medium text-muted-foreground block mb-1">Owner</label>
+                      <Input
+                        value={draftProject.owner}
+                        onChange={(event) => updateSelectedProject({ owner: event.target.value })}
+                        className="text-xs"
+                      />
                     </div>
-                    <div className="flex items-center justify-between gap-2">
-                      <dt className="text-on-surface-variant font-mono">Due</dt>
-                      <dd className="font-mono text-on-surface">{selectedProject.due}</dd>
-                    </div>
-                    <div className="flex items-center justify-between gap-2">
-                      <dt className="text-on-surface-variant font-mono">Status</dt>
-                      <dd className="font-mono text-on-surface">{selectedProject.status}</dd>
-                    </div>
-                  </dl>
-
-                  <p className="text-xs leading-relaxed text-on-surface-variant">{selectedProject.overview}</p>
-
-                  <div className="flex flex-wrap gap-2 pt-2 border-t border-outline/10">
-                    <Link
-                      href={`/projects/${selectedProject.id}`}
-                      className="flex-1 rounded bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container px-3 py-1.5 text-center text-xs font-medium transition shadow-sm"
-                    >
-                      Open project
-                    </Link>
-                    {!isViewer && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => setDraftProject({ ...selectedProject })}
-                          className="rounded bg-surface-container hover:bg-surface-container-highest px-2.5 py-1.5 text-xs font-mono text-on-surface transition"
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <div>
+                        <label className="text-[11px] font-medium text-muted-foreground block mb-1">Status</label>
+                        <select
+                          value={draftProject.status}
+                          onChange={(event) => updateSelectedProject({ status: event.target.value })}
+                          className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                         >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteProject(selectedProject.id)}
-                          className="rounded bg-error-container/20 hover:bg-error-container/30 px-2.5 py-1.5 text-xs font-mono text-error transition"
-                        >
-                          Delete
-                        </button>
-                      </>
-                    )}
+                          <option value="Planning">Planning</option>
+                          <option value="Ready">Ready</option>
+                          <option value="Review">Review</option>
+                          <option value="On track">On track</option>
+                          <option value="At risk">At risk</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-medium text-muted-foreground block mb-1">Due</label>
+                        <Input
+                          value={draftProject.due}
+                          onChange={(event) => updateSelectedProject({ due: event.target.value })}
+                          className="text-xs"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-medium text-muted-foreground block mb-1">Progress (%)</label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={draftProject.progress}
+                        onChange={(event) =>
+                          updateSelectedProject({ progress: Number(event.target.value) || 0 })
+                        }
+                        className="text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-medium text-muted-foreground block mb-1">Overview</label>
+                      <Textarea
+                        value={draftProject.overview}
+                        rows={3}
+                        onChange={(event) => updateSelectedProject({ overview: event.target.value })}
+                        className="text-xs resize-none"
+                      />
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-2 border-t border-border/50">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setDraftProject(null)}
+                        className="h-8 text-xs"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={handleSaveProjectEdits}
+                        className="h-8 text-xs"
+                      >
+                        Save changes
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="rounded border border-dashed border-outline/20 bg-surface-container-lowest p-6 text-center text-xs font-mono text-on-surface-variant">
-              Select a project to review details.
-            </div>
-          )}
+                ) : (
+                  <div className="space-y-4">
+                    <div className="rounded-lg bg-muted/30 border border-border/50 p-3.5 space-y-2">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground font-mono">
+                        <span>Progress completion</span>
+                        <span className="font-semibold text-foreground">{selectedProject.progress}%</span>
+                      </div>
+                      <Progress value={selectedProject.progress} className="h-2" />
+                    </div>
+
+                    <dl className="space-y-2.5 text-xs">
+                      <div className="flex items-center justify-between gap-2 py-1 border-b border-border/40">
+                        <dt className="text-muted-foreground">Owner</dt>
+                        <dd className="font-medium text-foreground">{selectedProject.owner}</dd>
+                      </div>
+                      <div className="flex items-center justify-between gap-2 py-1 border-b border-border/40">
+                        <dt className="text-muted-foreground">Due date</dt>
+                        <dd className="font-mono text-foreground">{selectedProject.due}</dd>
+                      </div>
+                      <div className="flex items-center justify-between gap-2 py-1 border-b border-border/40">
+                        <dt className="text-muted-foreground">Status</dt>
+                        <dd className="font-mono text-foreground">{selectedProject.status}</dd>
+                      </div>
+                    </dl>
+
+                    <div>
+                      <p className="text-[11px] font-medium text-muted-foreground mb-1">Overview</p>
+                      <p className="text-xs leading-relaxed text-muted-foreground/90 bg-muted/20 p-3 rounded-lg border border-border/30">
+                        {selectedProject.overview}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 pt-2 border-t border-border/50">
+                      <Button asChild size="sm" className="flex-1 h-9 text-xs">
+                        <Link href={`/projects/${selectedProject.id}`}>
+                          Open project details
+                        </Link>
+                      </Button>
+                      {!isViewer && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setDraftProject({ ...selectedProject })}
+                            className="h-9 px-3 text-xs"
+                          >
+                            <Edit3 className="size-3.5 mr-1" />
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteProject(selectedProject.id)}
+                            className="h-9 px-3 text-xs text-destructive hover:bg-destructive/10 hover:border-destructive/30"
+                          >
+                            <Trash2 className="size-3.5 mr-1" />
+                            Delete
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="rounded-lg border border-dashed border-border p-8 text-center text-xs text-muted-foreground">
+                Select a project to review details.
+              </div>
+            )}
+          </Card>
         </aside>
       </section>
     </div>
