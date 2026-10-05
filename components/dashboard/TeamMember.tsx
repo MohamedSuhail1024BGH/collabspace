@@ -15,7 +15,7 @@ export function TeamMember({ member }: TeamMemberProps) {
     member.role === "owner" ? "Owner" : member.role === "admin" ? "Admin" : "Member";
 
   return (
-    <div className="flex items-center justify-between gap-3 p-2 rounded-lg hover:bg-secondary/40 transition-colors group">
+    <div className="flex items-center justify-between gap-3 p-2.5 rounded-xl hover:bg-secondary/40 transition-colors group">
       <div className="flex items-center gap-2.5 min-w-0">
         <UserAvatar
           avatar={member.avatar}
@@ -25,7 +25,7 @@ export function TeamMember({ member }: TeamMemberProps) {
           statusColor="bg-emerald-500"
         />
         <div className="flex flex-col min-w-0">
-          <span className="text-xs sm:text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">
+          <span className="text-xs sm:text-sm font-medium text-foreground truncate transition-colors">
             {member.name}
           </span>
           <span className="text-[11px] text-muted-foreground truncate">
@@ -34,7 +34,7 @@ export function TeamMember({ member }: TeamMemberProps) {
         </div>
       </div>
 
-      <Badge variant="outline" className="text-[10px] font-mono capitalize shrink-0">
+      <Badge variant="outline" className="text-[10px] font-mono capitalize shrink-0 rounded-full border-border/80">
         {roleDisplay}
       </Badge>
     </div>

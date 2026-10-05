@@ -48,7 +48,7 @@ export default function CalendarToolbar({
             variant="outline"
             size="icon"
             onClick={onPrev}
-            className="size-8"
+            className="size-8 rounded-full border-border/80"
             aria-label="Previous month"
           >
             <ChevronLeft className="size-4" />
@@ -58,7 +58,7 @@ export default function CalendarToolbar({
             variant="outline"
             size="sm"
             onClick={onToday}
-            className="h-8 px-3 text-xs font-medium text-primary"
+            className="h-8 px-3.5 text-xs font-medium rounded-full border-border/80"
           >
             Today
           </Button>
@@ -67,7 +67,7 @@ export default function CalendarToolbar({
             variant="outline"
             size="icon"
             onClick={onNext}
-            className="size-8"
+            className="size-8 rounded-full border-border/80"
             aria-label="Next month"
           >
             <ChevronRight className="size-4" />
@@ -84,13 +84,13 @@ export default function CalendarToolbar({
 
       {/* View Mode Switching Controls */}
       {onViewModeChange && (
-        <div className="flex items-center rounded-lg bg-secondary/60 border border-border p-0.5 w-full sm:w-auto">
+        <div className="flex items-center rounded-xl bg-secondary/80 border border-border/80 p-1 w-full sm:w-auto">
           <button
             type="button"
             data-testid="calendar-view-month-btn"
             onClick={() => onViewModeChange("month")}
             className={cn(
-              "flex-1 sm:flex-initial text-center rounded-md px-3 py-1 text-xs font-medium transition active:scale-95 cursor-pointer",
+              "flex-1 sm:flex-initial text-center rounded-lg px-3.5 py-1 text-xs font-medium transition active:scale-95 cursor-pointer",
               viewMode === "month"
                 ? "bg-card text-foreground font-semibold shadow-xs"
                 : "text-muted-foreground hover:text-foreground"
@@ -103,7 +103,7 @@ export default function CalendarToolbar({
             data-testid="calendar-view-week-btn"
             onClick={() => onViewModeChange("week")}
             className={cn(
-              "flex-1 sm:flex-initial text-center rounded-md px-3 py-1 text-xs font-medium transition active:scale-95 cursor-pointer",
+              "flex-1 sm:flex-initial text-center rounded-lg px-3.5 py-1 text-xs font-medium transition active:scale-95 cursor-pointer",
               viewMode === "week"
                 ? "bg-card text-foreground font-semibold shadow-xs"
                 : "text-muted-foreground hover:text-foreground"
@@ -116,7 +116,7 @@ export default function CalendarToolbar({
             data-testid="calendar-view-agenda-btn"
             onClick={() => onViewModeChange("agenda")}
             className={cn(
-              "flex-1 sm:flex-initial text-center rounded-md px-3 py-1 text-xs font-medium transition active:scale-95 cursor-pointer",
+              "flex-1 sm:flex-initial text-center rounded-lg px-3.5 py-1 text-xs font-medium transition active:scale-95 cursor-pointer",
               viewMode === "agenda"
                 ? "bg-card text-foreground font-semibold shadow-xs"
                 : "text-muted-foreground hover:text-foreground"

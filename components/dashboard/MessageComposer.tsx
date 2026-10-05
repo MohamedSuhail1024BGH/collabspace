@@ -48,8 +48,8 @@ export default function MessageComposer({ onSend, disabled = false }: Props) {
   };
 
   return (
-    <div className="p-2 sm:p-3 bg-card border-t border-border shrink-0 select-none pb-[max(env(safe-area-inset-bottom,0px),0.5rem)]">
-      <div className="flex flex-col rounded-xl bg-secondary/40 border border-input p-2 shadow-xs focus-within:border-primary/50 focus-within:bg-card transition-all">
+    <div className="p-2 sm:p-3 bg-card border-t border-border/80 shrink-0 select-none pb-[max(env(safe-area-inset-bottom,0px),0.5rem)]">
+      <div className="flex flex-col rounded-2xl bg-secondary/40 border border-border/80 p-2.5 shadow-xs focus-within:border-ring focus-within:bg-card transition-all">
         {/* Main Input Row */}
         <div className="flex items-end gap-1.5 sm:gap-2">
           {/* Attachment Paperclip Button */}
@@ -59,7 +59,7 @@ export default function MessageComposer({ onSend, disabled = false }: Props) {
             size="icon"
             title="Attach file"
             onClick={() => insertFormatting("[file](", ")")}
-            className="size-8 text-muted-foreground hover:text-foreground shrink-0 mb-0.5"
+            className="size-8 text-muted-foreground hover:text-foreground shrink-0 mb-0.5 cursor-pointer"
           >
             <Paperclip className="size-4" />
           </Button>
@@ -93,7 +93,7 @@ export default function MessageComposer({ onSend, disabled = false }: Props) {
             size="icon"
             title="Add emoji"
             onClick={() => setText((prev) => prev + " 😊 ")}
-            className="size-8 text-muted-foreground hover:text-foreground shrink-0 mb-0.5"
+            className="size-8 text-muted-foreground hover:text-foreground shrink-0 mb-0.5 cursor-pointer"
             aria-label="Add emoji"
           >
             <Smile className="size-4" />
@@ -106,7 +106,7 @@ export default function MessageComposer({ onSend, disabled = false }: Props) {
             disabled={disabled || !text.trim()}
             onClick={handleSend}
             size="sm"
-            className="gap-1.5 h-8 px-3 shrink-0 mb-0.5"
+            className="gap-1.5 h-8 px-3.5 rounded-full shrink-0 mb-0.5 shadow-xs cursor-pointer"
           >
             <span className="hidden sm:inline">Send</span>
             <Send className="size-3.5" />

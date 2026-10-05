@@ -218,7 +218,7 @@ export function WorkspaceSwitcher({
       </div>
 
       {/* Trigger Card */}
-      <div className="rounded-lg bg-secondary/50 hover:bg-secondary border border-border transition-colors">
+      <div className="rounded-xl bg-secondary/50 hover:bg-secondary/70 border border-border/80 transition-colors">
         <button
           type="button"
           data-testid="workspace-switcher-trigger"

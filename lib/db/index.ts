@@ -66,7 +66,7 @@ export const sql = new Proxy((() => {}) as unknown as postgres.Sql, {
   },
 });
 
-export const sqlite: unknown = sql;
+export const sqlite: any = sql;
 
 export function setDatabaseForTesting(_customSqlite?: unknown) {
   // Compatibility stub for unit test suites

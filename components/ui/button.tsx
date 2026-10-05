@@ -4,20 +4,23 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 cursor-pointer",
   {
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground shadow hover:opacity-95 active:scale-[0.98]",
+          "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 active:scale-[0.98]",
         destructive:
-          "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90 active:scale-[0.98]",
+          "bg-destructive text-destructive-foreground shadow-xs hover:bg-destructive/90 active:scale-[0.98]",
         outline:
-          "border border-border bg-card hover:bg-accent hover:text-accent-foreground active:scale-[0.98]",
+          "border border-border/80 bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground active:scale-[0.98]",
         secondary:
-          "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80 active:scale-[0.98]",
+          "bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80 active:scale-[0.98]",
         ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
+        link: "text-foreground underline-offset-4 hover:underline",
+        pill: "rounded-full bg-primary text-primary-foreground font-semibold px-5 py-2 shadow-xs hover:bg-primary/90 active:scale-[0.98]",
+        "pill-secondary": "rounded-full bg-secondary text-secondary-foreground font-medium px-4 py-2 hover:bg-secondary/80 active:scale-[0.98]",
+        "pill-outline": "rounded-full border border-border/80 bg-transparent text-foreground font-medium px-4 py-2 hover:bg-accent active:scale-[0.98]",
       },
       size: {
         default: "h-9 px-4 py-2",

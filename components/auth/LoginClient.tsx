@@ -141,7 +141,7 @@ export function LoginClient() {
               <Button
                 type="submit"
                 disabled={isPending}
-                className="w-full h-10 text-xs font-semibold cursor-pointer"
+                className="w-full h-10 text-xs font-semibold rounded-full cursor-pointer shadow-xs"
               >
                 {isPending ? "Signing in..." : "Sign In"}
               </Button>

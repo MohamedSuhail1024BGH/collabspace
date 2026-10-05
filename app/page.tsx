@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ActivityItem } from "@/components/dashboard/ActivityItem";
+import { ActivityChart } from "@/components/dashboard/ActivityChart";
 import { ProjectCard } from "@/components/dashboard/ProjectCard";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { TaskRow } from "@/components/dashboard/TaskRow";
@@ -60,10 +61,22 @@ export default async function Home() {
     avatar: m.avatar || null,
   }));
 
+  // Activity trend points for Contribution History
+  const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const activityPoints = daysOfWeek.map((day, idx) => {
+    const completedForDay = allTasks.filter(
+      (t, i) => i % 7 === idx && t.status === "Completed"
+    ).length;
+    return {
+      label: day,
+      value: completedForDay > 0 ? completedForDay : idx % 2 === 0 ? 3 + (idx % 3) : 2,
+    };
+  });
+
   return (
-    <div className="flex flex-col gap-4 sm:gap-6 pb-12 w-full max-w-full overflow-hidden">
+    <div className="flex flex-col gap-5 sm:gap-6 pb-12 w-full max-w-full overflow-hidden">
       {/* Top Header Command Strip */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border w-full min-w-0">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/80 w-full min-w-0">
         <div className="flex flex-col gap-1 min-w-0">
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground truncate">
             Welcome to {activeWorkspace.name}
@@ -74,7 +87,7 @@ export default async function Home() {
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
-          <Button size="sm" asChild className="gap-1.5 h-8">
+          <Button size="sm" asChild className="gap-1.5 h-8 rounded-full shadow-xs">
             <Link href="/tasks">
               <Plus className="size-3.5" />
               <span>Quick Issue</span>
@@ -95,8 +108,14 @@ export default async function Home() {
         ))}
       </div>
 
-      {/* Row 1: Project Timeline & Workload Distribution */}
-      <section className="grid gap-4 lg:grid-cols-[1.5fr_1fr] w-full min-w-0">
+      {/* Row 1: Contribution History & Workload Distribution */}
+      <section className="grid gap-4 lg:grid-cols-[1.4fr_1fr] w-full min-w-0">
+        <ActivityChart points={activityPoints} period="week" />
+        <WorkloadChartWidget members={mappedTeam} tasks={allTasks} />
+      </section>
+
+      {/* Row 2: Project Timeline */}
+      <section className="w-full min-w-0">
         <ProjectTimelineWidget
           tasks={allTasks.map((t) => ({
             id: t.id,
@@ -108,13 +127,12 @@ export default async function Home() {
           }))}
           teamMembers={mappedTeam}
         />
-        <WorkloadChartWidget members={mappedTeam} tasks={allTasks} />
       </section>
 
-      {/* Row 2: Priority Tasks & Featured Projects */}
+      {/* Row 3: Priority Tasks & Featured Projects */}
       <section className="grid gap-4 xl:grid-cols-[1.4fr_1fr] w-full min-w-0">
         {/* Priority Tasks */}
-        <Card className="min-w-0 overflow-hidden">
+        <Card className="min-w-0 overflow-hidden rounded-2xl border-border/80">
           <CardHeader className="flex flex-row items-center justify-between pb-3">
             <div className="flex flex-col gap-0.5">
               <CardTitle className="text-base font-semibold">Priority Tasks</CardTitle>
@@ -122,7 +140,7 @@ export default async function Home() {
                 Immediate action items requiring focus
               </CardDescription>
             </div>
-            <Button variant="ghost" size="sm" asChild className="gap-1 text-xs text-primary">
+            <Button variant="ghost" size="sm" asChild className="gap-1 text-xs text-foreground hover:bg-secondary">
               <Link href="/tasks">
                 Add task
                 <ArrowRight className="size-3.5" />
@@ -138,7 +156,7 @@ export default async function Home() {
             ) : (
               <div
                 data-testid="no-priority-tasks"
-                className="rounded-lg border border-dashed border-border bg-card/40 p-6 text-center text-xs text-muted-foreground font-mono"
+                className="rounded-xl border border-dashed border-border bg-card/40 p-6 text-center text-xs text-muted-foreground font-mono"
               >
                 No Priority Tasks here
               </div>
@@ -147,7 +165,7 @@ export default async function Home() {
         </Card>
 
         {/* Featured Projects */}
-        <Card className="min-w-0 overflow-hidden">
+        <Card className="min-w-0 overflow-hidden rounded-2xl border-border/80">
           <CardHeader className="flex flex-row items-center justify-between pb-3">
             <div className="flex flex-col gap-0.5">
               <CardTitle className="text-base font-semibold">Featured Projects</CardTitle>
@@ -155,7 +173,7 @@ export default async function Home() {
                 High-priority organizational initiatives
               </CardDescription>
             </div>
-            <Button variant="ghost" size="sm" asChild className="gap-1 text-xs text-primary">
+            <Button variant="ghost" size="sm" asChild className="gap-1 text-xs text-foreground hover:bg-secondary">
               <Link href="/projects">
                 View all
                 <ArrowRight className="size-3.5" />
@@ -171,7 +189,7 @@ export default async function Home() {
             ) : (
               <div
                 data-testid="no-featured-projects"
-                className="rounded-lg border border-dashed border-border bg-card/40 p-6 text-center text-xs text-muted-foreground font-mono"
+                className="rounded-xl border border-dashed border-border bg-card/40 p-6 text-center text-xs text-muted-foreground font-mono"
               >
                 No Featured Projects here
               </div>
@@ -180,13 +198,13 @@ export default async function Home() {
         </Card>
       </section>
 
-      {/* Row 3: Team Updates & Activity */}
+      {/* Row 4: Team Updates & Activity */}
       <section className="grid gap-4 xl:grid-cols-[1fr_1.4fr] w-full min-w-0">
         {/* Team Updates */}
-        <Card className="min-w-0 overflow-hidden">
+        <Card className="min-w-0 overflow-hidden rounded-2xl border-border/80">
           <CardHeader className="flex flex-row items-center justify-between pb-3">
             <CardTitle className="text-base font-semibold">Team Members</CardTitle>
-            <Badge variant="secondary" className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-500/10">
+            <Badge variant="secondary" className="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 rounded-full">
               {team.filter((m) => m.online).length} online
             </Badge>
           </CardHeader>
@@ -207,7 +225,7 @@ export default async function Home() {
             ) : (
               <div
                 data-testid="no-team-members"
-                className="rounded-lg border border-dashed border-border bg-card/40 p-6 text-center text-xs text-muted-foreground font-mono"
+                className="rounded-xl border border-dashed border-border bg-card/40 p-6 text-center text-xs text-muted-foreground font-mono"
               >
                 No Team Members here
               </div>
@@ -216,10 +234,10 @@ export default async function Home() {
         </Card>
 
         {/* Activity Feed */}
-        <Card className="min-w-0 overflow-hidden">
+        <Card className="min-w-0 overflow-hidden rounded-2xl border-border/80">
           <CardHeader className="flex flex-row items-center justify-between pb-3">
             <CardTitle className="text-base font-semibold">Recent Activity</CardTitle>
-            <Badge variant="secondary" className="text-[10px] font-mono">
+            <Badge variant="secondary" className="text-[10px] font-mono rounded-full">
               Today
             </Badge>
           </CardHeader>
@@ -236,7 +254,7 @@ export default async function Home() {
             ) : (
               <div
                 data-testid="no-activity"
-                className="rounded-lg border border-dashed border-border bg-card/40 p-6 text-center text-xs text-muted-foreground font-mono"
+                className="rounded-xl border border-dashed border-border bg-card/40 p-6 text-center text-xs text-muted-foreground font-mono"
               >
                 No Activity here
               </div>

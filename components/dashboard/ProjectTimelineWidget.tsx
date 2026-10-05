@@ -13,7 +13,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, ChevronRight } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 export type TimelineTask = {
   id: string;

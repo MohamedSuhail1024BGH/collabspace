@@ -59,7 +59,7 @@ export function TaskRow({ task, onEdit, onDelete, onStatusChange }: TaskRowProps
   return (
     <div
       className={cn(
-        "rounded-xl border border-border bg-card p-3 sm:p-4 hover:border-primary/40 hover:shadow-sm transition-all duration-150 group w-full max-w-full",
+        "rounded-xl border border-border/80 bg-card p-3.5 sm:p-4 hover:border-muted-foreground/30 transition-all duration-200 group w-full max-w-full",
         priority === "High" && "border-l-4 border-l-destructive"
       )}
     >
@@ -74,7 +74,7 @@ export function TaskRow({ task, onEdit, onDelete, onStatusChange }: TaskRowProps
               aria-hidden="true"
             />
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors truncate">
+              <p className="text-sm font-semibold text-foreground transition-colors truncate">
                 {title}
               </p>
               {description ? (
@@ -86,14 +86,14 @@ export function TaskRow({ task, onEdit, onDelete, onStatusChange }: TaskRowProps
           </div>
 
           <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-            <Badge variant={priorityVariant} className="text-[10px] font-mono">
+            <Badge variant={priorityVariant} className="text-[10px] font-mono rounded-full">
               {priority === "High" ? "P0 • High" : priority}
             </Badge>
-            <Badge variant={statusVariant} className="text-[10px] font-mono">
+            <Badge variant={statusVariant} className="text-[10px] font-mono rounded-full">
               {status}
             </Badge>
             {project ? (
-              <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground">
+              <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground rounded-full border-border/80">
                 {project}
               </Badge>
             ) : null}
@@ -101,11 +101,11 @@ export function TaskRow({ task, onEdit, onDelete, onStatusChange }: TaskRowProps
         </div>
 
         <div className="flex flex-wrap sm:flex-col items-start sm:items-end gap-1.5 shrink-0 text-xs text-muted-foreground">
-          <div className="flex items-center gap-1.5 rounded-md bg-secondary/60 px-2 py-1">
+          <div className="flex items-center gap-1.5 rounded-full bg-secondary/80 border border-border/60 px-2.5 py-0.5">
             <User className="size-3 text-muted-foreground" />
             <span className="font-medium text-foreground">{assignee}</span>
           </div>
-          <div className="flex items-center gap-1.5 rounded-md bg-secondary/60 px-2 py-1">
+          <div className="flex items-center gap-1.5 rounded-full bg-secondary/80 border border-border/60 px-2.5 py-0.5">
             <Calendar className="size-3 text-muted-foreground" />
             <span className="font-mono text-foreground">{formatDate(dueValue)}</span>
           </div>

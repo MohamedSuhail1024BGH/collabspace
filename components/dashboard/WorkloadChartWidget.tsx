@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BarChart3, ChevronRight } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 type WorkloadMember = {
   id: string;

@@ -61,17 +61,17 @@ export function TaskBoard({
         return (
           <div
             key={column.id}
-            className="flex flex-col bg-secondary/30 border border-border rounded-xl p-3 min-h-[380px] sm:min-h-[420px] w-[85vw] sm:w-[320px] md:w-auto shrink-0 md:shrink snap-center md:snap-none"
+            className="flex flex-col bg-secondary/20 border border-border/80 rounded-2xl p-3 sm:p-3.5 min-h-[380px] sm:min-h-[420px] w-[85vw] sm:w-[320px] md:w-auto shrink-0 md:shrink snap-center md:snap-none"
           >
             {/* Column Header */}
-            <div className="flex items-center justify-between pb-3 mb-3 border-b border-border">
+            <div className="flex items-center justify-between pb-3 mb-3 border-b border-border/80">
               <div className="flex items-center gap-2">
                 <span className={cn("size-2 rounded-full", column.dot)} aria-hidden="true" />
                 <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">
                   {column.label}
                 </h3>
               </div>
-              <Badge variant="secondary" className="text-xs font-mono px-2 py-0.5">
+              <Badge variant="secondary" className="text-xs font-mono px-2 py-0.5 rounded-full">
                 {columnTasks.length}
               </Badge>
             </div>
@@ -79,7 +79,7 @@ export function TaskBoard({
             {/* Column Body / Cards */}
             <div className="flex-1 flex flex-col gap-2.5">
               {columnTasks.length === 0 ? (
-                <div className="flex-1 flex items-center justify-center border border-dashed border-border rounded-lg p-6 text-xs text-muted-foreground">
+                <div className="flex-1 flex items-center justify-center border border-dashed border-border/80 rounded-xl p-6 text-xs text-muted-foreground">
                   No tasks
                 </div>
               ) : (
@@ -92,13 +92,13 @@ export function TaskBoard({
                     <div
                       key={task.id}
                       className={cn(
-                        "group rounded-xl bg-card border border-border p-3.5 hover:border-primary/40 hover:shadow-sm transition-all shadow-xs",
+                        "group rounded-xl bg-card border border-border/80 p-3.5 hover:border-muted-foreground/30 transition-all duration-200 shadow-xs",
                         isHigh && "border-l-4 border-l-destructive"
                       )}
                     >
                       {/* Priority & Project row */}
                       <div className="flex items-center justify-between gap-1.5 mb-2">
-                        <Badge variant={priorityVariant} className="text-[10px] font-mono">
+                        <Badge variant={priorityVariant} className="text-[10px] font-mono rounded-full">
                           {isHigh ? "P0 • High" : task.priority}
                         </Badge>
                         {task.project ? (

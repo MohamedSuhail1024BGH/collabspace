@@ -97,7 +97,7 @@ export function DashboardShell({
   const showProjectsSidebar = isProjectsSidebarOpen && pathname !== "/projects" && !isMessages;
 
   return (
-    <div className="min-h-screen bg-surface text-on-surface antialiased transition-colors duration-200 w-full max-w-full overflow-x-hidden">
+    <div className="min-h-screen bg-background text-foreground antialiased w-full max-w-full overflow-x-hidden">
       {/* Primary Navigation Sidebar */}
       <Sidebar
         navItems={navItems}

@@ -24,7 +24,7 @@ export default function ChatHeader({ conversation, onBack, memberCount }: Props)
         conversation.name.startsWith("#")));
 
   return (
-    <div className="h-14 px-3 sm:px-4 flex items-center justify-between border-b border-border bg-card flex-shrink-0 select-none">
+    <div className="h-14 px-3 sm:px-4 flex items-center justify-between border-b border-border/80 bg-card/60 backdrop-blur-md flex-shrink-0 select-none">
       {/* Left: Back button (mobile) + Identity stack */}
       <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
         {onBack && (
@@ -32,7 +32,7 @@ export default function ChatHeader({ conversation, onBack, memberCount }: Props)
             variant="ghost"
             size="icon"
             onClick={onBack}
-            className="md:hidden size-8 text-muted-foreground hover:text-foreground shrink-0"
+            className="md:hidden size-8 text-muted-foreground hover:text-foreground shrink-0 cursor-pointer"
             title="Back to conversation list"
             aria-label="Back to conversation list"
           >
@@ -42,7 +42,7 @@ export default function ChatHeader({ conversation, onBack, memberCount }: Props)
 
         <div className="relative shrink-0">
           {isChannel ? (
-            <div className="flex size-9 items-center justify-center rounded-lg bg-primary/15 border border-primary/30 text-primary font-bold shadow-xs">
+            <div className="flex size-9 items-center justify-center rounded-xl bg-secondary/80 border border-border/80 text-foreground font-bold shadow-xs">
               <Hash className="size-4" />
             </div>
           ) : (

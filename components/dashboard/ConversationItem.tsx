@@ -36,10 +36,10 @@ export default function ConversationItem({ conversation, selected, onSelect }: P
       data-testid={`conversation-item-${conversation.id}`}
       onClick={() => onSelect?.(conversation.id)}
       className={cn(
-        "group flex w-full items-center justify-between gap-2.5 rounded-lg px-2.5 py-2 text-left transition-all select-none",
+        "group flex w-full items-center justify-between gap-2.5 rounded-xl px-3 py-2 text-left transition-all select-none cursor-pointer",
         selected
-          ? "bg-secondary text-foreground font-medium border-l-2 border-primary shadow-xs"
-          : "border-l-2 border-transparent text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
+          ? "bg-accent text-accent-foreground font-semibold shadow-xs"
+          : "text-muted-foreground hover:bg-secondary/70 hover:text-foreground"
       )}
     >
       <div className="flex items-center gap-2.5 min-w-0 flex-1 overflow-hidden">

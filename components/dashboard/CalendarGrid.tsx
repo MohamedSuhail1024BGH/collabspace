@@ -94,8 +94,8 @@ export default function CalendarGrid({
   };
 
   return (
-    <div data-testid="calendar-grid-view" className="overflow-x-auto select-none">
-      <div className="grid grid-cols-7 gap-1 sm:gap-1.5 border-b border-border pb-2.5 text-center text-xs font-medium uppercase text-muted-foreground w-full min-w-0 sm:min-w-[580px]">
+    <div data-testid="calendar-grid-view" className="rounded-2xl border border-border/80 bg-card p-3 sm:p-4 overflow-x-auto select-none shadow-xs">
+      <div className="grid grid-cols-7 gap-1 sm:gap-1.5 border-b border-border/80 pb-2.5 text-center text-xs font-medium uppercase text-muted-foreground w-full min-w-0 sm:min-w-[580px]">
         {daysOfWeek.map((d) => (
           <div key={d} className="py-1">
             <span className="sm:hidden">{d.charAt(0)}</span>

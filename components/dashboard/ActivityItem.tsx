@@ -13,15 +13,15 @@ export function ActivityItem({ item, time }: ActivityItemProps) {
   const displayTime = time || "Recently";
 
   return (
-    <div className="flex items-start gap-3 p-2 rounded-lg hover:bg-secondary/40 transition-colors group">
+    <div className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-secondary/40 transition-colors group">
       <div
         className={cn(
-          "mt-0.5 size-7 rounded-lg shrink-0 flex items-center justify-center transition-transform group-hover:scale-105",
+          "mt-0.5 size-7 rounded-full shrink-0 flex items-center justify-center transition-transform group-hover:scale-105",
           isApproval
-            ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+            ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
             : isShipment
-            ? "bg-primary/10 text-primary border border-primary/20"
-            : "bg-secondary text-muted-foreground border border-border"
+            ? "bg-primary text-primary-foreground"
+            : "bg-secondary text-muted-foreground border border-border/80"
         )}
       >
         {isApproval ? (
