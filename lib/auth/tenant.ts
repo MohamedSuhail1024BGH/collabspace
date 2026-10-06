@@ -101,7 +101,8 @@ export async function getTargetWorkspaceMembership(
     .where(
       and(
         eq(workspaceMembers.workspaceId, workspaceId),
-        eq(workspaceMembers.userId, targetUserId)
+        eq(workspaceMembers.userId, targetUserId),
+        eq(workspaceMembers.status, "active")
       )
     )
     .limit(1);

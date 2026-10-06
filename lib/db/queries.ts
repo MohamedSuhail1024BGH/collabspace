@@ -169,7 +169,7 @@ export async function getConversations(workspaceId?: string, currentUserId?: str
       const counterpartyId = dmCheck.otherUserId;
       const counterparty = members.find((m) => m.user.id === counterpartyId);
 
-      if (counterparty) {
+      if (counterparty && counterparty.status === "active") {
         const cpName = counterparty.user.name;
         const nameParts = cpName.trim().split(/\s+/);
         const cpInitials = (

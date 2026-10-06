@@ -10,6 +10,7 @@ import {
   type ProjectSidebarItem,
 } from "@/components/dashboard/SecondaryProjectsSidebar";
 import { MobileBottomNav } from "@/components/dashboard/MobileBottomNav";
+import { FloatingSettingsModal } from "@/components/dashboard/FloatingSettingsModal";
 import { navItems } from "@/data/mock-data";
 import type { DbWorkspace, DbUser } from "@/lib/db/schema";
 
@@ -43,6 +44,7 @@ export function DashboardShell({
   const [density, setDensity] = useState<"comfortable" | "compact">("comfortable");
   const [isProjectsSidebarOpen, setIsProjectsSidebarOpen] = useState(true);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   useEffect(() => {
     setIsMobileOpen(false);
@@ -107,6 +109,10 @@ export function DashboardShell({
         user={user}
         isMobileOpen={isMobileOpen}
         onMobileClose={() => setIsMobileOpen(false)}
+        onOpenSettings={() => {
+          setIsMobileOpen(false);
+          setIsSettingsOpen(true);
+        }}
       />
 
       {/* Main Layout Container (offset by primary sidebar on desktop) */}
@@ -160,6 +166,13 @@ export function DashboardShell({
       <MobileBottomNav
         onOpenMenu={() => setIsMobileOpen(true)}
         isDrawerOpen={isMobileOpen}
+      />
+
+      {/* Floating Settings & System Preferences Modal */}
+      <FloatingSettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        user={user}
       />
     </div>
   );

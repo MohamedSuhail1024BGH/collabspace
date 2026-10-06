@@ -515,40 +515,52 @@ export function MessagesClient({
             )}
           </div>
 
-          {/* Filter Pill Tabs */}
-          <div className="flex items-center gap-1 text-[11px] font-mono bg-muted/40 p-0.5 rounded-lg border border-border/30">
+          {/* Scrollable Filter Switcher (Matching /start route standard) */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none whitespace-nowrap">
             <button
               type="button"
               onClick={() => setFilterType("all")}
-              className={`flex-1 py-1 rounded text-center transition-all cursor-pointer ${
+              className={`shrink-0 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-mono transition-all select-none border cursor-pointer ${
                 filterType === "all"
-                  ? "bg-background text-foreground font-semibold shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-accent text-primary border-primary/40 font-semibold shadow-xs"
+                  : "border-transparent text-muted-foreground hover:bg-accent/50 hover:text-foreground"
               }`}
             >
-              All ({conversations.length})
+              <MessageSquare className="size-3.5" />
+              <span>All</span>
+              <Badge variant="secondary" className="text-[10px] font-mono px-1.5 py-0 h-4">
+                {conversations.length}
+              </Badge>
             </button>
             <button
               type="button"
               onClick={() => setFilterType("channels")}
-              className={`flex-1 py-1 rounded text-center transition-all cursor-pointer ${
+              className={`shrink-0 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-mono transition-all select-none border cursor-pointer ${
                 filterType === "channels"
-                  ? "bg-background text-foreground font-semibold shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-accent text-primary border-primary/40 font-semibold shadow-xs"
+                  : "border-transparent text-muted-foreground hover:bg-accent/50 hover:text-foreground"
               }`}
             >
-              Channels ({conversations.filter(isChannel).length})
+              <Hash className="size-3.5" />
+              <span>Channels</span>
+              <Badge variant="secondary" className="text-[10px] font-mono px-1.5 py-0 h-4">
+                {channelsList.length}
+              </Badge>
             </button>
             <button
               type="button"
               onClick={() => setFilterType("direct")}
-              className={`flex-1 py-1 rounded text-center transition-all cursor-pointer ${
+              className={`shrink-0 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-mono transition-all select-none border cursor-pointer ${
                 filterType === "direct"
-                  ? "bg-background text-foreground font-semibold shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-accent text-primary border-primary/40 font-semibold shadow-xs"
+                  : "border-transparent text-muted-foreground hover:bg-accent/50 hover:text-foreground"
               }`}
             >
-              DMs ({conversations.filter((c) => !isChannel(c)).length})
+              <Users className="size-3.5" />
+              <span>DMs</span>
+              <Badge variant="secondary" className="text-[10px] font-mono px-1.5 py-0 h-4">
+                {directList.length}
+              </Badge>
             </button>
           </div>
         </div>
@@ -707,30 +719,34 @@ export function MessagesClient({
               </Button>
             </div>
 
-            {/* Modal Tabs */}
-            <div className="mb-4 flex rounded-lg bg-muted/40 border border-border/40 p-1">
-              <button
-                type="button"
-                onClick={() => setNewChatTab("direct")}
-                className={`flex-1 rounded py-1.5 text-xs font-medium transition cursor-pointer ${
-                  newChatTab === "direct"
-                    ? "bg-background text-foreground font-semibold shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Direct Message
-              </button>
-              <button
-                type="button"
-                onClick={() => setNewChatTab("channel")}
-                className={`flex-1 rounded py-1.5 text-xs font-medium transition cursor-pointer ${
-                  newChatTab === "channel"
-                    ? "bg-background text-foreground font-semibold shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Create Channel
-              </button>
+            {/* Modal Switcher (Matching /start route standard) */}
+            <div className="mb-4 border-b border-border/60 pb-2">
+              <div className="flex items-center gap-2 overflow-x-auto pb-0.5 scrollbar-none whitespace-nowrap">
+                <button
+                  type="button"
+                  onClick={() => setNewChatTab("direct")}
+                  className={`shrink-0 inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-mono transition-all select-none border cursor-pointer ${
+                    newChatTab === "direct"
+                      ? "bg-accent text-primary border-primary/40 font-semibold shadow-xs"
+                      : "border-transparent text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+                  }`}
+                >
+                  <Users className="size-3.5" />
+                  <span>Direct Message</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNewChatTab("channel")}
+                  className={`shrink-0 inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-mono transition-all select-none border cursor-pointer ${
+                    newChatTab === "channel"
+                      ? "bg-accent text-primary border-primary/40 font-semibold shadow-xs"
+                      : "border-transparent text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+                  }`}
+                >
+                  <Hash className="size-3.5" />
+                  <span>Create Channel</span>
+                </button>
+              </div>
             </div>
 
             {newChatTab === "direct" ? (
@@ -740,7 +756,7 @@ export function MessagesClient({
                 </p>
                 <div className="max-h-60 overflow-y-auto space-y-1.5 pr-1">
                   {workspaceMembers
-                    .filter((m) => m.user.id !== currentUser?.id)
+                    .filter((m) => m.user.id !== currentUser?.id && m.status === "active")
                     .map((m) => (
                       <button
                         key={m.user.id}
@@ -767,10 +783,13 @@ export function MessagesClient({
                       </button>
                     ))}
 
-                  {workspaceMembers.filter((m) => m.user.id !== currentUser?.id).length === 0 && (
-                    <p className="py-6 text-center text-xs font-mono text-muted-foreground">
-                      No other members in this workspace yet. Invite colleagues in Settings!
-                    </p>
+                  {workspaceMembers.filter((m) => m.user.id !== currentUser?.id && m.status === "active").length === 0 && (
+                    <div className="py-8 text-center px-4">
+                      <p className="text-xs font-semibold text-foreground">No active colleagues to message</p>
+                      <p className="text-[11px] font-mono text-muted-foreground mt-1">
+                        Invited colleagues will appear here once they accept their workspace invitation.
+                      </p>
+                    </div>
                   )}
                 </div>
               </div>

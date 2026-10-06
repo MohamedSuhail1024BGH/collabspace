@@ -35,6 +35,7 @@ type WorkspaceSwitcherProps = {
   user?: Omit<DbUser, "passwordHash"> | null;
   onLogout?: () => Promise<void>;
   onNavigate?: () => void;
+  onOpenSettings?: () => void;
 };
 
 function setActiveWorkspaceCookie(workspaceId: string) {
@@ -49,6 +50,7 @@ export function WorkspaceSwitcher({
   user,
   onLogout,
   onNavigate,
+  onOpenSettings,
 }: WorkspaceSwitcherProps) {
   const [currentWorkspace, setOptimisticWorkspace] = useOptimistic(
     activeWorkspace,
@@ -184,7 +186,12 @@ export function WorkspaceSwitcher({
               data-testid="sidebar-settings-button"
               onClick={() => {
                 setIsOpen(false);
-                setShowSettingsModal(true);
+                onNavigate?.();
+                if (onOpenSettings) {
+                  onOpenSettings();
+                } else {
+                  setShowSettingsModal(true);
+                }
               }}
               className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-xs text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
             >
@@ -299,6 +306,7 @@ export function WorkspaceSwitcher({
       <FloatingSettingsModal
         isOpen={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
+        user={user}
       />
     </div>
   );

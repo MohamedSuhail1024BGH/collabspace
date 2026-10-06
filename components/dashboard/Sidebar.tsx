@@ -15,7 +15,6 @@ import {
   BarChart3,
   Sliders,
   Settings,
-  X,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
@@ -28,6 +27,7 @@ type SidebarProps = {
   user?: Omit<DbUser, "passwordHash"> | null;
   isMobileOpen?: boolean;
   onMobileClose?: () => void;
+  onOpenSettings?: () => void;
 };
 
 const hrefLookup: Record<string, string> = {
@@ -87,6 +87,7 @@ export function Sidebar({
   user,
   isMobileOpen = false,
   onMobileClose,
+  onOpenSettings,
 }: SidebarProps) {
   const router = useRouter();
 
@@ -157,16 +158,6 @@ export function Sidebar({
               CollabSpace
             </span>
           </div>
-          {onMobileClose && (
-            <button
-              type="button"
-              onClick={onMobileClose}
-              className="md:hidden flex size-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground cursor-pointer"
-              aria-label="Close sidebar"
-            >
-              <X className="size-4" />
-            </button>
-          )}
         </div>
 
         {/* Grouped Navigation */}
@@ -186,6 +177,7 @@ export function Sidebar({
           user={user}
           onLogout={handleLogout}
           onNavigate={onMobileClose}
+          onOpenSettings={onOpenSettings}
         />
       </div>
     </div>

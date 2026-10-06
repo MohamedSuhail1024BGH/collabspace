@@ -632,8 +632,84 @@ export function WorkspacePreferencesClient({
               </Card>
             )}
 
-            {/* Desktop Table */}
-            <div className="overflow-x-auto">
+            {/* Mobile Card List (< md) */}
+            <div className="block md:hidden space-y-3">
+              {members.map((m) => {
+                const isSelf = m.user.id === user.id;
+                const canManage = isOwner && !isSelf;
+                const isPending = m.status === "pending";
+
+                return (
+                  <div
+                    key={m.membershipId}
+                    className="p-3 rounded-xl border border-border/60 bg-secondary/20 flex flex-col gap-2.5"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <UserAvatar avatar={m.user.avatar} name={m.user.name} size="sm" />
+                        <div className="min-w-0">
+                          <div className="font-semibold text-xs text-foreground flex items-center gap-1.5 truncate">
+                            <span>{m.user.name}</span>
+                            {isSelf && (
+                              <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4 shrink-0">
+                                You
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-[10px] font-mono text-muted-foreground truncate">{m.user.email}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Badge
+                          variant={m.role === "owner" ? "default" : m.role === "admin" ? "secondary" : "outline"}
+                          className="text-[10px] font-mono capitalize"
+                        >
+                          {m.role}
+                        </Badge>
+                        {isPending && (
+                          <Badge variant="outline" className="text-[9px] font-mono text-amber-500 border-amber-500/30">
+                            Pending
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-border/40 text-[10px] font-mono text-muted-foreground">
+                      <span>Joined {new Date(m.joinedAt).toLocaleDateString()}</span>
+
+                      {canManage && (
+                        <div className="flex items-center gap-1.5">
+                          {!isPending && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setMemberToTransfer(m)}
+                              title="Transfer Ownership"
+                              className="h-7 px-2.5 text-[11px] font-mono"
+                            >
+                              Transfer
+                            </Button>
+                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setMemberToRemove(m)}
+                            title={isPending ? "Revoke Invitation" : "Remove Member"}
+                            className="h-7 px-2.5 text-[11px] font-mono text-destructive hover:bg-destructive/10"
+                          >
+                            {isPending ? "Revoke" : "Remove"}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Table (>= md) */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="border-b border-border/50 text-muted-foreground font-mono text-[10px] uppercase">
@@ -647,6 +723,7 @@ export function WorkspacePreferencesClient({
                   {members.map((m) => {
                     const isSelf = m.user.id === user.id;
                     const canManage = isOwner && !isSelf;
+                    const isPending = m.status === "pending";
 
                     return (
                       <tr key={m.membershipId} className="hover:bg-muted/20 transition-colors">
@@ -669,7 +746,7 @@ export function WorkspacePreferencesClient({
 
                         <td className="py-2.5">
                           <div className="flex items-center gap-1.5">
-                            {canManage && m.role !== "owner" ? (
+                            {canManage && m.role !== "owner" && !isPending ? (
                               <select
                                 value={m.role}
                                 onChange={(e) =>
@@ -693,7 +770,7 @@ export function WorkspacePreferencesClient({
                                 {m.role}
                               </Badge>
                             )}
-                            {m.status === "pending" && (
+                            {isPending && (
                               <Badge variant="outline" className="text-[9px] font-mono text-amber-500 border-amber-500/30">
                                 Pending
                               </Badge>
@@ -708,23 +785,25 @@ export function WorkspacePreferencesClient({
                         <td className="py-2.5 text-right">
                           {canManage && (
                             <div className="flex items-center justify-end gap-1.5">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setMemberToTransfer(m)}
-                                title="Transfer Ownership"
-                                className="h-6 px-2 text-[10px] font-mono"
-                              >
-                                Transfer
-                              </Button>
+                              {!isPending && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setMemberToTransfer(m)}
+                                  title="Transfer Ownership"
+                                  className="h-6 px-2 text-[10px] font-mono"
+                                >
+                                  Transfer
+                                </Button>
+                              )}
                               <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => setMemberToRemove(m)}
-                                title="Remove Member"
+                                title={isPending ? "Revoke Invitation" : "Remove Member"}
                                 className="h-6 px-2 text-[10px] font-mono text-destructive hover:bg-destructive/10"
                               >
-                                Remove
+                                {isPending ? "Revoke" : "Remove"}
                               </Button>
                             </div>
                           )}
