@@ -56,12 +56,26 @@ export default function MessageBubble({ message, isOwn, senderName, senderAvatar
     return (
       <div className="group relative flex justify-end w-full py-0.5">
         <div className="relative max-w-[88%] sm:max-w-[72%] md:max-w-[65%] rounded-2xl rounded-tr-xs bg-primary/15 text-foreground border border-primary/25 px-3.5 py-2 shadow-xs transition-colors">
-          {/* Message Text or Code Block */}
+          {/* Message Text, Code Block, or Attachment */}
           {isCode ? (
             <div className="my-1 rounded-lg bg-background/80 border border-border p-2 font-mono text-xs text-foreground overflow-x-auto shadow-xs">
               <pre className="whitespace-pre-wrap font-mono text-[11px] leading-relaxed">
                 <code>{message.content.replace(/```/g, "")}</code>
               </pre>
+            </div>
+          ) : /!\[(.*?)\]\((.*?)\)/.test(message.content) ? (
+            <div className="space-y-1.5 my-0.5">
+              {message.content.replace(/!\[(.*?)\]\((.*?)\)/g, "").trim() && (
+                <div className="text-xs sm:text-sm text-foreground leading-relaxed whitespace-pre-wrap break-words">
+                  {message.content.replace(/!\[(.*?)\]\((.*?)\)/g, "").trim()}
+                </div>
+              )}
+              {Array.from(message.content.matchAll(/!\[(.*?)\]\((.*?)\)/g)).map((match, i) => (
+                <div key={i} className="rounded-xl overflow-hidden border border-primary/30 max-w-xs shadow-xs">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={match[2]} alt={match[1] || "Attachment"} className="w-full h-auto object-cover max-h-56 rounded-xl" />
+                </div>
+              ))}
             </div>
           ) : (
             <div className="text-xs sm:text-sm text-foreground leading-relaxed whitespace-pre-wrap break-words">
@@ -158,12 +172,26 @@ export default function MessageBubble({ message, isOwn, senderName, senderAvatar
           {displayName}
         </div>
 
-        {/* Message Text or Code Block */}
+        {/* Message Text, Code Block, or Attachment */}
         {isCode ? (
           <div className="my-1 rounded-lg bg-background/80 border border-border p-2 font-mono text-xs text-foreground overflow-x-auto shadow-xs">
             <pre className="whitespace-pre-wrap font-mono text-[11px] leading-relaxed">
               <code>{message.content.replace(/```/g, "")}</code>
             </pre>
+          </div>
+        ) : /!\[(.*?)\]\((.*?)\)/.test(message.content) ? (
+          <div className="space-y-1.5 my-0.5">
+            {message.content.replace(/!\[(.*?)\]\((.*?)\)/g, "").trim() && (
+              <div className="text-xs sm:text-sm text-foreground leading-relaxed whitespace-pre-wrap break-words">
+                {message.content.replace(/!\[(.*?)\]\((.*?)\)/g, "").trim()}
+              </div>
+            )}
+            {Array.from(message.content.matchAll(/!\[(.*?)\]\((.*?)\)/g)).map((match, i) => (
+              <div key={i} className="rounded-xl overflow-hidden border border-border max-w-xs shadow-xs">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={match[2]} alt={match[1] || "Attachment"} className="w-full h-auto object-cover max-h-56 rounded-xl" />
+              </div>
+            ))}
           </div>
         ) : (
           <div className="text-xs sm:text-sm text-foreground leading-relaxed whitespace-pre-wrap break-words">

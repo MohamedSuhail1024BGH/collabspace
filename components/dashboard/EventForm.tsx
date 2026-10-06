@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 export type WorkspaceMemberItem = {
   membershipId: string;
   role: string;
+  status?: string;
   joinedAt: string;
   user: {
     id: string;

@@ -87,14 +87,15 @@ export function WorkloadChartWidget({
           <div className="flex items-end justify-between gap-2 sm:gap-4 px-1 pb-2 min-h-[120px] sm:min-h-[140px]">
             {workloadList.map((member) => (
               <div key={member.id} className="flex flex-col items-center gap-2 flex-1 min-w-0 group">
-                <span className="text-[11px] font-mono text-muted-foreground group-hover:text-primary transition-colors font-medium">
+                <span className="text-[11px] font-mono text-muted-foreground group-hover:text-foreground transition-colors font-medium">
                   {member.loadPercentage}%
                 </span>
 
-                <div className="relative w-3.5 sm:w-5 h-20 sm:h-28 rounded-full bg-secondary overflow-hidden flex flex-col justify-end">
+                <div className="h-32 sm:h-36 w-full max-w-[42px] rounded-xl bg-secondary/60 p-1 flex items-end border border-border/60 transition-colors group-hover:border-border">
                   <div
-                    style={{ height: `${Math.max(member.loadPercentage, 6)}%` }}
-                    className="w-full rounded-full bg-primary transition-all duration-500 group-hover:opacity-90"
+                    style={{ height: member.loadPercentage > 0 ? `${Math.max(member.loadPercentage, 12)}%` : "8%" }}
+                    className="w-full rounded-lg bg-primary transition-all duration-500 group-hover:opacity-90"
+                    title={`${member.name}: ${member.loadPercentage}% workload (${member.assignedCount} tasks)`}
                   />
                 </div>
 
