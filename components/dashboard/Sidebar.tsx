@@ -61,6 +61,7 @@ const defaultWorkspace: DbWorkspace = {
   description: "Collaborative workspace.",
   plan: "Pro",
   isPublic: true,
+  avatar: null,
   createdAt: new Date().toISOString(),
 };
 

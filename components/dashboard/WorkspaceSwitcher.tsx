@@ -7,6 +7,7 @@ import { switchWorkspaceAction, createWorkspaceAction } from "@/app/actions";
 import type { DbWorkspace, DbUser } from "@/lib/db/schema";
 import { FloatingSettingsModal } from "./FloatingSettingsModal";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import { WorkspaceAvatar } from "@/components/ui/WorkspaceAvatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -26,6 +27,7 @@ import {
   Settings,
   LogOut,
   Building2,
+  Upload,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -60,6 +62,7 @@ export function WorkspaceSwitcher({
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
+  const [newWorkspaceAvatar, setNewWorkspaceAvatar] = useState("");
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -98,12 +101,14 @@ export function WorkspaceSwitcher({
       const res = await createWorkspaceAction({
         name: newWorkspaceName.trim(),
         plan: "Pro",
+        avatar: newWorkspaceAvatar.trim() || undefined,
       });
       if (res.id) {
         setActiveWorkspaceCookie(res.id);
       }
       setShowCreateModal(false);
       setNewWorkspaceName("");
+      setNewWorkspaceAvatar("");
       setIsOpen(false);
       router.refresh();
     });
@@ -138,9 +143,7 @@ export function WorkspaceSwitcher({
                   )}
                 >
                   <div className="flex items-center gap-2.5 overflow-hidden min-w-0">
-                    <div className="flex size-6 shrink-0 items-center justify-center rounded-md bg-secondary text-xs font-bold text-foreground">
-                      {ws.name.charAt(0).toUpperCase()}
-                    </div>
+                    <WorkspaceAvatar avatar={ws.avatar} name={ws.name} size="xs" className="rounded-md" />
                     <div className="truncate min-w-0">
                       <p className="truncate text-xs font-medium text-foreground">{ws.name}</p>
                       <p className="text-[10px] text-muted-foreground font-mono">
@@ -219,9 +222,12 @@ export function WorkspaceSwitcher({
 
       {/* Active Workspace Header Indicator */}
       <div className="px-1 flex items-center justify-between text-[11px] text-muted-foreground">
-        <span className="truncate max-w-[150px] font-medium text-foreground">
-          {currentWorkspace.name}
-        </span>
+        <div className="flex items-center gap-1.5 min-w-0 truncate">
+          <WorkspaceAvatar avatar={currentWorkspace.avatar} name={currentWorkspace.name} size="xs" className="rounded-md shrink-0" />
+          <span className="truncate max-w-[140px] font-medium text-foreground">
+            {currentWorkspace.name}
+          </span>
+        </div>
       </div>
 
       {/* Trigger Card */}
@@ -281,6 +287,60 @@ export function WorkspaceSwitcher({
                 autoFocus
               />
             </Field>
+
+            {/* Workspace Picture (Optional) */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium text-foreground">
+                Workspace Picture (Optional)
+              </label>
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/20 border border-border/60">
+                <WorkspaceAvatar
+                  avatar={newWorkspaceAvatar}
+                  name={newWorkspaceName || "New Workspace"}
+                  size="md"
+                  className="rounded-lg shadow-xs shrink-0"
+                />
+                <div className="flex flex-col gap-1 flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <label className="cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-card hover:bg-accent border border-border text-xs font-mono text-foreground transition-colors shadow-xs">
+                      <Upload className="size-3 text-primary" aria-hidden="true" />
+                      <span>{newWorkspaceAvatar ? "Change Picture" : "Upload Picture"}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        aria-label="Upload workspace picture"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          if (file.size > 2 * 1024 * 1024) return;
+                          const reader = new FileReader();
+                          reader.onload = () => {
+                            if (typeof reader.result === "string") {
+                              setNewWorkspaceAvatar(reader.result);
+                            }
+                          };
+                          reader.readAsDataURL(file);
+                        }}
+                        className="hidden"
+                      />
+                    </label>
+                    {newWorkspaceAvatar && (
+                      <button
+                        type="button"
+                        onClick={() => setNewWorkspaceAvatar("")}
+                        className="text-[11px] text-destructive hover:underline cursor-pointer"
+                        aria-label="Remove workspace picture"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground font-mono">
+                    PNG, JPG, or WebP under 2MB.
+                  </p>
+                </div>
+              </div>
+            </div>
 
             <DialogFooter>
               <Button

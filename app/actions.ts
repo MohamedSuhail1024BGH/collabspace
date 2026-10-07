@@ -414,6 +414,7 @@ export async function createWorkspaceAction(data: {
   description?: string;
   isPublic?: boolean;
   plan?: "Free" | "Pro" | "Enterprise";
+  avatar?: string | null;
 }) {
   const user = await getCurrentUser();
   if (!user) {
@@ -437,6 +438,7 @@ export async function createWorkspaceAction(data: {
       description: data.description?.trim() ?? "",
       isPublic: data.isPublic ?? true,
       plan: data.plan ?? "Pro",
+      avatar: data.avatar ?? null,
       createdAt: now,
     });
 
@@ -461,6 +463,12 @@ export async function createWorkspaceAction(data: {
   // Switch to newly created workspace
   await switchWorkspaceAction(wsId);
   safeRevalidatePath("/start");
+  safeRevalidatePath("/");
+  safeRevalidatePath("/preferences");
+  safeRevalidatePath("/settings");
+  safeRevalidatePath("/projects");
+  safeRevalidatePath("/tasks");
+  safeRevalidatePath("/messages");
 
   return { success: true, id: wsId };
 }
@@ -2222,6 +2230,7 @@ export async function updateWorkspaceAction(data: {
   description?: string;
   isPublic?: boolean;
   plan?: string;
+  avatar?: string | null;
 }) {
   try {
     const user = await getCurrentUser();
@@ -2256,6 +2265,7 @@ export async function updateWorkspaceAction(data: {
         ...(data.description !== undefined ? { description: data.description.trim() } : {}),
         ...(data.isPublic !== undefined ? { isPublic: data.isPublic } : {}),
         ...(data.plan ? { plan: data.plan } : {}),
+        ...(data.avatar !== undefined ? { avatar: data.avatar } : {}),
       })
       .where(eq(workspaces.id, wsId));
 

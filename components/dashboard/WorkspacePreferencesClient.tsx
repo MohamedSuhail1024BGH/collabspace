@@ -13,6 +13,7 @@ import {
   searchUsersForInviteAction,
 } from "@/app/actions";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import { WorkspaceAvatar } from "@/components/ui/WorkspaceAvatar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,13 +25,13 @@ import {
   Copy,
   Check,
   Search,
-  Plus,
   Trash2,
   AlertTriangle,
   LogOut,
-  Shield,
   UserPlus,
+  Upload,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export type WorkspaceMemberItem = {
   membershipId: string;
@@ -71,6 +72,7 @@ export function WorkspacePreferencesClient({
   const [workspaceName, setWorkspaceName] = useState(workspace?.name ?? "");
   const [workspaceDescription, setWorkspaceDescription] = useState(workspace?.description ?? "");
   const [workspaceIsPublic, setWorkspaceIsPublic] = useState(workspace?.isPublic ?? true);
+  const [workspaceAvatar, setWorkspaceAvatar] = useState(workspace?.avatar ?? "");
   const [copiedLink, setCopiedLink] = useState(false);
 
   // Workspace Members Search State
@@ -102,6 +104,7 @@ export function WorkspacePreferencesClient({
     setWorkspaceName(workspace.name);
     setWorkspaceDescription(workspace.description ?? "");
     setWorkspaceIsPublic(workspace.isPublic ?? true);
+    setWorkspaceAvatar(workspace.avatar ?? "");
   }
 
   const [prevInitialMembers, setPrevInitialMembers] = useState(initialMembers);
@@ -120,6 +123,34 @@ export function WorkspacePreferencesClient({
     setFeedback({ type: "success", message: "Workspace share link copied to clipboard!" });
   };
 
+  // Workspace Picture Upload Handler
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setFeedback({ type: "error", message: "Please select an image file (JPEG, PNG, WebP, or SVG)." });
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      setFeedback({ type: "error", message: "Workspace picture size must be under 2MB." });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setWorkspaceAvatar(reader.result);
+        setFeedback({
+          type: "success",
+          message: "Custom workspace picture selected. Click 'Save Workspace Settings' to apply.",
+        });
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   // Workspace Save Handler
   const handleSaveWorkspace = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,6 +162,7 @@ export function WorkspacePreferencesClient({
         name: workspaceName.trim(),
         description: workspaceDescription.trim(),
         isPublic: workspaceIsPublic,
+        avatar: workspaceAvatar ? workspaceAvatar.trim() : null,
       });
 
       if (res.success) {
@@ -321,7 +353,7 @@ export function WorkspacePreferencesClient({
     <div className="space-y-6 max-w-5xl 2xl:max-w-6xl mx-auto">
       {/* Top Utility Context Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/60">
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1.5">
           <div className="flex flex-wrap items-center gap-1.5 text-muted-foreground font-mono text-[10px] sm:text-[11px] uppercase tracking-wider">
             <span>Workspace</span>
             <span className="text-muted-foreground/60">/</span>
@@ -329,12 +361,22 @@ export function WorkspacePreferencesClient({
             <span className="text-muted-foreground/60">/</span>
             <span className="text-foreground">Preferences</span>
           </div>
-          <h1 className="text-lg sm:text-xl font-bold text-foreground tracking-tight">
-            Workspace Preferences
-          </h1>
-          <p className="text-xs text-muted-foreground">
-            Configure tenant namespace, public accessibility, and team permissions.
-          </p>
+          <div className="flex items-center gap-3">
+            <WorkspaceAvatar
+              avatar={workspaceAvatar || workspace.avatar}
+              name={workspaceName || workspace.name}
+              size="md"
+              className="shrink-0"
+            />
+            <div>
+              <h1 className="text-lg sm:text-xl font-bold text-foreground tracking-tight">
+                Workspace Preferences
+              </h1>
+              <p className="text-xs text-muted-foreground">
+                Configure tenant namespace, branding picture, public accessibility, and team permissions.
+              </p>
+            </div>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto shrink-0">
@@ -430,6 +472,86 @@ export function WorkspacePreferencesClient({
             </div>
 
             <form onSubmit={handleSaveWorkspace} className="space-y-4">
+              {/* Workspace Picture Section */}
+              <div>
+                <label className="mb-2 block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Workspace Picture
+                </label>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 rounded-xl bg-muted/20 border border-border/60">
+                  <div className="relative shrink-0" data-testid="workspace-picture-preview">
+                    <WorkspaceAvatar
+                      avatar={workspaceAvatar}
+                      name={workspaceName || workspace.name}
+                      size="xl"
+                      className="shadow-sm ring-1 ring-border"
+                    />
+                  </div>
+
+                  <div className="flex-1 space-y-2.5 w-full">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <label
+                        className={cn(
+                          "cursor-pointer inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-card hover:bg-accent border border-border text-xs font-medium text-foreground transition-all shadow-xs",
+                          (!isAdmin || isPending) && "opacity-50 pointer-events-none"
+                        )}
+                      >
+                        <Upload className="size-3.5 text-primary" />
+                        <span>Upload Picture</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          data-testid="workspace-picture-upload-input"
+                          onChange={handleFileUpload}
+                          disabled={!isAdmin || isPending}
+                          className="hidden"
+                        />
+                      </label>
+
+                      {workspaceAvatar && isAdmin && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          data-testid="workspace-picture-remove-btn"
+                          disabled={isPending}
+                          onClick={() => {
+                            setWorkspaceAvatar("");
+                            setFeedback({
+                              type: "success",
+                              message: "Workspace picture removed. Click 'Save Workspace Settings' to apply.",
+                            });
+                          }}
+                          className="h-8 px-2.5 text-xs text-destructive hover:bg-destructive/10 cursor-pointer"
+                        >
+                          <Trash2 className="size-3.5 mr-1" />
+                          <span>Remove Picture</span>
+                        </Button>
+                      )}
+                    </div>
+
+                    <div>
+                      <Input
+                        type="text"
+                        data-testid="workspace-picture-url-input"
+                        value={workspaceAvatar.startsWith("data:image/") ? "" : workspaceAvatar}
+                        onChange={(e) => setWorkspaceAvatar(e.target.value)}
+                        disabled={!isAdmin || isPending}
+                        placeholder={
+                          workspaceAvatar.startsWith("data:image/")
+                            ? "Custom uploaded image active"
+                            : "Or enter remote image URL (https://...)"
+                        }
+                        className="text-xs h-9"
+                      />
+                    </div>
+
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      Accepts JPEG, PNG, WebP or SVG under 2MB. If no image is provided, your workspace initials or icon will be shown as default.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <label className="mb-1 block text-xs font-mono text-muted-foreground uppercase">
                   Workspace Name

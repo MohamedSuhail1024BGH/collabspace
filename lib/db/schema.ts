@@ -9,6 +9,7 @@ export const workspaces = pgTable("workspaces", {
   description: text("description").default(""),
   plan: text("plan").notNull().default("Pro"), // "Free" | "Pro" | "Enterprise"
   isPublic: boolean("is_public").notNull().default(true),
+  avatar: text("avatar"),
   createdAt: text("created_at").notNull(),
 });
 

@@ -121,6 +121,7 @@ export function DashboardShell({
           title={title}
           user={user}
           activeWorkspaceName={activeWorkspace?.name}
+          activeWorkspaceAvatar={activeWorkspace?.avatar}
           onToggleMobileMenu={() => setIsMobileOpen((prev) => !prev)}
           isProjectsSidebarOpen={isProjectsSidebarOpen}
           onToggleProjectsSidebar={
