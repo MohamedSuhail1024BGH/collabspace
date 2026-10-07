@@ -38,20 +38,20 @@ export function LoginClient() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col justify-start sm:justify-center items-center bg-background px-4 py-8 sm:px-6 overflow-y-auto text-foreground">
-      <div className="w-full max-w-md my-auto">
+    <main className="flex min-h-dvh sm:min-h-screen flex-col justify-center items-center bg-background px-4 py-6 sm:py-8 sm:px-6 overflow-y-auto text-foreground">
+      <div className="w-full max-w-sm sm:max-w-[400px] my-auto">
         {/* Brand Header */}
-        <div className="mb-6 text-center">
-          <div className="mx-auto mb-3 flex items-center justify-center">
-            <Logo size={48} className="h-12 w-12 shadow-md" />
+        <div className="mb-3.5 sm:mb-4 text-center">
+          <div className="mx-auto mb-2.5 flex items-center justify-center">
+            <Logo size={44} className="h-11 w-11 sm:h-12 sm:w-12 shadow-md" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Welcome back</h1>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Welcome back</h1>
           <p className="mt-1 text-xs text-muted-foreground">Sign in to your CollabSpace workspace</p>
         </div>
 
         {/* Login Card */}
         <Card className="border-border/60 shadow-xl backdrop-blur-xl">
-          <CardContent className="p-6 sm:p-7">
+          <CardContent className="p-6 md:p-6">
             {registered && (
               <div
                 data-testid="registered-success-banner"
@@ -81,11 +81,11 @@ export function LoginClient() {
 
             <form onSubmit={handleLogin} className="space-y-4">
               <Field>
-                <FieldLabel htmlFor="login-email" className="text-xs uppercase tracking-wider text-muted-foreground font-mono">
+                <FieldLabel htmlFor="login-email" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Email address
                 </FieldLabel>
                 <div className="relative">
-                  <Mail className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                   <Input
                     id="login-email"
                     name="email"
@@ -95,17 +95,17 @@ export function LoginClient() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="name@company.com"
-                    className="pl-8 text-xs"
+                    className="pl-9 text-sm h-10 rounded-xl"
                   />
                 </div>
               </Field>
 
               <Field>
-                <FieldLabel htmlFor="login-password" className="text-xs uppercase tracking-wider text-muted-foreground font-mono">
+                <FieldLabel htmlFor="login-password" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Password
                 </FieldLabel>
                 <div className="relative">
-                  <Lock className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                   <Input
                     id="login-password"
                     name="password"
@@ -115,29 +115,29 @@ export function LoginClient() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="pl-8 pr-9 text-xs font-mono"
+                    className="pl-9 pr-10 text-sm h-10 rounded-xl"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                   </button>
                 </div>
-                <div className="mt-2 flex items-center gap-2">
+                <div className="mt-2.5 flex items-center gap-2 py-0.5">
                   <input
                     id="login-show-password"
                     data-testid="login-show-password"
                     type="checkbox"
                     checked={showPassword}
                     onChange={(e) => setShowPassword(e.target.checked)}
-                    className="h-3.5 w-3.5 rounded border-input text-primary focus:ring-0 cursor-pointer"
+                    className="size-4 rounded border-input text-primary focus:ring-0 cursor-pointer"
                   />
                   <label
                     htmlFor="login-show-password"
-                    className="cursor-pointer select-none text-xs text-muted-foreground hover:text-foreground transition font-mono"
+                    className="cursor-pointer select-none text-xs text-muted-foreground hover:text-foreground transition font-medium"
                   >
                     Show password
                   </label>
@@ -147,7 +147,7 @@ export function LoginClient() {
               <Button
                 type="submit"
                 disabled={isPending}
-                className="w-full h-10 text-xs font-semibold rounded-full cursor-pointer shadow-xs"
+                className="w-full h-10 text-xs sm:text-sm font-semibold rounded-full cursor-pointer shadow-xs mt-2"
               >
                 {isPending ? "Signing in..." : "Sign In"}
               </Button>
@@ -156,9 +156,9 @@ export function LoginClient() {
         </Card>
 
         {/* Signup Link */}
-        <p className="mt-5 text-center text-xs font-mono text-muted-foreground">
+        <p className="mt-5 text-center text-xs text-muted-foreground font-medium">
           Don&apos;t have an account?{" "}
-          <Link href="/signup" className="text-primary hover:underline font-medium">
+          <Link href="/signup" className="text-primary hover:underline font-semibold">
             Create an account
           </Link>
         </p>
