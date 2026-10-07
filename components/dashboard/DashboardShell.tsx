@@ -42,7 +42,7 @@ export function DashboardShell({
 }: DashboardShellProps) {
   const pathname = usePathname();
   const [density, setDensity] = useState<"comfortable" | "compact">("comfortable");
-  const [isProjectsSidebarOpen, setIsProjectsSidebarOpen] = useState(true);
+  const [isProjectsSidebarOpen, setIsProjectsSidebarOpen] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
@@ -99,7 +99,7 @@ export function DashboardShell({
   const showProjectsSidebar = isProjectsSidebarOpen && pathname !== "/projects" && !isMessages;
 
   return (
-    <div className="min-h-screen bg-background text-foreground antialiased w-full max-w-full overflow-x-hidden">
+    <div className="min-h-screen bg-background text-foreground antialiased w-full max-w-full overflow-x-clip">
       {/* Primary Navigation Sidebar */}
       <Sidebar
         navItems={navItems}
@@ -116,7 +116,7 @@ export function DashboardShell({
       />
 
       {/* Main Layout Container (offset by primary sidebar on desktop) */}
-      <div className="md:pl-60 flex flex-col min-h-screen w-full max-w-full overflow-x-hidden">
+      <div className="md:pl-60 flex flex-col min-h-screen w-full max-w-full overflow-x-clip">
         <Header
           title={title}
           user={user}
@@ -130,15 +130,21 @@ export function DashboardShell({
           }
         />
 
-        <div className="pt-14 flex-1 flex min-w-0 w-full max-w-full">
+        <div className="pt-14 flex-1 flex items-start min-w-0 w-full max-w-full">
           {/* Secondary Projects Sidebar (visible on overview and project detail views) */}
           {showProjectsSidebar && (
-            <SecondaryProjectsSidebar
-              projects={projects}
-              activeProjectId={activeProjectId}
-              isOpen={isProjectsSidebarOpen}
-              onClose={() => setIsProjectsSidebarOpen(false)}
-            />
+            <>
+              <div
+                className="w-60 shrink-0 hidden xl:block pointer-events-none"
+                aria-hidden="true"
+              />
+              <SecondaryProjectsSidebar
+                projects={projects}
+                activeProjectId={activeProjectId}
+                isOpen={isProjectsSidebarOpen}
+                onClose={() => setIsProjectsSidebarOpen(false)}
+              />
+            </>
           )}
 
           {/* Main Content Area */}

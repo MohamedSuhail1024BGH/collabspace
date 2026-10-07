@@ -103,6 +103,8 @@ export function Header({
               size="sm"
               data-testid="header-toggle-projects-btn"
               onClick={onToggleProjectsSidebar}
+              aria-expanded={isProjectsSidebarOpen}
+              aria-controls="secondary-projects-sidebar"
               title={isProjectsSidebarOpen ? "Collapse projects panel" : "Expand projects panel"}
               className="hidden xl:flex items-center gap-1.5 h-8 text-xs font-medium rounded-full border-border/80 cursor-pointer"
             >

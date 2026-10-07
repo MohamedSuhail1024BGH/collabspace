@@ -49,7 +49,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className="h-full antialiased overflow-x-hidden"
+      className="h-full antialiased overflow-x-clip"
       data-accent="violet"
       data-density="comfortable"
       suppressHydrationWarning
@@ -74,7 +74,7 @@ export default async function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col font-sans overflow-x-hidden w-full max-w-full">
+      <body className="min-h-full flex flex-col font-sans overflow-x-clip w-full max-w-full">
         <NavigationProgress />
         <DashboardShell
           user={user}

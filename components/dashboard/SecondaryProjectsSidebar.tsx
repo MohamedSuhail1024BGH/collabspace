@@ -21,6 +21,7 @@ export function SecondaryProjectsSidebar({
   projects = [],
   activeProjectId,
   isOpen = true,
+  onClose,
 }: {
   projects: ProjectSidebarItem[];
   activeProjectId?: string;
@@ -79,8 +80,9 @@ export function SecondaryProjectsSidebar({
 
   return (
     <aside
+      id="secondary-projects-sidebar"
       data-testid="secondary-projects-sidebar"
-      className="w-60 shrink-0 bg-card border-r border-border flex flex-col h-[calc(100vh-3.5rem)] sticky top-14 select-none hidden xl:flex"
+      className="w-60 shrink-0 bg-card border-r border-border flex flex-col h-[calc(100vh-3.5rem)] fixed left-60 top-14 z-20 select-none hidden xl:flex"
     >
       {/* Header */}
       <div className="p-3 border-b border-border flex items-center justify-between">
@@ -90,14 +92,27 @@ export function SecondaryProjectsSidebar({
             {projects.length}
           </Badge>
         </div>
-        <Link
-          href="/projects"
-          className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline group"
-          title="All projects"
-        >
-          <span>View all</span>
-          <ArrowUpRight className="size-3 transition-transform group-hover:translate-x-0.5" />
-        </Link>
+        <div className="flex items-center gap-1.5">
+          <Link
+            href="/projects"
+            className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline group"
+            title="All projects"
+          >
+            <span>View all</span>
+            <ArrowUpRight className="size-3 transition-transform group-hover:translate-x-0.5" />
+          </Link>
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1 text-muted-foreground hover:text-foreground rounded-md hover:bg-secondary transition-colors cursor-pointer"
+              title="Close projects panel"
+              aria-label="Close projects panel"
+            >
+              <X className="size-3.5" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Search Input */}
@@ -125,7 +140,7 @@ export function SecondaryProjectsSidebar({
       </div>
 
       {/* Project Lists Accordion */}
-      <div className="flex-1 overflow-y-auto p-2.5 flex flex-col gap-3">
+      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-2.5 flex flex-col gap-3">
         {/* Ongoing */}
         <div>
           <button
