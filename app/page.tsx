@@ -7,6 +7,7 @@ import { TaskRow } from "@/components/dashboard/TaskRow";
 import { TeamMember } from "@/components/dashboard/TeamMember";
 import { ProjectTimelineWidget } from "@/components/dashboard/ProjectTimelineWidget";
 import { WorkloadChartWidget } from "@/components/dashboard/WorkloadChartWidget";
+import { HeroPage } from "@/components/landing/HeroPage";
 import {
   Card,
   CardHeader,
@@ -29,15 +30,15 @@ import type { Metadata } from "next";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Dashboard Overview",
+  title: "CollabSpace — Build in a sprint, scale to millions",
   description:
-    "Monitor active projects, sprint velocity, priority tasks, and team workload in real time.",
+    "The collaborative workspace for fast-moving product teams to organize projects, track sprint issues, and scale.",
 };
 
 export default async function Home() {
   const user = await getCurrentUser();
   if (!user) {
-    redirect("/login");
+    return <HeroPage />;
   }
 
   const activeWorkspace = await getActiveWorkspace();

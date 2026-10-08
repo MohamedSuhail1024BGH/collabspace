@@ -72,10 +72,6 @@ export function LoginClient() {
                 <span>Reports, analytics, and workload insights</span>
               </li>
             </ul>
-
-            <p className="text-xs text-muted-foreground/60 font-mono">
-              Trusted by product teams worldwide
-            </p>
           </div>
 
           {/* ── Login Form Column ── */}
