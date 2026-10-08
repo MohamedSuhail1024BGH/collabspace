@@ -13,9 +13,10 @@ import {
 import type { DbUser } from "@/lib/db/schema";
 import { FloatingSettingsModal } from "@/components/dashboard/FloatingSettingsModal";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import { WorkspaceAvatar } from "@/components/ui/WorkspaceAvatar";
 import { NotificationCenter } from "@/components/ui/NotificationCenter";
 import { Logo } from "@/components/ui/Logo";
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,10 +30,8 @@ import {
   LogOut,
   Settings,
   X,
-  Compass,
-  FolderKanban,
-  CheckCircle2,
   ChevronDown,
+  Upload,
 } from "lucide-react";
 
 type UserWorkspaceItem = {
@@ -42,6 +41,7 @@ type UserWorkspaceItem = {
   description: string | null;
   plan: string;
   isPublic: boolean;
+  avatar?: string | null;
   createdAt: string;
   userRole: string;
   memberCount: number;
@@ -55,6 +55,7 @@ type PublicWorkspaceItem = {
   description: string | null;
   plan: string;
   isPublic: boolean;
+  avatar?: string | null;
   createdAt: string;
   memberCount: number;
 };
@@ -96,6 +97,7 @@ export function StartClient({
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [workspaceName, setWorkspaceName] = useState("");
   const [workspaceDesc, setWorkspaceDesc] = useState("");
+  const [workspaceAvatar, setWorkspaceAvatar] = useState("");
   const [isPublic, setIsPublic] = useState(true);
 
   // Search Workspaces State
@@ -172,12 +174,14 @@ export function StartClient({
         name: workspaceName.trim(),
         description: workspaceDesc.trim() || undefined,
         isPublic,
+        avatar: workspaceAvatar ? workspaceAvatar.trim() : undefined,
       });
 
       if (res.success) {
         setShowCreateModal(false);
         setWorkspaceName("");
         setWorkspaceDesc("");
+        setWorkspaceAvatar("");
         router.push("/");
         router.refresh();
       }
@@ -367,9 +371,12 @@ export function StartClient({
                   >
                     <div>
                       <div className="flex items-start justify-between gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 border border-primary/20 text-sm font-mono font-bold text-primary shadow-xs">
-                          {ws.name.charAt(0).toUpperCase()}
-                        </div>
+                        <WorkspaceAvatar
+                          avatar={ws.avatar}
+                          name={ws.name}
+                          size="lg"
+                          className="rounded-xl shadow-xs"
+                        />
                         <Badge variant="outline" className="text-[10px] font-mono capitalize bg-muted/30">
                           {ws.userRole}
                         </Badge>
@@ -464,9 +471,12 @@ export function StartClient({
                   >
                     <div>
                       <div className="flex items-start justify-between gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted border border-border/40 text-sm font-mono font-bold text-primary shadow-xs">
-                          {ws.name.charAt(0).toUpperCase()}
-                        </div>
+                        <WorkspaceAvatar
+                          avatar={ws.avatar}
+                          name={ws.name}
+                          size="lg"
+                          className="rounded-xl shadow-xs"
+                        />
                       </div>
 
                       <h3 className="mt-3 text-sm font-bold text-foreground">{ws.name}</h3>
@@ -605,6 +615,55 @@ export function StartClient({
                   placeholder="e.g. Acme Innovations, Venture Lab"
                   className="text-xs"
                 />
+              </div>
+
+              {/* Workspace Picture (Optional) */}
+              <div>
+                <label className="mb-1 block text-xs font-mono uppercase tracking-wider text-muted-foreground">
+                  Workspace Picture (Optional)
+                </label>
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/20 border border-border/60">
+                  <WorkspaceAvatar
+                    avatar={workspaceAvatar}
+                    name={workspaceName || "New Workspace"}
+                    size="md"
+                    className="rounded-lg shadow-xs"
+                  />
+                  <div className="flex flex-col gap-1 flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <label className="cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-card hover:bg-accent border border-border text-xs font-mono text-foreground transition-colors shadow-xs">
+                        <Upload className="size-3 text-primary" />
+                        <span>{workspaceAvatar ? "Change Picture" : "Upload Picture"}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            if (file.size > 2 * 1024 * 1024) return;
+                            const reader = new FileReader();
+                            reader.onload = () => {
+                              if (typeof reader.result === "string") {
+                                setWorkspaceAvatar(reader.result);
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          }}
+                          className="hidden"
+                        />
+                      </label>
+                      {workspaceAvatar && (
+                        <button
+                          type="button"
+                          onClick={() => setWorkspaceAvatar("")}
+                          className="text-[11px] text-destructive hover:underline"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div>

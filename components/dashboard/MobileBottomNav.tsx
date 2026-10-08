@@ -24,7 +24,15 @@ export function MobileBottomNav({
 }: MobileBottomNavProps) {
   const pathname = usePathname();
 
-  if (pathname === "/login" || pathname === "/signup" || pathname === "/start") {
+  if (
+    pathname === "/login" ||
+    pathname === "/signup" ||
+    pathname === "/start" ||
+    pathname === "/privacy" ||
+    pathname === "/terms" ||
+    pathname === "/contact" ||
+    pathname === "/thank-you"
+  ) {
     return null;
   }
 

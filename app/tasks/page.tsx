@@ -4,7 +4,14 @@ import { TasksClient } from "@/components/dashboard/TasksClient";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/db/auth";
 
+import type { Metadata } from "next";
+
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Tasks & Issues",
+  description: "Track sprint tasks, filter by priority and status, and assign work to team members.",
+};
 
 export default async function TasksPage() {
   const user = await getCurrentUser();

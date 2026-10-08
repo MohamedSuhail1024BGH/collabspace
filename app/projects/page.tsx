@@ -4,7 +4,14 @@ import { ProjectsClient } from "@/components/dashboard/ProjectsClient";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/db/auth";
 
+import type { Metadata } from "next";
+
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Projects",
+  description: "View and manage active projects, deliverables, team ownership, and completion progress.",
+};
 
 export default async function ProjectsPage() {
   const user = await getCurrentUser();

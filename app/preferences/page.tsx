@@ -4,7 +4,14 @@ import { getActiveWorkspace } from "@/lib/db/workspace";
 import { getWorkspaceMembers } from "@/lib/db/queries";
 import { WorkspacePreferencesClient } from "@/components/dashboard/WorkspacePreferencesClient";
 
+import type { Metadata } from "next";
+
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Preferences & Appearance",
+  description: "Customize theme accents, layout density, typography, and personal accessibility preferences.",
+};
 
 export default async function PreferencesPage() {
   const user = await getCurrentUser();

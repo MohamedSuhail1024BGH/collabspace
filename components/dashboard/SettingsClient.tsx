@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { DbWorkspace, DbUser } from "@/lib/db/schema";
+import { cn } from "@/lib/utils";
 import {
   updateWorkspaceAction,
   updateUserProfileAction,
@@ -16,6 +17,7 @@ import {
   searchUsersForInviteAction,
 } from "@/app/actions";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import { WorkspaceAvatar } from "@/components/ui/WorkspaceAvatar";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,7 +34,6 @@ import {
   Trash2,
   AlertTriangle,
   LogOut,
-  Shield,
   Laptop,
   Moon,
   Sun,
@@ -42,7 +43,6 @@ import {
   AlertCircle,
   KeyRound,
   Bell,
-  Sliders,
 } from "lucide-react";
 
 export type WorkspaceMemberItem = {
@@ -88,6 +88,7 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
   const [workspaceName, setWorkspaceName] = useState(workspace?.name ?? "");
   const [workspaceDescription, setWorkspaceDescription] = useState(workspace?.description ?? "");
   const [workspaceIsPublic, setWorkspaceIsPublic] = useState(workspace?.isPublic ?? true);
+  const [workspaceAvatar, setWorkspaceAvatar] = useState(workspace?.avatar ?? "");
   const [copiedLink, setCopiedLink] = useState(false);
 
   // User Profile Form State
@@ -152,6 +153,7 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
     setWorkspaceName(workspace.name);
     setWorkspaceDescription(workspace.description ?? "");
     setWorkspaceIsPublic(workspace.isPublic ?? true);
+    setWorkspaceAvatar(workspace.avatar ?? "");
   }
 
   const [prevUserId, setPrevUserId] = useState(user?.id);
@@ -416,6 +418,7 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
         name: workspaceName,
         description: workspaceDescription,
         isPublic: workspaceIsPublic,
+        avatar: workspaceAvatar ? workspaceAvatar.trim() : null,
       });
 
       if (res.success) {
@@ -425,6 +428,30 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
         setFeedback({ type: "error", message: res.error || "Failed to update workspace." });
       }
     });
+  };
+
+  const handleWorkspaceFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setFeedback({ type: "error", message: "Please select an image file (JPEG, PNG, WebP, or SVG)." });
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      setFeedback({ type: "error", message: "Workspace picture size must be under 2MB." });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setWorkspaceAvatar(reader.result);
+        setFeedback({ type: "success", message: "Custom workspace picture selected. Click 'Save Workspace' to apply." });
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -679,6 +706,79 @@ export function SettingsClient({ user, workspace, initialMembers }: SettingsClie
               )}
 
               <form onSubmit={handleSaveWorkspace} className="space-y-4 max-w-xl">
+                {/* Workspace Picture Section */}
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1.5">
+                    Workspace Picture
+                  </label>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-3.5 rounded-xl bg-muted/20 border border-border/60">
+                    <div className="relative shrink-0">
+                      <WorkspaceAvatar
+                        avatar={workspaceAvatar}
+                        name={workspaceName || workspace?.name}
+                        size="lg"
+                        className="shadow-sm"
+                      />
+                    </div>
+
+                    <div className="flex-1 space-y-2 w-full">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <label
+                          className={cn(
+                            "cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-card hover:bg-accent border border-border text-xs font-medium text-foreground transition-colors shadow-xs",
+                            (!isAdmin || isPending) && "opacity-50 pointer-events-none"
+                          )}
+                        >
+                          <Upload className="size-3.5 text-primary" />
+                          <span>Upload Picture</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleWorkspaceFileUpload}
+                            disabled={!isAdmin || isPending}
+                            className="hidden"
+                          />
+                        </label>
+
+                        {workspaceAvatar && isAdmin && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            disabled={isPending}
+                            onClick={() => {
+                              setWorkspaceAvatar("");
+                              setFeedback({
+                                type: "success",
+                                message: "Workspace picture removed. Click 'Save Workspace' to apply.",
+                              });
+                            }}
+                            className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10 cursor-pointer"
+                          >
+                            <Trash2 className="size-3 mr-1" />
+                            <span>Remove Picture</span>
+                          </Button>
+                        )}
+                      </div>
+
+                      <div>
+                        <Input
+                          type="text"
+                          value={workspaceAvatar.startsWith("data:image/") ? "" : workspaceAvatar}
+                          onChange={(e) => setWorkspaceAvatar(e.target.value)}
+                          disabled={!isAdmin || isPending}
+                          placeholder={
+                            workspaceAvatar.startsWith("data:image/")
+                              ? "Custom uploaded image active"
+                              : "Or enter remote image URL (https://...)"
+                          }
+                          className="text-xs h-8"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <div>
                   <label htmlFor="ws-name" className="block text-xs font-medium text-foreground mb-1.5">
                     Workspace Name

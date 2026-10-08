@@ -4,7 +4,14 @@ import { CalendarClient } from "@/components/dashboard/CalendarClient";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/db/auth";
 
+import type { Metadata } from "next";
+
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Calendar & Schedule",
+  description: "Coordinate team meetings, track release milestones, and plan sprint schedules.",
+};
 
 export default async function CalendarPage() {
   const user = await getCurrentUser();

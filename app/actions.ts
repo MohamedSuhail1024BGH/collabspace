@@ -15,6 +15,7 @@ import {
   markAllNotificationsAsRead,
 } from "@/lib/db/queries";
 import { messageBus } from "@/lib/events/message-bus";
+import crypto from "crypto";
 import {
   users,
   sessions,
@@ -28,7 +29,10 @@ import {
   workspaces,
   workspaceMembers,
   notifications,
+  authOtps,
 } from "@/lib/db/schema";
+import { sendOtpEmail } from "@/lib/email";
+import { createClient as createServerSupabaseClient } from "@/lib/supabase/server";
 import {
   ACTIVE_WORKSPACE_COOKIE,
   getActiveWorkspace,
@@ -74,6 +78,278 @@ function safeRevalidatePath(path: string) {
     revalidatePath(path);
   } catch {
     // Gracefully handle when invoked outside an active Next.js request context (e.g. testing scripts)
+  }
+}
+
+function hashOtp(code: string): string {
+  return crypto.createHash("sha256").update(code.trim()).digest("hex");
+}
+
+function generateOtp(): string {
+  return crypto.randomInt(100000, 999999).toString();
+}
+
+// --- OTP-Based Authentication Actions ---
+
+export async function requestSignupOtpAction(data: {
+  name: string;
+  username?: string;
+  email: string;
+  password: string;
+}) {
+  try {
+    const name = data.name.trim();
+    const email = data.email.trim().toLowerCase();
+    const password = data.password;
+    const rawUsername =
+      data.username?.trim().replace(/^@/, "").toLowerCase() ||
+      email.split("@")[0].toLowerCase().replace(/[^a-z0-9_]/g, "");
+
+    if (!name || !email || !password) {
+      return { success: false, error: "Please fill in all required fields." };
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return { success: false, error: "Please enter a valid email address." };
+    }
+
+    if (password.length < 6) {
+      return { success: false, error: "Password must be at least 6 characters." };
+    }
+
+    // Call Supabase Auth to register and deliver the real verification email
+    const supabase = await createServerSupabaseClient();
+    const headerList = await headers();
+    const host = headerList.get("host") || "localhost:3000";
+    const protocol = headerList.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
+    const origin = `${protocol}://${host}`;
+
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          name,
+          username: rawUsername,
+        },
+        emailRedirectTo: `${origin}/auth/confirm?next=/login?confirmed=true`,
+      },
+    });
+
+    if (authError) {
+      return { success: false, error: authError.message };
+    }
+
+    return {
+      success: true,
+      email,
+      confirmationSent: true,
+    };
+  } catch (err: unknown) {
+    console.error("requestSignupOtpAction error:", err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to send verification email. Please try again.",
+    };
+  }
+}
+
+export const signupWithEmailAction = requestSignupOtpAction;
+
+export async function resendSignupConfirmationAction(data: { email: string }) {
+  try {
+    const email = data.email.trim().toLowerCase();
+    if (!email) {
+      return { success: false, error: "Please provide an email address." };
+    }
+
+    const supabase = await createServerSupabaseClient();
+    const headerList = await headers();
+    const host = headerList.get("host") || "localhost:3000";
+    const protocol = headerList.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
+    const origin = `${protocol}://${host}`;
+
+    const { error: resendError } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: {
+        emailRedirectTo: `${origin}/auth/confirm?next=/login?confirmed=true`,
+      },
+    });
+
+    if (resendError) {
+      return { success: false, error: resendError.message };
+    }
+
+    return { success: true };
+  } catch (err: unknown) {
+    console.error("resendSignupConfirmationAction error:", err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to resend confirmation email.",
+    };
+  }
+}
+
+export async function verifySignupOtpAction(data: { email: string; code: string }) {
+  try {
+    const email = data.email.trim().toLowerCase();
+    const code = data.code.trim();
+
+    if (!email || !code || code.length !== 6) {
+      return { success: false, error: "Please enter the 6-digit verification code." };
+    }
+
+    const supabase = await createServerSupabaseClient();
+    
+    // Verify OTP through Supabase Auth (tries signup type, falls back to email type)
+    let verifyRes = await supabase.auth.verifyOtp({
+      email,
+      token: code,
+      type: "signup",
+    });
+
+    if (verifyRes.error) {
+      verifyRes = await supabase.auth.verifyOtp({
+        email,
+        token: code,
+        type: "email",
+      });
+    }
+
+    if (verifyRes.error || !verifyRes.data.user) {
+      return {
+        success: false,
+        error: verifyRes.error?.message || "Invalid or expired verification code.",
+      };
+    }
+
+    const authUser = verifyRes.data.user;
+    const userId = authUser.id;
+    const name = (authUser.user_metadata?.name as string) || email.split("@")[0];
+    const username = (authUser.user_metadata?.username as string) || email.split("@")[0];
+
+    // Ensure synchronized with CollabSpace users table
+    const [existing] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    if (!existing) {
+      const passwordHash = await hashPassword(code);
+      await db.insert(users).values({
+        id: userId,
+        email,
+        username,
+        name,
+        passwordHash,
+        createdAt: new Date().toISOString(),
+      });
+    }
+
+    // Initialize session in CollabSpace
+    await createSession(userId);
+
+    safeRevalidatePath("/login");
+    safeRevalidatePath("/start");
+    return { success: true, userId, email };
+  } catch (err: unknown) {
+    console.error("verifySignupOtpAction error:", err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to verify code. Please try again.",
+    };
+  }
+}
+
+export async function requestPasswordResetOtpAction(data: { email: string }) {
+  try {
+    const email = data.email.trim().toLowerCase();
+    if (!email) {
+      return { success: false, error: "Please enter your email address." };
+    }
+
+    const supabase = await createServerSupabaseClient();
+    const headerList = await headers();
+    const host = headerList.get("host") || "localhost:3000";
+    const protocol = headerList.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
+    const origin = `${protocol}://${host}`;
+
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${origin}/auth/confirm?next=/login?reset=true`,
+    });
+
+    if (resetError) {
+      return { success: false, error: resetError.message };
+    }
+
+    return {
+      success: true,
+      email,
+    };
+  } catch (err: unknown) {
+    console.error("requestPasswordResetOtpAction error:", err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to send reset code. Please try again.",
+    };
+  }
+}
+
+export async function resetPasswordWithOtpAction(data: {
+  email: string;
+  code: string;
+  newPassword: string;
+}) {
+  try {
+    const email = data.email.trim().toLowerCase();
+    const code = data.code.trim();
+    const newPassword = data.newPassword;
+
+    if (!email || !code || !newPassword) {
+      return { success: false, error: "Please fill in all fields." };
+    }
+    if (code.length !== 6) {
+      return { success: false, error: "Verification code must be 6 digits." };
+    }
+    if (newPassword.length < 6) {
+      return { success: false, error: "New password must be at least 6 characters." };
+    }
+
+    const supabase = await createServerSupabaseClient();
+    const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
+      email,
+      token: code,
+      type: "recovery",
+    });
+
+    if (verifyError || !verifyData.user) {
+      return {
+        success: false,
+        error: verifyError?.message || "Invalid or expired recovery code.",
+      };
+    }
+
+    const { error: updateError } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (updateError) {
+      return { success: false, error: updateError.message };
+    }
+
+    const newHash = await hashPassword(newPassword);
+    await db
+      .update(users)
+      .set({ passwordHash: newHash })
+      .where(eq(users.id, verifyData.user.id));
+
+    await revokeAllUserSessions(verifyData.user.id);
+    safeRevalidatePath("/login");
+    return { success: true };
+  } catch (err: unknown) {
+    console.error("resetPasswordWithOtpAction error:", err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to reset password. Please try again.",
+    };
   }
 }
 
@@ -155,6 +431,50 @@ export async function loginAction(data: { email: string; password: string }) {
     const rateCheck = await checkLoginRateLimit(email, clientIp);
     if (!rateCheck.allowed) {
       return { success: false, error: "Invalid email or password." };
+    }
+
+    // 2.5 Try Supabase Auth authentication first
+    try {
+      const supabase = await createServerSupabaseClient();
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authData?.user) {
+        const userId = authData.user.id;
+        const [existing] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+        if (!existing) {
+          const name = (authData.user.user_metadata?.name as string) || email.split("@")[0];
+          const username = (authData.user.user_metadata?.username as string) || email.split("@")[0];
+          const passwordHash = await hashPassword(password);
+          await db.insert(users).values({
+            id: userId,
+            email,
+            username,
+            name,
+            passwordHash,
+            createdAt: new Date().toISOString(),
+          });
+        }
+
+        try {
+          await resetLoginRateLimit(email, clientIp);
+        } catch {}
+
+        await createSession(userId);
+
+        const userWorkspaces = await getUserWorkspaces(userId);
+        if (userWorkspaces.length > 0) {
+          await switchWorkspaceAction(userWorkspaces[0].id);
+        }
+
+        safeRevalidatePath("/");
+        safeRevalidatePath("/start");
+        return { success: true, userId };
+      }
+    } catch {
+      // Continue to local table fallback
     }
 
     // 3. User lookup
@@ -414,6 +734,7 @@ export async function createWorkspaceAction(data: {
   description?: string;
   isPublic?: boolean;
   plan?: "Free" | "Pro" | "Enterprise";
+  avatar?: string | null;
 }) {
   const user = await getCurrentUser();
   if (!user) {
@@ -437,6 +758,7 @@ export async function createWorkspaceAction(data: {
       description: data.description?.trim() ?? "",
       isPublic: data.isPublic ?? true,
       plan: data.plan ?? "Pro",
+      avatar: data.avatar ?? null,
       createdAt: now,
     });
 
@@ -461,6 +783,12 @@ export async function createWorkspaceAction(data: {
   // Switch to newly created workspace
   await switchWorkspaceAction(wsId);
   safeRevalidatePath("/start");
+  safeRevalidatePath("/");
+  safeRevalidatePath("/preferences");
+  safeRevalidatePath("/settings");
+  safeRevalidatePath("/projects");
+  safeRevalidatePath("/tasks");
+  safeRevalidatePath("/messages");
 
   return { success: true, id: wsId };
 }
@@ -2222,6 +2550,7 @@ export async function updateWorkspaceAction(data: {
   description?: string;
   isPublic?: boolean;
   plan?: string;
+  avatar?: string | null;
 }) {
   try {
     const user = await getCurrentUser();
@@ -2256,6 +2585,7 @@ export async function updateWorkspaceAction(data: {
         ...(data.description !== undefined ? { description: data.description.trim() } : {}),
         ...(data.isPublic !== undefined ? { isPublic: data.isPublic } : {}),
         ...(data.plan ? { plan: data.plan } : {}),
+        ...(data.avatar !== undefined ? { avatar: data.avatar } : {}),
       })
       .where(eq(workspaces.id, wsId));
 

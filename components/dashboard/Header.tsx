@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { DbUser } from "@/lib/db/schema";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import { WorkspaceAvatar } from "@/components/ui/WorkspaceAvatar";
 import { CommandPalette } from "@/components/ui/CommandPalette";
 import { NotificationCenter } from "@/components/ui/NotificationCenter";
 import { Logo } from "@/components/ui/Logo";
@@ -19,6 +20,7 @@ type HeaderProps = {
   title: string;
   user?: Omit<DbUser, "passwordHash"> | null;
   activeWorkspaceName?: string;
+  activeWorkspaceAvatar?: string | null;
   onToggleMobileMenu?: () => void;
   isProjectsSidebarOpen?: boolean;
   onToggleProjectsSidebar?: () => void;
@@ -28,6 +30,7 @@ export function Header({
   title,
   user,
   activeWorkspaceName,
+  activeWorkspaceAvatar,
   onToggleMobileMenu,
   isProjectsSidebarOpen,
   onToggleProjectsSidebar,
@@ -57,8 +60,14 @@ export function Header({
 
           {/* Breadcrumb Path */}
           <div className="flex items-center gap-1.5 sm:gap-2 text-xs text-muted-foreground min-w-0">
-            <span className="truncate max-w-[100px] sm:max-w-[140px] font-medium text-foreground hover:text-foreground/80 transition-colors cursor-pointer">
-              {activeWorkspaceName || "Workspace"}
+            <span className="flex items-center gap-1.5 truncate max-w-[120px] sm:max-w-[160px] font-medium text-foreground hover:text-foreground/80 transition-colors cursor-pointer">
+              <WorkspaceAvatar
+                avatar={activeWorkspaceAvatar}
+                name={activeWorkspaceName}
+                size="xs"
+                className="rounded-md shrink-0"
+              />
+              <span className="truncate">{activeWorkspaceName || "Workspace"}</span>
             </span>
             <ChevronRight className="size-3.5 text-muted-foreground/60 shrink-0" />
             <h2 className="text-foreground font-semibold truncate text-xs sm:text-sm max-w-[140px] sm:max-w-none">
@@ -103,6 +112,8 @@ export function Header({
               size="sm"
               data-testid="header-toggle-projects-btn"
               onClick={onToggleProjectsSidebar}
+              aria-expanded={isProjectsSidebarOpen}
+              aria-controls="secondary-projects-sidebar"
               title={isProjectsSidebarOpen ? "Collapse projects panel" : "Expand projects panel"}
               className="hidden xl:flex items-center gap-1.5 h-8 text-xs font-medium rounded-full border-border/80 cursor-pointer"
             >

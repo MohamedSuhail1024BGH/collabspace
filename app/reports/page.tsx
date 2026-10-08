@@ -4,7 +4,14 @@ import { getActiveWorkspace } from "@/lib/db/workspace";
 import { getWorkspaceReportsData } from "@/lib/db/queries";
 import { ReportsWorkspace } from "@/components/dashboard/ReportsWorkspace";
 
+import type { Metadata } from "next";
+
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Reports & Analytics",
+  description: "Analyze project velocity, completion rates, team workload distributions, and productivity trends.",
+};
 
 export default async function ReportsPage() {
   const user = await getCurrentUser();

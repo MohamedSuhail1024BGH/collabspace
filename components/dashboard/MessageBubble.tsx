@@ -73,7 +73,7 @@ export default function MessageBubble({ message, isOwn, senderName, senderAvatar
               {Array.from(message.content.matchAll(/!\[(.*?)\]\((.*?)\)/g)).map((match, i) => (
                 <div key={i} className="rounded-xl overflow-hidden border border-primary/30 max-w-xs shadow-xs">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={match[2]} alt={match[1] || "Attachment"} className="w-full h-auto object-cover max-h-56 rounded-xl" />
+                  <img src={match[2]} alt={match[1] ? `Shared visual: ${match[1]}` : "Uploaded chat image attachment"} className="w-full h-auto object-cover max-h-56 rounded-xl" />
                 </div>
               ))}
             </div>
@@ -189,7 +189,7 @@ export default function MessageBubble({ message, isOwn, senderName, senderAvatar
             {Array.from(message.content.matchAll(/!\[(.*?)\]\((.*?)\)/g)).map((match, i) => (
               <div key={i} className="rounded-xl overflow-hidden border border-border max-w-xs shadow-xs">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={match[2]} alt={match[1] || "Attachment"} className="w-full h-auto object-cover max-h-56 rounded-xl" />
+                <img src={match[2]} alt={match[1] ? `Shared visual: ${match[1]}` : "Uploaded chat image attachment"} className="w-full h-auto object-cover max-h-56 rounded-xl" />
               </div>
             ))}
           </div>
