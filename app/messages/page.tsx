@@ -5,7 +5,14 @@ import { MessagesClient } from "@/components/dashboard/MessagesClient";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/db/auth";
 
+import type { Metadata } from "next";
+
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Messages & Channels",
+  description: "Real-time team chat, direct messaging, channels, and discussions within your workspace.",
+};
 
 export default async function MessagesPage() {
   const user = await getCurrentUser();

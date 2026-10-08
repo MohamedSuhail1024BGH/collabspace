@@ -171,7 +171,7 @@ export default function MessageComposer({ onSend, disabled = false }: Props) {
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={attachment.dataUrl}
-              alt={attachment.name}
+              alt={attachment.name ? `Attached preview of ${attachment.name}` : "Attached image preview"}
               className="size-10 rounded-lg object-cover border border-border shrink-0"
             />
           ) : (

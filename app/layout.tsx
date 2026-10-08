@@ -1,7 +1,10 @@
+import { Suspense } from "react";
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { NavigationProgress } from "@/components/ui/NavigationProgress";
+import { CookieBanner } from "@/components/ui/CookieBanner";
+import { AnalyticsProvider } from "@/components/ui/AnalyticsProvider";
 import { getActiveWorkspace, getAllWorkspaces } from "@/lib/db/workspace";
 import { getCurrentUser } from "@/lib/db/auth";
 import { getProjects } from "@/lib/db/queries";
@@ -10,8 +13,47 @@ import type { DbWorkspace } from "@/lib/db/schema";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "CollabSpace",
-  description: "A collaborative workspace dashboard for product teams.",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://collabspace.app"),
+  title: {
+    default: "CollabSpace — Collaborative Workspace for Product Teams",
+    template: "%s | CollabSpace",
+  },
+  description:
+    "A modern collaborative workspace dashboard for product teams to organize projects, track tasks, coordinate schedules, and ship faster together.",
+  applicationName: "CollabSpace",
+  keywords: [
+    "collaboration",
+    "project management",
+    "task tracker",
+    "team workspace",
+    "kanban",
+    "product management",
+  ],
+  authors: [{ name: "CollabSpace Team" }],
+  creator: "CollabSpace",
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "any" },
+    ],
+    apple: [{ url: "/icon.svg" }],
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://collabspace.app",
+    siteName: "CollabSpace",
+    title: "CollabSpace — Work Together, In Context",
+    description:
+      "A high-performance workspace dashboard for product teams to organize projects, track tasks, and ship faster together.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "CollabSpace — Work Together, In Context",
+    description:
+      "A modern collaborative workspace for fast-moving product teams.",
+    creator: "@collabspace",
+  },
 };
 
 export const viewport: Viewport = {
@@ -76,6 +118,9 @@ export default async function RootLayout({
       </head>
       <body className="min-h-full flex flex-col font-sans overflow-x-clip w-full max-w-full">
         <NavigationProgress />
+        <Suspense fallback={null}>
+          <AnalyticsProvider />
+        </Suspense>
         <DashboardShell
           user={user}
           activeWorkspace={activeWorkspace ?? undefined}
@@ -90,6 +135,7 @@ export default async function RootLayout({
         >
           {children}
         </DashboardShell>
+        <CookieBanner />
       </body>
     </html>
   );

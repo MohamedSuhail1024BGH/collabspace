@@ -14,6 +14,10 @@ const nextConfig: NextConfig = {
     "172.*.*.*",
     "*.ngrok-free.app",
   ],
+  images: {
+    formats: ["image/avif", "image/webp"],
+    minimumCacheTTL: 60 * 60 * 24 * 30,
+  },
   experimental: {
     serverActions: {
       allowedOrigins: [

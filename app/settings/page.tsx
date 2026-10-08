@@ -4,7 +4,14 @@ import { getActiveWorkspace } from "@/lib/db/workspace";
 import { getWorkspaceMembers } from "@/lib/db/queries";
 import { SettingsClient } from "@/components/dashboard/SettingsClient";
 
+import type { Metadata } from "next";
+
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Workspace Settings",
+  description: "Manage workspace details, member roles, security configurations, and notifications.",
+};
 
 export default async function SettingsPage() {
   const user = await getCurrentUser();

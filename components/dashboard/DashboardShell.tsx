@@ -10,6 +10,7 @@ import {
   type ProjectSidebarItem,
 } from "@/components/dashboard/SecondaryProjectsSidebar";
 import { MobileBottomNav } from "@/components/dashboard/MobileBottomNav";
+import { StickyMobileCTA } from "@/components/dashboard/StickyMobileCTA";
 import { FloatingSettingsModal } from "@/components/dashboard/FloatingSettingsModal";
 import { navItems } from "@/data/mock-data";
 import type { DbWorkspace, DbUser } from "@/lib/db/schema";
@@ -82,8 +83,17 @@ export function DashboardShell({
     };
   }, []);
 
-  // If on auth or start pages, render full-screen without dashboard frame
-  if (pathname === "/login" || pathname === "/signup" || pathname === "/start") {
+  // If on auth, onboarding, legal/public pages, or unauthenticated, render full-screen without dashboard frame
+  const isPublicPage =
+    pathname === "/login" ||
+    pathname === "/signup" ||
+    pathname === "/start" ||
+    pathname === "/thank-you" ||
+    pathname === "/privacy" ||
+    pathname === "/terms" ||
+    pathname === "/contact";
+
+  if (isPublicPage || !user) {
     return <>{children}</>;
   }
 
@@ -174,6 +184,9 @@ export function DashboardShell({
         onOpenMenu={() => setIsMobileOpen(true)}
         isDrawerOpen={isMobileOpen}
       />
+
+      {/* Sticky Mobile Primary Action CTA */}
+      <StickyMobileCTA />
 
       {/* Floating Settings & System Preferences Modal */}
       <FloatingSettingsModal

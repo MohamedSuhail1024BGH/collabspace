@@ -24,7 +24,15 @@ import { getCurrentUser } from "@/lib/db/auth";
 import { formatTimeShort } from "@/lib/format-time";
 import { Plus, ArrowRight } from "lucide-react";
 
+import type { Metadata } from "next";
+
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Dashboard Overview",
+  description:
+    "Monitor active projects, sprint velocity, priority tasks, and team workload in real time.",
+};
 
 export default async function Home() {
   const user = await getCurrentUser();
@@ -86,8 +94,14 @@ export default async function Home() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
-          <Button size="sm" asChild className="gap-1.5 h-8 rounded-full shadow-xs">
+        <div className="flex items-center gap-2 self-start sm:self-auto shrink-0 flex-wrap">
+          <Button variant="outline" size="sm" asChild className="gap-1.5 h-8 rounded-full shadow-xs text-xs">
+            <Link href="/projects">
+              <Plus className="size-3.5" />
+              <span>New Project</span>
+            </Link>
+          </Button>
+          <Button size="sm" asChild className="gap-1.5 h-8 rounded-full shadow-xs text-xs">
             <Link href="/tasks">
               <Plus className="size-3.5" />
               <span>Quick Issue</span>

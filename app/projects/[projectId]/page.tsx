@@ -5,7 +5,30 @@ import { getCurrentUser } from "@/lib/db/auth";
 import { getActiveWorkspace, getUserRoleInWorkspace } from "@/lib/db/workspace";
 import type { Project } from "@/data/mock-data";
 
+import type { Metadata } from "next";
+
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ projectId: string }>;
+}): Promise<Metadata> {
+  const { projectId } = await params;
+  const project = await getProjectById(projectId);
+  if (!project) {
+    return {
+      title: "Project Not Found",
+      description: "The requested project could not be found.",
+    };
+  }
+  return {
+    title: `${project.name} — Project Details`,
+    description:
+      project.overview ||
+      `Manage tasks, timelines, and milestones for project ${project.name}.`,
+  };
+}
 
 export default async function ProjectDetailPage({
   params,

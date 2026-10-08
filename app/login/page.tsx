@@ -4,7 +4,14 @@ import { getCurrentUser } from "@/lib/db/auth";
 import { LoginClient } from "@/components/auth/LoginClient";
 import { Loader } from "@/components/ui/Loader";
 
+import type { Metadata } from "next";
+
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Sign In",
+  description: "Sign in to your CollabSpace workspace to manage projects, tasks, and team execution.",
+};
 
 export default async function LoginPage() {
   const user = await getCurrentUser();
