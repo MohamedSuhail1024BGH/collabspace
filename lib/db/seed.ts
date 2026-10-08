@@ -57,6 +57,7 @@ export async function resetDatabase(_sqliteInstance?: unknown) {
       workspace_members,
       team_members,
       auth_rate_limits,
+      auth_otps,
       sessions,
       users,
       workspaces

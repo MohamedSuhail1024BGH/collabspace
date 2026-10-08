@@ -10,17 +10,23 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { CheckCircle2, AlertCircle, Eye, EyeOff, Mail, Lock } from "lucide-react";
+import { ForgotPasswordModal } from "@/components/auth/ForgotPasswordModal";
 
 export function LoginClient() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resetSuccess, setResetSuccess] = useState(false);
+  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const searchParams = useSearchParams();
   const registered = searchParams.get("registered") === "true";
+  const confirmed =
+    searchParams.get("confirmed") === "true" || searchParams.get("verified") === "true";
   const deleted = searchParams.get("deleted") === "true";
+  const urlError = searchParams.get("error");
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,10 +103,32 @@ export function LoginClient() {
                 {registered && (
                   <div
                     data-testid="registered-success-banner"
+                    role="status"
                     className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-600 dark:text-emerald-400 flex items-start gap-2"
                   >
                     <CheckCircle2 className="size-4 shrink-0 mt-0.5" />
                     <span>Account created successfully! Please sign in with your credentials.</span>
+                  </div>
+                )}
+
+                {confirmed && !registered && (
+                  <div
+                    data-testid="confirmed-success-banner"
+                    role="status"
+                    className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-600 dark:text-emerald-400 flex items-start gap-2 animate-in fade-in"
+                  >
+                    <CheckCircle2 className="size-4 shrink-0 mt-0.5" />
+                    <span>Email confirmed successfully! You can now sign in with your credentials.</span>
+                  </div>
+                )}
+
+                {urlError && !error && (
+                  <div
+                    role="alert"
+                    className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive flex items-start gap-2 animate-in fade-in"
+                  >
+                    <AlertCircle className="size-4 shrink-0 mt-0.5 text-destructive" aria-hidden="true" />
+                    <span className="font-medium">{urlError}</span>
                   </div>
                 )}
 
@@ -111,6 +139,16 @@ export function LoginClient() {
                   >
                     <CheckCircle2 className="size-4 shrink-0 mt-0.5" />
                     <span>Your account has been successfully deleted.</span>
+                  </div>
+                )}
+
+                {resetSuccess && (
+                  <div
+                    role="status"
+                    className="mb-4 rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3 text-xs text-emerald-400 flex items-start gap-2 animate-in fade-in"
+                  >
+                    <CheckCircle2 className="size-4 shrink-0 mt-0.5 text-emerald-400" />
+                    <span>Password reset successful! Please sign in with your new password.</span>
                   </div>
                 )}
 
@@ -181,21 +219,33 @@ export function LoginClient() {
                         {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                       </button>
                     </div>
-                    <div className="mt-2.5 flex items-center gap-2 py-0.5">
-                      <input
-                        id="login-show-password"
-                        data-testid="login-show-password"
-                        type="checkbox"
-                        checked={showPassword}
-                        onChange={(e) => setShowPassword(e.target.checked)}
-                        className="size-4 rounded border-input text-primary focus:ring-0 cursor-pointer"
-                      />
-                      <label
-                        htmlFor="login-show-password"
-                        className="cursor-pointer select-none text-xs text-muted-foreground hover:text-foreground transition font-medium"
+
+                    {/* Option row under password input box */}
+                    <div className="mt-2.5 flex items-center justify-between text-xs py-0.5">
+                      <div className="flex items-center gap-2">
+                        <input
+                          id="login-show-password"
+                          data-testid="login-show-password"
+                          type="checkbox"
+                          checked={showPassword}
+                          onChange={(e) => setShowPassword(e.target.checked)}
+                          className="size-4 rounded border-input text-primary focus:ring-0 cursor-pointer"
+                        />
+                        <label
+                          htmlFor="login-show-password"
+                          className="cursor-pointer select-none text-xs text-muted-foreground hover:text-foreground transition font-medium"
+                        >
+                          Show password
+                        </label>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setForgotPasswordOpen(true)}
+                        className="text-xs text-primary hover:underline font-semibold cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary rounded"
                       >
-                        Show password
-                      </label>
+                        Forgot password?
+                      </button>
                     </div>
                   </Field>
 
@@ -217,6 +267,19 @@ export function LoginClient() {
                 Create an account
               </Link>
             </p>
+
+            {/* Forgot Password OTP Modal */}
+            <ForgotPasswordModal
+              isOpen={forgotPasswordOpen}
+              onClose={() => setForgotPasswordOpen(false)}
+              initialEmail={email}
+              onSuccess={(updatedEmail) => {
+                setEmail(updatedEmail);
+                setPassword("");
+                setResetSuccess(true);
+                setError(null);
+              }}
+            />
           </div>
         </div>
       </div>

@@ -313,6 +313,25 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
   }),
 }));
 
+// --- Authentication One-Time Passwords (OTP) ---
+export const authOtps = pgTable(
+  "auth_otps",
+  {
+    id: text("id").primaryKey(),
+    email: text("email").notNull(),
+    otpHash: text("otp_hash").notNull(),
+    purpose: text("purpose").notNull(), // "signup" | "password_reset"
+    payload: text("payload"), // JSON serialized metadata
+    expiresAt: text("expires_at").notNull(),
+    attempts: integer("attempts").notNull().default(0),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    index("idx_auth_otps_email").on(table.email),
+    index("idx_auth_otps_purpose").on(table.purpose),
+  ]
+);
+
 // --- Inferred Types ---
 export const USER_ROLES = ["owner", "admin", "member", "viewer"] as const;
 export type UserRole = (typeof USER_ROLES)[number];
@@ -334,6 +353,7 @@ export type DbMessage = typeof messages.$inferSelect;
 export type DbCalendarEvent = typeof calendarEvents.$inferSelect;
 export type DbAuthRateLimit = typeof authRateLimits.$inferSelect;
 export type DbNotification = typeof notifications.$inferSelect;
+export type DbAuthOtp = typeof authOtps.$inferSelect;
 
 export type InsertUser = typeof users.$inferInsert;
 export type InsertSession = typeof sessions.$inferInsert;
@@ -344,3 +364,4 @@ export type InsertMessage = typeof messages.$inferInsert;
 export type InsertCalendarEvent = typeof calendarEvents.$inferInsert;
 export type InsertAuthRateLimit = typeof authRateLimits.$inferInsert;
 export type InsertNotification = typeof notifications.$inferInsert;
+export type InsertAuthOtp = typeof authOtps.$inferInsert;
