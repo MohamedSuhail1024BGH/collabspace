@@ -4,6 +4,7 @@ import "./globals.css";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { NavigationProgress } from "@/components/ui/NavigationProgress";
 import { CookieBanner } from "@/components/ui/CookieBanner";
+import { DevelopmentNoticeModal } from "@/components/ui/DevelopmentNoticeModal";
 import { AnalyticsProvider } from "@/components/ui/AnalyticsProvider";
 import { getActiveWorkspace, getAllWorkspaces } from "@/lib/db/workspace";
 import { getCurrentUser } from "@/lib/db/auth";
@@ -136,6 +137,7 @@ export default async function RootLayout({
           {children}
         </DashboardShell>
         <CookieBanner />
+        <DevelopmentNoticeModal />
       </body>
     </html>
   );
