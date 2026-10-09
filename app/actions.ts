@@ -31,7 +31,6 @@ import {
   notifications,
   authOtps,
 } from "@/lib/db/schema";
-import { sendOtpEmail } from "@/lib/email";
 import { createClient as createServerSupabaseClient } from "@/lib/supabase/server";
 import {
   ACTIVE_WORKSPACE_COOKIE,
