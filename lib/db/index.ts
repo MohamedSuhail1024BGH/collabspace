@@ -2,10 +2,24 @@ import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import * as schema from "./schema";
 
+type DrizzleInstance = ReturnType<typeof drizzle<typeof schema>>;
+
 const globalForDb = globalThis as unknown as {
   postgresClient: postgres.Sql | undefined;
-  drizzleDb: ReturnType<typeof drizzle<typeof schema>> | undefined;
+  drizzleDb: DrizzleInstance | undefined;
 };
+
+/**
+ * Test-only database override. When set, every `db` access resolves to the
+ * provided drizzle instance (e.g. an in-process PGlite database) instead of
+ * the Supabase connection. Call `setDatabaseForTesting(undefined)` to restore
+ * the default. Production code never touches this.
+ */
+let testDbOverride: DrizzleInstance | undefined;
+
+export function setDatabaseForTesting(customDb?: unknown) {
+  testDbOverride = customDb as DrizzleInstance | undefined;
+}
 
 function getConnectionString(): string {
   const url = process.env.DATABASE_URL;
@@ -34,7 +48,11 @@ export function getClient(): postgres.Sql {
   return client;
 }
 
-export function getDrizzleInstance() {
+export function getDrizzleInstance(): DrizzleInstance {
+  if (testDbOverride) {
+    return testDbOverride;
+  }
+
   if (globalForDb.drizzleDb) {
     return globalForDb.drizzleDb;
   }
@@ -46,30 +64,10 @@ export function getDrizzleInstance() {
   return instance;
 }
 
-export const db = new Proxy({} as ReturnType<typeof drizzle<typeof schema>>, {
+export const db = new Proxy({} as DrizzleInstance, {
   get(_target, prop) {
     const instance = getDrizzleInstance();
     const value = Reflect.get(instance, prop);
     return typeof value === "function" ? (value as (...args: unknown[]) => unknown).bind(instance) : value;
   },
 });
-
-export const sql = new Proxy((() => {}) as unknown as postgres.Sql, {
-  get(_target, prop) {
-    const instance = getClient();
-    const value = Reflect.get(instance, prop);
-    return typeof value === "function" ? (value as (...args: unknown[]) => unknown).bind(instance) : value;
-  },
-  apply(_target, _thisArg, args) {
-    const instance = getClient();
-    return Reflect.apply(instance as unknown as (...args: unknown[]) => unknown, _thisArg, args);
-  },
-});
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const sqlite: any = sql;
-
-export function setDatabaseForTesting(_customSqlite?: unknown) {
-  // Compatibility stub for unit test suites
-}
-

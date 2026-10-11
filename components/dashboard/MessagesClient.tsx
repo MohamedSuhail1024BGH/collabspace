@@ -3,11 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import {
-  sendMessageAction,
-  createConversationAction,
-  getLiveConversationsAction,
-} from "@/app/actions";
+import { sendMessageAction, createConversationAction, getLiveConversationsAction } from "@/app/actions-messages";
 import ChatHeader from "@/components/dashboard/ChatHeader";
 import ConversationItem from "@/components/dashboard/ConversationItem";
 import MessageComposer from "@/components/dashboard/MessageComposer";

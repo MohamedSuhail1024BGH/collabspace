@@ -2,14 +2,9 @@ import fs from "fs";
 import path from "path";
 import { test, expect, APIRequestContext } from "@playwright/test";
 import { loginAs } from "./helpers/auth";
-import {
-  switchWorkspaceAction,
-  joinWorkspaceAction,
-  sendMessageAction,
-  createConversationAction,
-  getLiveConversationsAction,
-  searchUsersAction,
-} from "@/app/actions";
+import { sendMessageAction, createConversationAction, getLiveConversationsAction } from "@/app/actions-messages";
+import { searchUsersAction } from "@/app/actions-search";
+import { switchWorkspaceAction, joinWorkspaceAction } from "@/app/actions-workspaces";
 import { db } from "@/lib/db";
 import { workspaces, messages, projectMembers, conversations } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";

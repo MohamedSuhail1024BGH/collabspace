@@ -1,27 +1,36 @@
+import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
 import Database from "better-sqlite3";
-import fs from "fs";
-import path from "path";
-import { setDatabaseForTesting } from "@/lib/db";
+import fs from "node:fs";
+import path from "node:path";
+
+vi.mock("next/headers", async () => {
+  const { cookiesMock, headersMock } = await import("./helpers/next-mocks");
+  return { cookies: cookiesMock, headers: headersMock };
+});
+vi.mock("next/cache", async () => {
+  const { revalidatePathMock, revalidateTagMock } = await import("./helpers/next-mocks");
+  return { revalidatePath: revalidatePathMock, revalidateTag: revalidateTagMock };
+});
+
 import { testAuthStorage } from "@/lib/db/auth";
-import {
-  deleteAccountAction,
-  transferWorkspaceOwnershipAction,
-  createWorkspaceAction,
-  deleteWorkspaceAction,
-  leaveWorkspaceAction,
-  createProjectAction,
-  updateProjectAction,
-  deleteProjectAction,
-  createTaskAction,
-  updateTaskAction,
-  deleteTaskAction,
-} from "@/app/actions";
-import { ensureTablesBasic, createCanonicalIndexes } from "@/lib/db/seed";
+import { deleteAccountAction } from "@/app/actions-auth";
+import { createProjectAction, updateProjectAction, deleteProjectAction } from "@/app/actions-projects";
+import { createTaskAction, updateTaskAction, deleteTaskAction } from "@/app/actions-tasks";
+import { transferWorkspaceOwnershipAction, createWorkspaceAction, deleteWorkspaceAction, leaveWorkspaceAction } from "@/app/actions-workspaces";
 import {
   runUniquenessMigration,
   checkStableIdentityColumns,
   countPendingResolvableBackfills,
 } from "../../scripts/migrate-uniqueness";
+import {
+  createTestDatabase,
+  destroyTestDatabase,
+  type UnitTestDatabase,
+} from "./helpers/test-db";
+
+const now = new Date().toISOString();
+
+let testDb: UnitTestDatabase;
 
 function createTempDbPath(name: string): string {
   const tmpDir = path.resolve(process.cwd(), ".test-tmp");
@@ -39,1125 +48,913 @@ function cleanupTempDb(dbFile: string) {
     if (fs.existsSync(dbFile)) fs.unlinkSync(dbFile);
     if (fs.existsSync(`${dbFile}-wal`)) fs.unlinkSync(`${dbFile}-wal`);
     if (fs.existsSync(`${dbFile}-shm`)) fs.unlinkSync(`${dbFile}-shm`);
-  } catch {}
+  } catch {
+    /* already cleaned */
+  }
 }
 
-interface TableSnapshots {
+type TableSnapshots = {
   users: unknown[];
   workspaces: unknown[];
   workspace_members: unknown[];
   projects: unknown[];
   tasks: unknown[];
-}
+};
 
-function takeFullSnapshot(sqlite: Database.Database): TableSnapshots {
+async function takeFullSnapshot(db: UnitTestDatabase): Promise<TableSnapshots> {
   return {
-    users: sqlite.prepare("SELECT * FROM users ORDER BY id ASC").all(),
-    workspaces: sqlite.prepare("SELECT * FROM workspaces ORDER BY id ASC").all(),
-    workspace_members: sqlite
+    users: await db.prepare("SELECT * FROM users ORDER BY id ASC").all(),
+    workspaces: await db.prepare("SELECT * FROM workspaces ORDER BY id ASC").all(),
+    workspace_members: await db
       .prepare("SELECT * FROM workspace_members ORDER BY id ASC")
       .all(),
-    projects: sqlite.prepare("SELECT * FROM projects ORDER BY id ASC").all(),
-    tasks: sqlite.prepare("SELECT * FROM tasks ORDER BY id ASC").all(),
+    projects: await db.prepare("SELECT * FROM projects ORDER BY id ASC").all(),
+    tasks: await db.prepare("SELECT * FROM tasks ORDER BY id ASC").all(),
   };
 }
 
-async function runLifecycleTests() {
-  console.log("==================================================");
-  console.log("RUNNING WORKSPACE LIFECYCLE & STABLE IDENTITY TESTS");
-  console.log("==================================================");
+async function insertUser(id: string, email: string, username: string, name: string) {
+  await testDb
+    .prepare(
+      "INSERT INTO users (id, email, username, name, password_hash, avatar, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
+    )
+    .run(id, email, username, name, "hash", null, now);
+}
 
-  let passed = 0;
-  let total = 0;
+async function insertWorkspace(id: string, name: string, slug: string, isPublic = true) {
+  await testDb
+    .prepare(
+      "INSERT INTO workspaces (id, name, slug, plan, is_public, created_at) VALUES (?, ?, ?, ?, ?, ?)"
+    )
+    .run(id, name, slug, "Pro", isPublic, now);
+}
 
-  function assert(condition: boolean, testName: string) {
-    total++;
-    if (!condition) {
-      console.error(`  FAIL: ${testName}`);
-      throw new Error(`Assertion failed: ${testName}`);
-    } else {
-      console.log(`  PASS: ${testName}`);
-      passed++;
-    }
-  }
+async function insertWorkspaceMember(
+  id: string,
+  workspaceId: string,
+  userId: string,
+  role: string,
+  joinedAt: string = now
+) {
+  await testDb
+    .prepare(
+      "INSERT INTO workspace_members (id, workspace_id, user_id, role, joined_at) VALUES (?, ?, ?, ?, ?)"
+    )
+    .run(id, workspaceId, userId, role, joinedAt);
+}
 
-  const dbPath = createTempDbPath("lifecycle-test");
-  const sqlite = new Database(dbPath);
-  sqlite.pragma("journal_mode = WAL");
-  sqlite.pragma("foreign_keys = ON");
+beforeAll(async () => {
+  testDb = await createTestDatabase();
 
-  ensureTablesBasic(sqlite);
-  createCanonicalIndexes(sqlite);
-  setDatabaseForTesting(sqlite);
+  // Base fixture: users and workspaces shared by Groups A-D
+  await insertUser("u_owner", "owner@test.com", "uowner", "Alice Owner");
+  await insertUser("u_member1", "m1@test.com", "umem1", "Bob Member");
+  await insertUser("u_member2", "m2@test.com", "umem2", "Carol Member");
+  await insertUser("u_cross", "cross@test.com", "ucross", "Dave Cross");
 
-  const now = new Date().toISOString();
+  await insertWorkspace("ws1", "Workspace Alpha", "ws-alpha");
+  await insertWorkspace("ws2", "Workspace Beta", "ws-beta");
+  await insertWorkspace("ws_sole", "Workspace Sole", "ws-sole");
 
-  try {
-    // --- Seed Base Data ---
-    // Users: u_owner (owns ws1 & ws2), u_member1 (in ws1), u_member2 (in ws2), u_cross (in ws2 only)
-    sqlite
-      .prepare(
-        "INSERT INTO users (id, email, username, name, password_hash, avatar, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
-      )
-      .run("u_owner", "owner@test.com", "uowner", "Alice Owner", "hash", null, now);
-    sqlite
-      .prepare(
-        "INSERT INTO users (id, email, username, name, password_hash, avatar, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
-      )
-      .run("u_member1", "m1@test.com", "umem1", "Bob Member", "hash", null, now);
-    sqlite
-      .prepare(
-        "INSERT INTO users (id, email, username, name, password_hash, avatar, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
-      )
-      .run("u_member2", "m2@test.com", "umem2", "Carol Member", "hash", null, now);
-    sqlite
-      .prepare(
-        "INSERT INTO users (id, email, username, name, password_hash, avatar, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
-      )
-      .run("u_cross", "cross@test.com", "ucross", "Dave Cross", "hash", null, now);
+  // ws1: multi-member (u_owner, u_member1)
+  await insertWorkspaceMember("wm_ws1_owner", "ws1", "u_owner", "owner");
+  await insertWorkspaceMember("wm_ws1_m1", "ws1", "u_member1", "member");
+  // ws2: multi-member (u_owner, u_member2, u_cross)
+  await insertWorkspaceMember("wm_ws2_owner", "ws2", "u_owner", "owner");
+  await insertWorkspaceMember("wm_ws2_m2", "ws2", "u_member2", "member");
+  await insertWorkspaceMember("wm_ws2_cross", "ws2", "u_cross", "member");
+  // ws_sole: sole-member (u_owner only)
+  await insertWorkspaceMember("wm_ws_sole_owner", "ws_sole", "u_owner", "owner");
+});
 
-    // Workspaces
-    // ws1: multi-member (u_owner, u_member1)
-    sqlite
-      .prepare(
-        "INSERT INTO workspaces (id, name, slug, plan, is_public, created_at) VALUES (?, ?, ?, ?, ?, ?)"
-      )
-      .run("ws1", "Workspace Alpha", "ws-alpha", "Pro", 1, now);
-    sqlite
-      .prepare("INSERT INTO workspace_members (id, workspace_id, user_id, role, joined_at) VALUES (?, ?, ?, ?, ?)")
-      .run("wm_ws1_owner", "ws1", "u_owner", "owner", now);
-    sqlite
-      .prepare("INSERT INTO workspace_members (id, workspace_id, user_id, role, joined_at) VALUES (?, ?, ?, ?, ?)")
-      .run("wm_ws1_m1", "ws1", "u_member1", "member", now);
+afterAll(async () => {
+  await destroyTestDatabase(testDb);
+});
 
-    // ws2: multi-member (u_owner, u_member2, u_cross)
-    sqlite
-      .prepare(
-        "INSERT INTO workspaces (id, name, slug, plan, is_public, created_at) VALUES (?, ?, ?, ?, ?, ?)"
-      )
-      .run("ws2", "Workspace Beta", "ws-beta", "Pro", 1, now);
-    sqlite
-      .prepare("INSERT INTO workspace_members (id, workspace_id, user_id, role, joined_at) VALUES (?, ?, ?, ?, ?)")
-      .run("wm_ws2_owner", "ws2", "u_owner", "owner", now);
-    sqlite
-      .prepare("INSERT INTO workspace_members (id, workspace_id, user_id, role, joined_at) VALUES (?, ?, ?, ?, ?)")
-      .run("wm_ws2_m2", "ws2", "u_member2", "member", now);
-    sqlite
-      .prepare("INSERT INTO workspace_members (id, workspace_id, user_id, role, joined_at) VALUES (?, ?, ?, ?, ?)")
-      .run("wm_ws2_cross", "ws2", "u_cross", "member", now);
+describe("workspace lifecycle & stable identity", () => {
+  describe("Group A: Account deletion invariants & replacements", () => {
+    it("A.1 blocked when replacement owners are missing; database unchanged", async () => {
+      await testAuthStorage!.run({ userId: "u_owner" }, async () => {
+        const snapBefore = await takeFullSnapshot(testDb);
+        const resMissing = await deleteAccountAction();
+        expect(resMissing.success).toBe(false);
+        expect(resMissing.error).toContain(
+          "Cannot delete account: you are the sole owner of active multi-member workspace(s)"
+        );
+        expect(resMissing.error).toContain("Workspace Alpha");
+        expect(resMissing.error).toContain("Workspace Beta");
 
-    // ws_sole: sole-member (u_owner only)
-    sqlite
-      .prepare(
-        "INSERT INTO workspaces (id, name, slug, plan, is_public, created_at) VALUES (?, ?, ?, ?, ?, ?)"
-      )
-      .run("ws_sole", "Workspace Sole", "ws-sole", "Pro", 1, now);
-    sqlite
-      .prepare("INSERT INTO workspace_members (id, workspace_id, user_id, role, joined_at) VALUES (?, ?, ?, ?, ?)")
-      .run("wm_ws_sole_owner", "ws_sole", "u_owner", "owner", now);
-
-    // =========================================================================
-    // Group A: Account Deletion Invariants
-    // =========================================================================
-    console.log("\n[Group A: Account Deletion Invariants & Replacements]");
-
-    // A.1 Missing replacement owners blocks account deletion with clear error
-    await testAuthStorage!.run({ userId: "u_owner" }, async () => {
-      const snapBefore = takeFullSnapshot(sqlite);
-      const resMissing = await deleteAccountAction();
-      assert(resMissing.success === false, "deleteAccountAction fails when replacements are missing");
-      assert(
-        resMissing.error!.includes("Cannot delete account: you are the sole owner of active multi-member workspace(s)") &&
-          resMissing.error!.includes("Workspace Alpha") &&
-          resMissing.error!.includes("Workspace Beta"),
-        "Returns clear interim blocker error listing multi-member workspaces"
-      );
-      const snapAfter = takeFullSnapshot(sqlite);
-      assert(
-        JSON.stringify(snapBefore) === JSON.stringify(snapAfter),
-        "Database is 100% unchanged when deleteAccountAction is blocked"
-      );
-    });
-
-    // A.2 Invalid replacement: same-user replacement fails
-    await testAuthStorage!.run({ userId: "u_owner" }, async () => {
-      const snapBefore = takeFullSnapshot(sqlite);
-      const resSelf = await deleteAccountAction({
-        replacementOwners: { ws1: "u_owner", ws2: "u_member2" },
+        const snapAfter = await takeFullSnapshot(testDb);
+        expect(JSON.stringify(snapAfter)).toBe(JSON.stringify(snapBefore));
       });
-      assert(resSelf.success === false, "Self-replacement is rejected");
-      assert(
-        resSelf.error!.includes("Cannot assign yourself as replacement owner"),
-        "Returns clear self-replacement error"
-      );
-      const snapAfter = takeFullSnapshot(sqlite);
-      assert(JSON.stringify(snapBefore) === JSON.stringify(snapAfter), "Database unchanged on self-replacement rejection");
     });
 
-    // A.3 Invalid replacement: cross-workspace replacement fails (u_cross is not in ws1)
-    await testAuthStorage!.run({ userId: "u_owner" }, async () => {
-      const snapBefore = takeFullSnapshot(sqlite);
-      const resCross = await deleteAccountAction({
-        replacementOwners: { ws1: "u_cross", ws2: "u_member2" },
+    it("A.2 rejects self-replacement; database unchanged", async () => {
+      await testAuthStorage!.run({ userId: "u_owner" }, async () => {
+        const snapBefore = await takeFullSnapshot(testDb);
+        const resSelf = await deleteAccountAction({
+          replacementOwners: { ws1: "u_owner", ws2: "u_member2" },
+        });
+        expect(resSelf.success).toBe(false);
+        expect(resSelf.error).toContain("Cannot assign yourself as replacement owner");
+
+        const snapAfter = await takeFullSnapshot(testDb);
+        expect(JSON.stringify(snapAfter)).toBe(JSON.stringify(snapBefore));
       });
-      assert(resCross.success === false, "Cross-workspace replacement is rejected");
-      assert(
-        resCross.error!.includes("Replacement user u_cross is not a member of workspace 'Workspace Alpha'"),
-        "Returns clear non-member error for cross-workspace user"
-      );
-      const snapAfter = takeFullSnapshot(sqlite);
-      assert(JSON.stringify(snapBefore) === JSON.stringify(snapAfter), "Database unchanged on cross-workspace rejection");
     });
 
-    // A.4 Invalid replacement: partial replacement list fails
-    await testAuthStorage!.run({ userId: "u_owner" }, async () => {
-      const snapBefore = takeFullSnapshot(sqlite);
-      const resPartial = await deleteAccountAction({
-        replacementOwners: { ws1: "u_member1" }, // missing ws2
+    it("A.3 rejects cross-workspace replacement; database unchanged", async () => {
+      await testAuthStorage!.run({ userId: "u_owner" }, async () => {
+        const snapBefore = await takeFullSnapshot(testDb);
+        const resCross = await deleteAccountAction({
+          replacementOwners: { ws1: "u_cross", ws2: "u_member2" },
+        });
+        expect(resCross.success).toBe(false);
+        expect(resCross.error).toContain(
+          "Replacement user u_cross is not a member of workspace 'Workspace Alpha'"
+        );
+
+        const snapAfter = await takeFullSnapshot(testDb);
+        expect(JSON.stringify(snapAfter)).toBe(JSON.stringify(snapBefore));
       });
-      assert(resPartial.success === false, "Partial replacement list is rejected");
-      assert(
-        resPartial.error!.includes("replacement owner required for workspace 'Workspace Beta'"),
-        "Identifies missing workspace in partial replacement"
-      );
-      const snapAfter = takeFullSnapshot(sqlite);
-      assert(JSON.stringify(snapBefore) === JSON.stringify(snapAfter), "Database unchanged on partial replacement rejection");
     });
 
-    // A.5 Forced failure during second transfer rolls back first transfer and preserves account
-    // Use a temporary SQLite trigger on workspace_members (Condition 9)
-    await testAuthStorage!.run({ userId: "u_owner" }, async () => {
-      const snapBefore = takeFullSnapshot(sqlite);
+    it("A.4 rejects partial replacement lists; database unchanged", async () => {
+      await testAuthStorage!.run({ userId: "u_owner" }, async () => {
+        const snapBefore = await takeFullSnapshot(testDb);
+        const resPartial = await deleteAccountAction({
+          replacementOwners: { ws1: "u_member1" }, // missing ws2
+        });
+        expect(resPartial.success).toBe(false);
+        expect(resPartial.error).toContain(
+          "replacement owner required for workspace 'Workspace Beta'"
+        );
 
-      sqlite.exec(`
-        CREATE TRIGGER test_force_second_transfer_failure
-        BEFORE UPDATE OF role ON workspace_members
-        WHEN NEW.workspace_id = 'ws2' AND NEW.role = 'owner'
-        BEGIN
-          SELECT RAISE(FAIL, 'Simulated trigger failure during second transfer');
-        END;
-      `);
+        const snapAfter = await takeFullSnapshot(testDb);
+        expect(JSON.stringify(snapAfter)).toBe(JSON.stringify(snapBefore));
+      });
+    });
 
-      let forcedThrew = false;
-      try {
-        const resForced = await deleteAccountAction({
+    it("A.5 forced failure during second transfer rolls back the first transfer completely", async () => {
+      await testAuthStorage!.run({ userId: "u_owner" }, async () => {
+        const snapBefore = await takeFullSnapshot(testDb);
+
+        // Condition-9 style failure injection: abort role promotions in ws2.
+        await testDb.exec(`
+          CREATE OR REPLACE FUNCTION test_force_second_transfer_failure_fn() RETURNS trigger AS $$
+          BEGIN RAISE EXCEPTION 'Simulated trigger failure during second transfer'; END;
+          $$ LANGUAGE plpgsql;
+          CREATE TRIGGER test_force_second_transfer_failure
+            BEFORE UPDATE OF role ON workspace_members
+            FOR EACH ROW
+            WHEN (NEW.workspace_id = 'ws2' AND NEW.role = 'owner')
+            EXECUTE FUNCTION test_force_second_transfer_failure_fn();
+        `);
+
+        let forcedThrew = false;
+        try {
+          const resForced = await deleteAccountAction({
+            replacementOwners: { ws1: "u_member1", ws2: "u_member2" },
+          });
+          forcedThrew = resForced.success === false;
+        } catch {
+          forcedThrew = true;
+        }
+        expect(forcedThrew).toBe(true);
+
+        await testDb.exec(`
+          DROP TRIGGER IF EXISTS test_force_second_transfer_failure ON workspace_members;
+          DROP FUNCTION IF EXISTS test_force_second_transfer_failure_fn();
+        `);
+
+        const snapAfter = await takeFullSnapshot(testDb);
+        expect(JSON.stringify(snapAfter)).toBe(JSON.stringify(snapBefore));
+      });
+    });
+
+    it("A.6 atomic account deletion succeeds with valid replacements", async () => {
+      await testAuthStorage!.run({ userId: "u_owner" }, async () => {
+        const resSuccess = await deleteAccountAction({
           replacementOwners: { ws1: "u_member1", ws2: "u_member2" },
         });
-        forcedThrew = resForced.success === false;
-      } catch {
-        forcedThrew = true;
-      }
-      assert(forcedThrew, "Forced failure on second transfer threw error");
+        expect(resSuccess.success).toBe(true);
 
-      sqlite.exec("DROP TRIGGER IF EXISTS test_force_second_transfer_failure;");
+        const userExists = await testDb
+          .prepare("SELECT id FROM users WHERE id = 'u_owner'")
+          .get();
+        expect(!userExists).toBe(true);
 
-      const snapAfter = takeFullSnapshot(sqlite);
-      assert(
-        JSON.stringify(snapBefore) === JSON.stringify(snapAfter),
-        "Full serialized row snapshots match 100%: first transfer and account rolled back completely"
-      );
-    });
+        const soleWs = await testDb
+          .prepare("SELECT id FROM workspaces WHERE id = 'ws_sole'")
+          .get();
+        expect(!soleWs).toBe(true);
 
-    // A.6 Successful atomic account deletion with valid replacements
-    await testAuthStorage!.run({ userId: "u_owner" }, async () => {
-      const resSuccess = await deleteAccountAction({
-        replacementOwners: { ws1: "u_member1", ws2: "u_member2" },
+        const ws1Owners = (await testDb
+          .prepare("SELECT user_id FROM workspace_members WHERE workspace_id = 'ws1' AND role = 'owner'")
+          .all()) as { user_id: string }[];
+        expect(ws1Owners).toHaveLength(1);
+        expect(ws1Owners[0].user_id).toBe("u_member1");
+
+        const ws2Owners = (await testDb
+          .prepare("SELECT user_id FROM workspace_members WHERE workspace_id = 'ws2' AND role = 'owner'")
+          .all()) as { user_id: string }[];
+        expect(ws2Owners).toHaveLength(1);
+        expect(ws2Owners[0].user_id).toBe("u_member2");
+
+        const remainingMemberships = (await testDb
+          .prepare("SELECT COUNT(*) as cnt FROM workspace_members WHERE user_id = 'u_owner'")
+          .get()) as { cnt: number };
+        expect(remainingMemberships.cnt).toBe(0);
       });
-      assert(resSuccess.success === true, "deleteAccountAction succeeds with valid replacements");
+    });
+  });
 
-      // Verify user is deleted
-      const userExists = sqlite.prepare("SELECT id FROM users WHERE id = 'u_owner'").get();
-      assert(!userExists, "User record u_owner is deleted");
-
-      // Verify sole-member workspace is deleted
-      const soleWs = sqlite.prepare("SELECT id FROM workspaces WHERE id = 'ws_sole'").get();
-      assert(!soleWs, "Sole-member workspace ws_sole is deleted");
-
-      // Verify surviving workspaces each have exactly 1 owner
-      const ws1Owners = sqlite
-        .prepare("SELECT user_id FROM workspace_members WHERE workspace_id = 'ws1' AND role = 'owner'")
-        .all() as { user_id: string }[];
-      assert(
-        ws1Owners.length === 1 && ws1Owners[0].user_id === "u_member1",
-        "ws1 has exactly 1 owner: u_member1"
-      );
-
-      const ws2Owners = sqlite
-        .prepare("SELECT user_id FROM workspace_members WHERE workspace_id = 'ws2' AND role = 'owner'")
-        .all() as { user_id: string }[];
-      assert(
-        ws2Owners.length === 1 && ws2Owners[0].user_id === "u_member2",
-        "ws2 has exactly 1 owner: u_member2"
-      );
-
-      // Verify u_owner has 0 memberships anywhere
-      const remainingMemberships = sqlite
-        .prepare("SELECT COUNT(*) as cnt FROM workspace_members WHERE user_id = 'u_owner'")
-        .get() as { cnt: number };
-      assert(remainingMemberships.cnt === 0, "u_owner has 0 memberships remaining");
+  describe("Group B: Ownership transfer invariants", () => {
+    beforeAll(async () => {
+      // Current state after A.6: u_member1 owns ws1. Add another member.
+      await insertUser("u_extra", "extra@test.com", "uextra", "Extra Member");
+      await insertWorkspaceMember("wm_ws1_extra", "ws1", "u_extra", "member");
     });
 
-    // =========================================================================
-    // Group B: Ownership Transfer Invariants
-    // =========================================================================
-    console.log("\n[Group B: Ownership Transfer Invariants]");
-
-    // Current state: u_member1 is owner of ws1. Let's add another member u_member_extra to ws1
-    sqlite
-      .prepare(
-        "INSERT INTO users (id, email, username, name, password_hash, avatar, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
-      )
-      .run("u_extra", "extra@test.com", "uextra", "Extra Member", "hash", null, now);
-    sqlite
-      .prepare("INSERT INTO workspace_members (id, workspace_id, user_id, role, joined_at) VALUES (?, ?, ?, ?, ?)")
-      .run("wm_ws1_extra", "ws1", "u_extra", "member", now);
-
-    // B.1 Non-owner cannot transfer ownership
-    await testAuthStorage!.run({ userId: "u_extra" }, async () => {
-      const resNonOwner = await transferWorkspaceOwnershipAction("ws1", "u_member1");
-      assert(resNonOwner.success === false, "Non-owner transfer is rejected");
-      assert(
-        resNonOwner.error!.includes("Only the current workspace owner can transfer ownership"),
-        "Returns caller-not-owner error"
-      );
-    });
-
-    // B.2 Cannot transfer to self
-    await testAuthStorage!.run({ userId: "u_member1" }, async () => {
-      const resSelfTransfer = await transferWorkspaceOwnershipAction("ws1", "u_member1");
-      assert(resSelfTransfer.success === false, "Transfer to self is rejected");
-      assert(
-        resSelfTransfer.error!.includes("You are already the owner of this workspace"),
-        "Returns already-owner error"
-      );
-    });
-
-    // B.3 Cannot transfer to non-member
-    await testAuthStorage!.run({ userId: "u_member1" }, async () => {
-      const resNonMemberTransfer = await transferWorkspaceOwnershipAction("ws1", "u_cross"); // u_cross is in ws2, not ws1
-      assert(resNonMemberTransfer.success === false, "Transfer to non-member is rejected");
-      assert(
-        resNonMemberTransfer.error!.includes("Target user is not a member of this workspace"),
-        "Returns target-not-member error"
-      );
-    });
-
-    // B.4 Forced failure during ownership transfer rolls back completely
-    await testAuthStorage!.run({ userId: "u_member1" }, async () => {
-      const snapBefore = takeFullSnapshot(sqlite);
-
-      sqlite.exec(`
-        CREATE TRIGGER test_force_ownership_transfer_fail
-        BEFORE UPDATE OF role ON workspace_members
-        WHEN NEW.user_id = 'u_extra' AND NEW.role = 'owner'
-        BEGIN
-          SELECT RAISE(FAIL, 'Simulated trigger failure during ownership promotion');
-        END;
-      `);
-
-      const resForced = await transferWorkspaceOwnershipAction("ws1", "u_extra");
-      assert(resForced.success === false, "Transfer fails when trigger aborts promotion");
-
-      sqlite.exec("DROP TRIGGER IF EXISTS test_force_ownership_transfer_fail;");
-
-      const snapAfter = takeFullSnapshot(sqlite);
-      assert(
-        JSON.stringify(snapBefore) === JSON.stringify(snapAfter),
-        "Snapshots match 100%: u_member1 remains sole owner, u_extra remains member"
-      );
-    });
-
-    // B.5 Successful atomic ownership transfer: caller demoted to admin, target promoted to owner
-    await testAuthStorage!.run({ userId: "u_member1" }, async () => {
-      const resSuccess = await transferWorkspaceOwnershipAction("ws1", "u_extra");
-      assert(resSuccess.success === true, "transferWorkspaceOwnershipAction succeeds");
-
-      const ws1Owners = sqlite
-        .prepare("SELECT user_id FROM workspace_members WHERE workspace_id = 'ws1' AND role = 'owner'")
-        .all() as { user_id: string }[];
-      assert(
-        ws1Owners.length === 1 && ws1Owners[0].user_id === "u_extra",
-        "ws1 has exactly 1 owner: u_extra"
-      );
-
-      const oldOwnerRole = (
-        sqlite
-          .prepare("SELECT role FROM workspace_members WHERE workspace_id = 'ws1' AND user_id = 'u_member1'")
-          .get() as { role: string }
-      ).role;
-      assert(oldOwnerRole === "admin", "Previous owner u_member1 is now admin");
-    });
-
-    // B.6 Zero-owner and multiple-owner starting states fail closed
-    // Zero-owner workspace
-    sqlite
-      .prepare(
-        "INSERT INTO workspaces (id, name, slug, plan, is_public, created_at) VALUES (?, ?, ?, ?, ?, ?)"
-      )
-      .run("ws_zero_owners", "WS Zero", "ws-zero", "Pro", 1, now);
-    sqlite
-      .prepare("INSERT INTO workspace_members (id, workspace_id, user_id, role, joined_at) VALUES (?, ?, ?, ?, ?)")
-      .run("wm_zo_1", "ws_zero_owners", "u_extra", "member", now);
-
-    await testAuthStorage!.run({ userId: "u_extra" }, async () => {
-      const resZero = await transferWorkspaceOwnershipAction("ws_zero_owners", "u_extra");
-      assert(resZero.success === false, "Transfer on 0-owner workspace fails closed");
-      assert(
-        resZero.error!.includes("workspace must start with exactly one owner"),
-        "Zero-owner invariant error returned"
-      );
-    });
-
-    // Multi-owner workspace (bypass normal flow to seed 2 owners)
-    sqlite
-      .prepare(
-        "INSERT INTO workspaces (id, name, slug, plan, is_public, created_at) VALUES (?, ?, ?, ?, ?, ?)"
-      )
-      .run("ws_multi_owners", "WS Multi", "ws-multi", "Pro", 1, now);
-    sqlite
-      .prepare("INSERT INTO workspace_members (id, workspace_id, user_id, role, joined_at) VALUES (?, ?, ?, ?, ?)")
-      .run("wm_mo_1", "ws_multi_owners", "u_extra", "owner", now);
-    sqlite
-      .prepare("INSERT INTO workspace_members (id, workspace_id, user_id, role, joined_at) VALUES (?, ?, ?, ?, ?)")
-      .run("wm_mo_2", "ws_multi_owners", "u_member1", "owner", now);
-
-    await testAuthStorage!.run({ userId: "u_extra" }, async () => {
-      const resMulti = await transferWorkspaceOwnershipAction("ws_multi_owners", "u_member1");
-      assert(resMulti.success === false, "Transfer on multi-owner workspace fails closed");
-      assert(
-        resMulti.error!.includes("workspace must start with exactly one owner"),
-        "Multi-owner invariant error returned"
-      );
-    });
-
-    // =========================================================================
-    // Group C: Stable Identity Authorization (Tasks & Projects)
-    // =========================================================================
-    console.log("\n[Group C: Stable Identity Authorization]");
-
-    // Setup: Two distinct users with the EXACT SAME display name: "Jordan Smith"
-    sqlite
-      .prepare(
-        "INSERT INTO users (id, email, username, name, password_hash, avatar, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
-      )
-      .run("u_jordan_legit", "jordan1@test.com", "jordan1", "Jordan Smith", "hash", null, now);
-    sqlite
-      .prepare(
-        "INSERT INTO users (id, email, username, name, password_hash, avatar, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
-      )
-      .run("u_jordan_imposter", "jordan2@test.com", "jordan2", "Jordan Smith", "hash", null, now);
-
-    // Add both as members to ws1
-    sqlite
-      .prepare("INSERT INTO workspace_members (id, workspace_id, user_id, role, joined_at) VALUES (?, ?, ?, ?, ?)")
-      .run("wm_ws1_j1", "ws1", "u_jordan_legit", "member", now);
-    sqlite
-      .prepare("INSERT INTO workspace_members (id, workspace_id, user_id, role, joined_at) VALUES (?, ?, ?, ?, ?)")
-      .run("wm_ws1_j2", "ws1", "u_jordan_imposter", "member", now);
-
-    // C.1 Task Assignee Resolution & Deletion Guard
-    // When legit Jordan creates a task passing assigneeUserId:
-    let taskId = "";
-    await testAuthStorage!.run({ userId: "u_jordan_legit" }, async () => {
-      const resCreateTask = await createTaskAction({
-        workspaceId: "ws1",
-        title: "Legit Jordan Task",
-        assigneeUserId: "u_jordan_legit",
+    it("B.1 non-owner cannot transfer ownership", async () => {
+      await testAuthStorage!.run({ userId: "u_extra" }, async () => {
+        const resNonOwner = await transferWorkspaceOwnershipAction("ws1", "u_member1");
+        expect(resNonOwner.success).toBe(false);
+        expect(resNonOwner.error).toContain(
+          "Only the current workspace owner can transfer ownership"
+        );
       });
-      assert(resCreateTask.success === true, "createTaskAction succeeds with assigneeUserId");
-      taskId = resCreateTask.id!;
-
-      const createdTask = sqlite
-        .prepare("SELECT assignee, assignee_user_id FROM tasks WHERE id = ?")
-        .get(taskId) as { assignee: string; assignee_user_id: string };
-      assert(
-        createdTask.assignee === "Jordan Smith" && createdTask.assignee_user_id === "u_jordan_legit",
-        "Task stores stable assignee_user_id and display name"
-      );
     });
 
-    // C.2 Imposter Jordan with identical display name attempts to delete task -> MUST BE DENIED
-    await testAuthStorage!.run({ userId: "u_jordan_imposter" }, async () => {
-      const resDeleteImposter = await deleteTaskAction(taskId);
-      assert(
-        resDeleteImposter.success === false,
-        "Imposter Jordan with same display name cannot delete task"
-      );
-      assert(
-        resDeleteImposter.error!.includes("Permission denied"),
-        "Returns permission denied error"
-      );
-
-      const taskStillExists = sqlite.prepare("SELECT id FROM tasks WHERE id = ?").get(taskId);
-      assert(Boolean(taskStillExists), "Task remains intact after imposter deletion attempt");
+    it("B.2 cannot transfer to self", async () => {
+      await testAuthStorage!.run({ userId: "u_member1" }, async () => {
+        const resSelfTransfer = await transferWorkspaceOwnershipAction("ws1", "u_member1");
+        expect(resSelfTransfer.success).toBe(false);
+        expect(resSelfTransfer.error).toContain(
+          "You are already the owner of this workspace"
+        );
+      });
     });
 
-    // C.3 Profile rename does NOT remove legitimate permission
-    await testAuthStorage!.run({ userId: "u_jordan_legit" }, async () => {
-      // Legit Jordan renames profile
-      sqlite
-        .prepare("UPDATE users SET name = 'Jordan Renamed' WHERE id = 'u_jordan_legit'")
-        .run();
-
-      // Test updateTaskAction authorization
-      const resUpdateLegit = await updateTaskAction(taskId, { title: "Updated Legit Title" });
-      assert(resUpdateLegit.success === true, "Legit assignee can update task");
-
-      // Deleting task succeeds because stable user ID matches
-      const resDeleteLegit = await deleteTaskAction(taskId);
-      assert(
-        resDeleteLegit.success === true,
-        "Legit Jordan can delete task after display name change"
-      );
-
-      const taskGone = sqlite.prepare("SELECT id FROM tasks WHERE id = ?").get(taskId);
-      assert(!taskGone, "Task was successfully deleted by legitimate user");
+    it("B.3 cannot transfer to non-member", async () => {
+      await testAuthStorage!.run({ userId: "u_member1" }, async () => {
+        // u_cross is in ws2, not ws1
+        const resNonMemberTransfer = await transferWorkspaceOwnershipAction("ws1", "u_cross");
+        expect(resNonMemberTransfer.success).toBe(false);
+        expect(resNonMemberTransfer.error).toContain(
+          "Target user is not a member of this workspace"
+        );
+      });
     });
 
-    // C.4 Name-based task assignment: duplicate name in workspace leaves assignee_user_id NULL
-    await testAuthStorage!.run({ userId: "u_extra" }, async () => {
-      // Both u_jordan_legit and u_jordan_imposter are in ws1. If we create a task with ambiguous name:
-      // First reset legit name to Jordan Smith so there are 2 Jordan Smiths in ws1
-      sqlite
+    it("B.4 forced failure during transfer rolls back completely", async () => {
+      await testAuthStorage!.run({ userId: "u_member1" }, async () => {
+        const snapBefore = await takeFullSnapshot(testDb);
+
+        await testDb.exec(`
+          CREATE OR REPLACE FUNCTION test_force_ownership_transfer_fail_fn() RETURNS trigger AS $$
+          BEGIN RAISE EXCEPTION 'Simulated trigger failure during ownership promotion'; END;
+          $$ LANGUAGE plpgsql;
+          CREATE TRIGGER test_force_ownership_transfer_fail
+            BEFORE UPDATE OF role ON workspace_members
+            FOR EACH ROW
+            WHEN (NEW.user_id = 'u_extra' AND NEW.role = 'owner')
+            EXECUTE FUNCTION test_force_ownership_transfer_fail_fn();
+        `);
+
+        const resForced = await transferWorkspaceOwnershipAction("ws1", "u_extra");
+        expect(resForced.success).toBe(false);
+
+        await testDb.exec(`
+          DROP TRIGGER IF EXISTS test_force_ownership_transfer_fail ON workspace_members;
+          DROP FUNCTION IF EXISTS test_force_ownership_transfer_fail_fn();
+        `);
+
+        const snapAfter = await takeFullSnapshot(testDb);
+        expect(JSON.stringify(snapAfter)).toBe(JSON.stringify(snapBefore));
+      });
+    });
+
+    it("B.5 successful transfer demotes caller to admin and promotes target to owner", async () => {
+      await testAuthStorage!.run({ userId: "u_member1" }, async () => {
+        const resSuccess = await transferWorkspaceOwnershipAction("ws1", "u_extra");
+        expect(resSuccess.success).toBe(true);
+
+        const ws1Owners = (await testDb
+          .prepare("SELECT user_id FROM workspace_members WHERE workspace_id = 'ws1' AND role = 'owner'")
+          .all()) as { user_id: string }[];
+        expect(ws1Owners).toHaveLength(1);
+        expect(ws1Owners[0].user_id).toBe("u_extra");
+
+        const oldOwnerRole = (
+          (await testDb
+            .prepare(
+              "SELECT role FROM workspace_members WHERE workspace_id = 'ws1' AND user_id = 'u_member1'"
+            )
+            .get()) as { role: string }
+        ).role;
+        expect(oldOwnerRole).toBe("admin");
+      });
+    });
+
+    it("B.6 zero-owner and multi-owner starting states fail closed", async () => {
+      // Zero-owner workspace
+      await insertWorkspace("ws_zero_owners", "WS Zero", "ws-zero");
+      await insertWorkspaceMember("wm_zo_1", "ws_zero_owners", "u_extra", "member");
+
+      await testAuthStorage!.run({ userId: "u_extra" }, async () => {
+        const resZero = await transferWorkspaceOwnershipAction("ws_zero_owners", "u_extra");
+        expect(resZero.success).toBe(false);
+        expect(resZero.error).toContain("workspace must start with exactly one owner");
+      });
+
+      // Multi-owner workspace (bypass normal flow to seed 2 owners)
+      await insertWorkspace("ws_multi_owners", "WS Multi", "ws-multi");
+      await insertWorkspaceMember("wm_mo_1", "ws_multi_owners", "u_extra", "owner");
+      await insertWorkspaceMember("wm_mo_2", "ws_multi_owners", "u_member1", "owner");
+
+      await testAuthStorage!.run({ userId: "u_extra" }, async () => {
+        const resMulti = await transferWorkspaceOwnershipAction("ws_multi_owners", "u_member1");
+        expect(resMulti.success).toBe(false);
+        expect(resMulti.error).toContain("workspace must start with exactly one owner");
+      });
+    });
+  });
+
+  describe("Group C: Stable identity authorization (tasks & projects)", () => {
+    beforeAll(async () => {
+      // Two distinct users with the EXACT SAME display name: "Jordan Smith"
+      await insertUser("u_jordan_legit", "jordan1@test.com", "jordan1", "Jordan Smith");
+      await insertUser("u_jordan_imposter", "jordan2@test.com", "jordan2", "Jordan Smith");
+      await insertWorkspaceMember("wm_ws1_j1", "ws1", "u_jordan_legit", "member");
+      await insertWorkspaceMember("wm_ws1_j2", "ws1", "u_jordan_imposter", "member");
+    });
+
+    it("C.1-C.3 task assignee resolution, deletion guard, and rename resilience", async () => {
+      // C.1 Legit Jordan creates a task passing assigneeUserId
+      let taskId = "";
+      await testAuthStorage!.run({ userId: "u_jordan_legit" }, async () => {
+        const resCreateTask = await createTaskAction({
+          workspaceId: "ws1",
+          title: "Legit Jordan Task",
+          assigneeUserId: "u_jordan_legit",
+        });
+        expect(resCreateTask.success).toBe(true);
+        taskId = resCreateTask.id!;
+
+        const createdTask = (await testDb
+          .prepare("SELECT assignee, assignee_user_id FROM tasks WHERE id = ?")
+          .get(taskId)) as { assignee: string; assignee_user_id: string };
+        expect(createdTask.assignee).toBe("Jordan Smith");
+        expect(createdTask.assignee_user_id).toBe("u_jordan_legit");
+      });
+
+      // C.2 Imposter Jordan with identical display name cannot delete the task
+      await testAuthStorage!.run({ userId: "u_jordan_imposter" }, async () => {
+        const resDeleteImposter = await deleteTaskAction(taskId);
+        expect(resDeleteImposter.success).toBe(false);
+        expect(resDeleteImposter.error).toContain("Permission denied");
+
+        const taskStillExists = await testDb
+          .prepare("SELECT id FROM tasks WHERE id = ?")
+          .get(taskId);
+        expect(Boolean(taskStillExists)).toBe(true);
+      });
+
+      // C.3 Profile rename does NOT remove legitimate permission
+      await testAuthStorage!.run({ userId: "u_jordan_legit" }, async () => {
+        await testDb
+          .prepare("UPDATE users SET name = 'Jordan Renamed' WHERE id = 'u_jordan_legit'")
+          .run();
+
+        const resUpdateLegit = await updateTaskAction(taskId, { title: "Updated Legit Title" });
+        expect(resUpdateLegit.success).toBe(true);
+
+        const resDeleteLegit = await deleteTaskAction(taskId);
+        expect(resDeleteLegit.success).toBe(true);
+
+        const taskGone = await testDb.prepare("SELECT id FROM tasks WHERE id = ?").get(taskId);
+        expect(!taskGone).toBe(true);
+      });
+    });
+
+    it("C.4 ambiguous assignee name leaves assignee_user_id NULL", async () => {
+      await testAuthStorage!.run({ userId: "u_extra" }, async () => {
+        // Reset legit name so there are 2 Jordan Smiths in ws1
+        await testDb
+          .prepare("UPDATE users SET name = 'Jordan Smith' WHERE id = 'u_jordan_legit'")
+          .run();
+
+        const resAmbiguousTask = await createTaskAction({
+          workspaceId: "ws1",
+          title: "Ambiguous Name Task",
+          assignee: "Jordan Smith", // 2 users in ws1 have this name
+        });
+        expect(resAmbiguousTask.success).toBe(true);
+        const ambigTask = (await testDb
+          .prepare("SELECT assignee, assignee_user_id FROM tasks WHERE id = ?")
+          .get(resAmbiguousTask.id!)) as { assignee: string; assignee_user_id: string | null };
+
+        expect(ambigTask.assignee).toBe("Jordan Smith");
+        expect(ambigTask.assignee_user_id).toBeNull();
+      });
+    });
+
+    it("C.4b-C.4d name-only reassignment, invalid ID rejection, and unassignment", async () => {
+      await testAuthStorage!.run({ userId: "u_extra" }, async () => {
+        const resCreateReassign = await createTaskAction({
+          workspaceId: "ws1",
+          title: "Reassignment Test Task",
+          assigneeUserId: "u_member1",
+        });
+        expect(resCreateReassign.success).toBe(true);
+        const reassignTaskId = resCreateReassign.id!;
+
+        const taskInitial = (await testDb
+          .prepare("SELECT assignee, assignee_user_id FROM tasks WHERE id = ?")
+          .get(reassignTaskId)) as { assignee: string; assignee_user_id: string };
+        expect(taskInitial.assignee).toBe("Bob Member");
+        expect(taskInitial.assignee_user_id).toBe("u_member1");
+
+        // Unique member display name update: u_extra -> "Unique Extra"
+        await testDb
+          .prepare("UPDATE users SET name = 'Unique Extra' WHERE id = 'u_extra'")
+          .run();
+
+        const resUpdateNameOnly = await updateTaskAction(reassignTaskId, {
+          assignee: "Unique Extra",
+        });
+        expect(resUpdateNameOnly.success).toBe(true);
+
+        const taskUpdated = (await testDb
+          .prepare("SELECT assignee, assignee_user_id FROM tasks WHERE id = ?")
+          .get(reassignTaskId)) as { assignee: string; assignee_user_id: string };
+        expect(taskUpdated.assignee).toBe("Unique Extra");
+        expect(taskUpdated.assignee_user_id).toBe("u_extra");
+
+        // C.4c explicit out-of-workspace / invalid / blank / whitespace IDs reject on create
+        const resCreateOutOfWs = await createTaskAction({
+          workspaceId: "ws1",
+          title: "Out-of-Workspace Create Attempt",
+          assigneeUserId: "u_member2", // member of ws2, NOT ws1
+        });
+        expect(resCreateOutOfWs.success).toBe(false);
+        expect(resCreateOutOfWs.error).toContain(
+          "Assignee must be an active member of this workspace"
+        );
+
+        const resCreateInvalid = await createTaskAction({
+          workspaceId: "ws1",
+          title: "Invalid User ID Create Attempt",
+          assigneeUserId: "non_existent_user_id_xyz",
+        });
+        expect(resCreateInvalid.success).toBe(false);
+        expect(resCreateInvalid.error).toContain(
+          "Assignee must be an active member of this workspace"
+        );
+
+        const resCreateBlank = await createTaskAction({
+          workspaceId: "ws1",
+          title: "Blank User ID Create Attempt",
+          assigneeUserId: "",
+        });
+        expect(resCreateBlank.success).toBe(false);
+        expect(resCreateBlank.error).toContain(
+          "Assignee must be an active member of this workspace"
+        );
+
+        const resCreateWhitespace = await createTaskAction({
+          workspaceId: "ws1",
+          title: "Whitespace User ID Create Attempt",
+          assigneeUserId: "   \t  ",
+        });
+        expect(resCreateWhitespace.success).toBe(false);
+        expect(resCreateWhitespace.error).toContain(
+          "Assignee must be an active member of this workspace"
+        );
+
+        // Same rejections on update, leaving the row exactly unchanged
+        const preUpdateSnapshot = await testDb
+          .prepare("SELECT * FROM tasks WHERE id = ?")
+          .get(reassignTaskId);
+
+        const resUpdateOutOfWs = await updateTaskAction(reassignTaskId, {
+          assigneeUserId: "u_member2", // member of ws2, NOT ws1
+        });
+        expect(resUpdateOutOfWs.success).toBe(false);
+        expect(resUpdateOutOfWs.error).toContain(
+          "Assignee must be an active member of this workspace"
+        );
+
+        const resUpdateInvalid = await updateTaskAction(reassignTaskId, {
+          assigneeUserId: "non_existent_user_id_xyz",
+        });
+        expect(resUpdateInvalid.success).toBe(false);
+        expect(resUpdateInvalid.error).toContain(
+          "Assignee must be an active member of this workspace"
+        );
+
+        const resUpdateBlank = await updateTaskAction(reassignTaskId, { assigneeUserId: "" });
+        expect(resUpdateBlank.success).toBe(false);
+        expect(resUpdateBlank.error).toContain(
+          "Assignee must be an active member of this workspace"
+        );
+
+        const resUpdateWhitespace = await updateTaskAction(reassignTaskId, {
+          assigneeUserId: "   \t\n  ",
+        });
+        expect(resUpdateWhitespace.success).toBe(false);
+        expect(resUpdateWhitespace.error).toContain(
+          "Assignee must be an active member of this workspace"
+        );
+
+        const postUpdateSnapshot = await testDb
+          .prepare("SELECT * FROM tasks WHERE id = ?")
+          .get(reassignTaskId);
+        expect(JSON.stringify(postUpdateSnapshot)).toBe(
+          JSON.stringify(preUpdateSnapshot)
+        );
+
+        // C.4d Unassignment via assignee: 'Unassigned' with assigneeUserId omitted
+        const resUnassign = await updateTaskAction(reassignTaskId, {
+          assignee: "Unassigned",
+        });
+        expect(resUnassign.success).toBe(true);
+        const unassignedTask = (await testDb
+          .prepare("SELECT assignee, assignee_user_id FROM tasks WHERE id = ?")
+          .get(reassignTaskId)) as { assignee: string; assignee_user_id: string | null };
+        expect(unassignedTask.assignee).toBe("Unassigned");
+        expect(unassignedTask.assignee_user_id).toBeNull();
+      });
+    });
+
+    it("C.5-C.7 project owner identity: create, imposter denial, rename resilience", async () => {
+      let projId = "";
+      await testAuthStorage!.run({ userId: "u_extra" }, async () => {
+        const resCreateProj = await createProjectAction({
+          workspaceId: "ws1",
+          name: "Stable Project Alpha",
+          ownerUserId: "u_jordan_legit",
+        });
+        expect(resCreateProj.success).toBe(true);
+        projId = resCreateProj.id!;
+
+        const createdProj = (await testDb
+          .prepare("SELECT owner, owner_user_id FROM projects WHERE id = ?")
+          .get(projId)) as { owner: string; owner_user_id: string };
+        expect(createdProj.owner).toBe("Jordan Smith");
+        expect(createdProj.owner_user_id).toBe("u_jordan_legit");
+      });
+
+      // C.6 Imposter with same display name cannot delete the project
+      await testAuthStorage!.run({ userId: "u_jordan_imposter" }, async () => {
+        const resProjDeleteImposter = await deleteProjectAction(projId);
+        expect(resProjDeleteImposter.success).toBe(false);
+
+        const projStillExists = await testDb
+          .prepare("SELECT id FROM projects WHERE id = ?")
+          .get(projId);
+        expect(Boolean(projStillExists)).toBe(true);
+      });
+
+      // C.7 Legit lead can delete the project after profile rename
+      await testAuthStorage!.run({ userId: "u_jordan_legit" }, async () => {
+        await testDb
+          .prepare("UPDATE users SET name = 'Jordan Super Renamed' WHERE id = 'u_jordan_legit'")
+          .run();
+
+        const resProjDeleteLegit = await deleteProjectAction(projId);
+        expect(resProjDeleteLegit.success).toBe(true);
+
+        const projGone = await testDb
+          .prepare("SELECT id FROM projects WHERE id = ?")
+          .get(projId);
+        expect(!projGone).toBe(true);
+      });
+    });
+
+    it("C.8 updateProjectAction synchronizes owner display name and owner_user_id", async () => {
+      let proj2Id = "";
+      await testAuthStorage!.run({ userId: "u_extra" }, async () => {
+        const resCreate = await createProjectAction({
+          workspaceId: "ws1",
+          name: "Sync Test Project",
+          ownerUserId: "u_member1",
+        });
+        expect(resCreate.success).toBe(true);
+        proj2Id = resCreate.id!;
+      });
+
+      await testDb
         .prepare("UPDATE users SET name = 'Jordan Smith' WHERE id = 'u_jordan_legit'")
         .run();
 
-      const resAmbiguousTask = await createTaskAction({
-        workspaceId: "ws1",
-        title: "Ambiguous Name Task",
-        assignee: "Jordan Smith", // 2 users in ws1 have this name
-      });
-      assert(resAmbiguousTask.success === true, "Task created with ambiguous assignee name");
-      const ambigTask = sqlite
-        .prepare("SELECT assignee, assignee_user_id FROM tasks WHERE id = ?")
-        .get(resAmbiguousTask.id!) as { assignee: string; assignee_user_id: string | null };
+      await testAuthStorage!.run({ userId: "u_extra" }, async () => {
+        // 1. Ambiguous owner name rejected
+        const resAmbig = await updateProjectAction(proj2Id, {
+          owner: "Jordan Smith", // 2 users have this name
+        });
+        expect(resAmbig.success).toBe(false);
+        expect(resAmbig.error).toContain("Multiple workspace members match this name");
 
-      assert(
-        ambigTask.assignee === "Jordan Smith" && ambigTask.assignee_user_id === null,
-        "Ambiguous assignee name leaves assignee_user_id as NULL (does not infer identity)"
-      );
+        // 2. Non-member owner name rejected
+        const resNonMem = await updateProjectAction(proj2Id, {
+          owner: "NonExistent Person",
+        });
+        expect(resNonMem.success).toBe(false);
+        expect(resNonMem.error).toContain("Project owner must be an active member");
+
+        // 3. Unique owner name succeeds and synchronizes ownerUserId
+        const resUnique = await updateProjectAction(proj2Id, {
+          owner: "Bob Member", // exactly 1 user (u_member1)
+        });
+        expect(resUnique.success).toBe(true);
+
+        const projAfter = (await testDb
+          .prepare("SELECT owner, owner_user_id FROM projects WHERE id = ?")
+          .get(proj2Id)) as { owner: string; owner_user_id: string };
+        expect(projAfter.owner).toBe("Bob Member");
+        expect(projAfter.owner_user_id).toBe("u_member1");
+      });
+    });
+  });
+
+  describe("Group D: Lifecycle atomic actions (workspace CRUD & leave)", () => {
+    it("D.1 createWorkspaceAction is atomic with exactly 1 owner", async () => {
+      await testAuthStorage!.run({ userId: "u_member1" }, async () => {
+        const resCreateWs = await createWorkspaceAction({
+          name: "Atomic Workspace",
+          plan: "Free",
+        });
+        expect(resCreateWs.success).toBe(true);
+        expect(resCreateWs.id).toBeTruthy();
+
+        const owners = (await testDb
+          .prepare(
+            "SELECT user_id, role FROM workspace_members WHERE workspace_id = ? AND role = 'owner'"
+          )
+          .all(resCreateWs.id!)) as { user_id: string; role: string }[];
+        expect(owners).toHaveLength(1);
+        expect(owners[0].user_id).toBe("u_member1");
+
+        // Stash id for subsequent sub-tests via closure-safe global
+        (globalThis as { __createdWsId?: string }).__createdWsId = resCreateWs.id;
+      });
     });
 
-    // C.4b Update assigned task using only the new assignee name (decoupling stored ID)
-    await testAuthStorage!.run({ userId: "u_extra" }, async () => {
-      const resCreateReassign = await createTaskAction({
-        workspaceId: "ws1",
-        title: "Reassignment Test Task",
-        assigneeUserId: "u_member1",
-      });
-      assert(resCreateReassign.success === true, "Task created for reassignment test");
-      const reassignTaskId = resCreateReassign.id!;
+    it("D.2 owner cannot leave a multi-member workspace", async () => {
+      const createdWsId = (globalThis as { __createdWsId?: string }).__createdWsId!;
+      await insertWorkspaceMember(`wm_${createdWsId}_extra`, createdWsId, "u_extra", "member");
 
-      const taskInitial = sqlite
-        .prepare("SELECT assignee, assignee_user_id FROM tasks WHERE id = ?")
-        .get(reassignTaskId) as { assignee: string; assignee_user_id: string };
-      assert(
-        taskInitial.assignee === "Bob Member" && taskInitial.assignee_user_id === "u_member1",
-        "Task initially assigned to Bob Member with u_member1 ID"
-      );
-
-      // Unique member display name update: update u_extra name to "Unique Extra"
-      sqlite.prepare("UPDATE users SET name = 'Unique Extra' WHERE id = 'u_extra'").run();
-
-      // Update task passing ONLY assignee: "Unique Extra" (no assigneeUserId)
-      const resUpdateNameOnly = await updateTaskAction(reassignTaskId, {
-        assignee: "Unique Extra",
-      });
-      assert(resUpdateNameOnly.success === true, "updateTaskAction succeeds with name-only reassignment");
-
-      const taskUpdated = sqlite
-        .prepare("SELECT assignee, assignee_user_id FROM tasks WHERE id = ?")
-        .get(reassignTaskId) as { assignee: string; assignee_user_id: string };
-      assert(
-        taskUpdated.assignee === "Unique Extra" && taskUpdated.assignee_user_id === "u_extra",
-        "Both assignee and assignee_user_id moved to the new unique member"
-      );
-
-      // C.4c Create and update using explicit out-of-workspace or invalid user ID: both reject, update leaves row unchanged
-      const resCreateOutOfWs = await createTaskAction({
-        workspaceId: "ws1",
-        title: "Out-of-Workspace Create Attempt",
-        assigneeUserId: "u_member2", // member of ws2, NOT ws1
-      });
-      assert(resCreateOutOfWs.success === false, "createTaskAction rejects explicit out-of-workspace user ID");
-      assert(
-        resCreateOutOfWs.error!.includes("Assignee must be an active member of this workspace"),
-        "createTaskAction returns clear out-of-workspace membership error"
-      );
-
-      const resCreateInvalid = await createTaskAction({
-        workspaceId: "ws1",
-        title: "Invalid User ID Create Attempt",
-        assigneeUserId: "non_existent_user_id_xyz",
-      });
-      assert(resCreateInvalid.success === false, "createTaskAction rejects invalid user ID");
-      assert(
-        resCreateInvalid.error!.includes("Assignee must be an active member of this workspace"),
-        "createTaskAction returns clear membership error for non-existent user ID"
-      );
-
-      // Explicit blank and whitespace IDs on create
-      const resCreateBlank = await createTaskAction({
-        workspaceId: "ws1",
-        title: "Blank User ID Create Attempt",
-        assigneeUserId: "",
-      });
-      assert(resCreateBlank.success === false, "createTaskAction rejects explicit blank assigneeUserId");
-      assert(
-        resCreateBlank.error!.includes("Assignee must be an active member of this workspace"),
-        "createTaskAction returns clear membership error for blank assigneeUserId"
-      );
-
-      const resCreateWhitespace = await createTaskAction({
-        workspaceId: "ws1",
-        title: "Whitespace User ID Create Attempt",
-        assigneeUserId: "   \t  ",
-      });
-      assert(resCreateWhitespace.success === false, "createTaskAction rejects explicit whitespace assigneeUserId");
-      assert(
-        resCreateWhitespace.error!.includes("Assignee must be an active member of this workspace"),
-        "createTaskAction returns clear membership error for whitespace assigneeUserId"
-      );
-
-      // Pre-update snapshot
-      const preUpdateSnapshot = sqlite
-        .prepare("SELECT * FROM tasks WHERE id = ?")
-        .get(reassignTaskId) as Record<string, unknown>;
-
-      const resUpdateOutOfWs = await updateTaskAction(reassignTaskId, {
-        assigneeUserId: "u_member2", // member of ws2, NOT ws1
-      });
-      assert(resUpdateOutOfWs.success === false, "updateTaskAction rejects explicit out-of-workspace user ID");
-      assert(
-        resUpdateOutOfWs.error!.includes("Assignee must be an active member of this workspace"),
-        "updateTaskAction returns clear out-of-workspace membership error"
-      );
-
-      const resUpdateInvalid = await updateTaskAction(reassignTaskId, {
-        assigneeUserId: "non_existent_user_id_xyz",
-      });
-      assert(resUpdateInvalid.success === false, "updateTaskAction rejects invalid user ID");
-      assert(
-        resUpdateInvalid.error!.includes("Assignee must be an active member of this workspace"),
-        "updateTaskAction returns clear membership error for non-existent user ID"
-      );
-
-      const resUpdateBlank = await updateTaskAction(reassignTaskId, {
-        assigneeUserId: "",
-      });
-      assert(resUpdateBlank.success === false, "updateTaskAction rejects explicit blank assigneeUserId");
-      assert(
-        resUpdateBlank.error!.includes("Assignee must be an active member of this workspace"),
-        "updateTaskAction returns clear membership error for blank assigneeUserId"
-      );
-
-      const resUpdateWhitespace = await updateTaskAction(reassignTaskId, {
-        assigneeUserId: "   \t\n  ",
-      });
-      assert(resUpdateWhitespace.success === false, "updateTaskAction rejects explicit whitespace assigneeUserId");
-      assert(
-        resUpdateWhitespace.error!.includes("Assignee must be an active member of this workspace"),
-        "updateTaskAction returns clear membership error for whitespace assigneeUserId"
-      );
-
-      // Post-update snapshot must match 100%
-      const postUpdateSnapshot = sqlite
-        .prepare("SELECT * FROM tasks WHERE id = ?")
-        .get(reassignTaskId) as Record<string, unknown>;
-      assert(
-        JSON.stringify(preUpdateSnapshot) === JSON.stringify(postUpdateSnapshot),
-        "Existing task row is exactly unchanged after rejected out-of-workspace, invalid, blank, or whitespace update"
-      );
-
-      // C.4d Unassignment using assignee: 'Unassigned' with assigneeUserId omitted
-      const resUnassign = await updateTaskAction(reassignTaskId, {
-        assignee: "Unassigned",
-      });
-      assert(resUnassign.success === true, "updateTaskAction succeeds for unassignment with assignee: 'Unassigned'");
-      const unassignedTask = sqlite
-        .prepare("SELECT assignee, assignee_user_id FROM tasks WHERE id = ?")
-        .get(reassignTaskId) as { assignee: string; assignee_user_id: string | null };
-      assert(
-        unassignedTask.assignee === "Unassigned" && unassignedTask.assignee_user_id === null,
-        "Task row correctly updated to assignee: 'Unassigned' and assignee_user_id: null"
-      );
-    });
-
-    // C.5 Project Creation & Stable Lead Identity
-    let projId = "";
-    await testAuthStorage!.run({ userId: "u_extra" }, async () => {
-      const resCreateProj = await createProjectAction({
-        workspaceId: "ws1",
-        name: "Stable Project Alpha",
-        ownerUserId: "u_jordan_legit",
-      });
-      assert(resCreateProj.success === true, "createProjectAction succeeds with ownerUserId");
-      projId = resCreateProj.id!;
-
-      const createdProj = sqlite
-        .prepare("SELECT owner, owner_user_id FROM projects WHERE id = ?")
-        .get(projId) as { owner: string; owner_user_id: string };
-      assert(
-        createdProj.owner === "Jordan Smith" && createdProj.owner_user_id === "u_jordan_legit",
-        "Project owner_user_id set from validated leadUserId"
-      );
-    });
-
-    // C.6 Imposter with same display name attempts to delete project -> MUST BE DENIED
-    await testAuthStorage!.run({ userId: "u_jordan_imposter" }, async () => {
-      const resProjDeleteImposter = await deleteProjectAction(projId);
-      assert(
-        resProjDeleteImposter.success === false,
-        "Imposter with same display name cannot delete project"
-      );
-      const projStillExists = sqlite.prepare("SELECT id FROM projects WHERE id = ?").get(projId);
-      assert(Boolean(projStillExists), "Project remains intact after imposter delete attempt");
-    });
-
-    // C.7 Legit lead can delete project even after profile rename
-    await testAuthStorage!.run({ userId: "u_jordan_legit" }, async () => {
-      sqlite
-        .prepare("UPDATE users SET name = 'Jordan Super Renamed' WHERE id = 'u_jordan_legit'")
-        .run();
-
-      const resProjDeleteLegit = await deleteProjectAction(projId);
-      assert(
-        resProjDeleteLegit.success === true,
-        "Legit project lead can delete project after profile rename"
-      );
-      const projGone = sqlite.prepare("SELECT id FROM projects WHERE id = ?").get(projId);
-      assert(!projGone, "Project successfully deleted");
-    });
-
-    // C.8 updateProjectAction owner display name and ownerUserId synchronization
-    // Create another project to test updateProjectAction
-    let proj2Id = "";
-    await testAuthStorage!.run({ userId: "u_extra" }, async () => {
-      const resCreate = await createProjectAction({
-        workspaceId: "ws1",
-        name: "Sync Test Project",
-        ownerUserId: "u_member1",
-      });
-      proj2Id = resCreate.id!;
-    });
-
-    sqlite
-      .prepare("UPDATE users SET name = 'Jordan Smith' WHERE id = 'u_jordan_legit'")
-      .run();
-
-    await testAuthStorage!.run({ userId: "u_extra" }, async () => {
-      // 1. Ambiguous owner name update rejected
-      const resAmbig = await updateProjectAction(proj2Id, {
-        owner: "Jordan Smith", // 2 users have this name
-      });
-      assert(
-        resAmbig.success === false && resAmbig.error!.includes("Multiple workspace members match this name"),
-        "updateProjectAction rejects ambiguous owner name"
-      );
-
-      // 2. Non-member owner name update rejected
-      const resNonMem = await updateProjectAction(proj2Id, {
-        owner: "NonExistent Person",
-      });
-      assert(
-        resNonMem.success === false && resNonMem.error!.includes("Project owner must be an active member"),
-        "updateProjectAction rejects non-member owner name"
-      );
-
-      // 3. Unique owner name update succeeds and synchronizes ownerUserId
-      const resUnique = await updateProjectAction(proj2Id, {
-        owner: "Bob Member", // exactly 1 user (u_member1)
-      });
-      assert(resUnique.success === true, "updateProjectAction succeeds with unique owner name");
-
-      const projAfter = sqlite
-        .prepare("SELECT owner, owner_user_id FROM projects WHERE id = ?")
-        .get(proj2Id) as { owner: string; owner_user_id: string };
-      assert(
-        projAfter.owner === "Bob Member" && projAfter.owner_user_id === "u_member1",
-        "updateProjectAction synchronized owner display name and owner_user_id"
-      );
-    });
-
-    // =========================================================================
-    // Group D: Lifecycle Atomic Actions (Workspace CRUD & Leave)
-    // =========================================================================
-    console.log("\n[Group D: Lifecycle Atomic Actions]");
-
-    // D.1 createWorkspaceAction is atomic with exactly 1 owner
-    let createdWsId = "";
-    await testAuthStorage!.run({ userId: "u_member1" }, async () => {
-      const resCreateWs = await createWorkspaceAction({
-        name: "Atomic Workspace",
-        plan: "Free",
-      });
-      assert(resCreateWs.success === true, "createWorkspaceAction succeeds");
-      createdWsId = resCreateWs.id!;
-
-      const owners = sqlite
-        .prepare("SELECT user_id, role FROM workspace_members WHERE workspace_id = ? AND role = 'owner'")
-        .all(createdWsId) as { user_id: string; role: string }[];
-      assert(
-        owners.length === 1 && owners[0].user_id === "u_member1",
-        "Created workspace has exactly 1 owner: u_member1"
-      );
-    });
-
-    // D.2 Owner cannot leave multi-member workspace
-    sqlite
-      .prepare("INSERT INTO workspace_members (id, workspace_id, user_id, role, joined_at) VALUES (?, ?, ?, ?, ?)")
-      .run(`wm_${createdWsId}_extra`, createdWsId, "u_extra", "member", now);
-
-    await testAuthStorage!.run({ userId: "u_member1" }, async () => {
-      const resLeaveBlocked = await leaveWorkspaceAction(createdWsId);
-      assert(resLeaveBlocked.success === false, "Owner cannot leave multi-member workspace");
-      assert(
-        resLeaveBlocked.error!.includes("Workspace owners cannot leave while other members exist"),
-        "Returns clear leave-blocked error"
-      );
-    });
-
-    // D.3 Non-owner can leave multi-member workspace
-    await testAuthStorage!.run({ userId: "u_extra" }, async () => {
-      const resLeaveNonOwner = await leaveWorkspaceAction(createdWsId);
-      assert(resLeaveNonOwner.success === true, "Non-owner can leave multi-member workspace");
-
-      const remaining = sqlite
-        .prepare("SELECT user_id FROM workspace_members WHERE workspace_id = ?")
-        .all(createdWsId) as { user_id: string }[];
-      assert(
-        remaining.length === 1 && remaining[0].user_id === "u_member1",
-        "Only u_member1 remains in workspace"
-      );
-    });
-
-    // D.4 Sole-member owner leaves -> workspace is deleted
-    await testAuthStorage!.run({ userId: "u_member1" }, async () => {
-      const resSoleLeave = await leaveWorkspaceAction(createdWsId);
-      assert(resSoleLeave.success === true, "Sole-member owner leaving deletes workspace");
-
-      const wsExists = sqlite.prepare("SELECT id FROM workspaces WHERE id = ?").get(createdWsId);
-      assert(!wsExists, "Workspace deleted upon sole member departure");
-    });
-
-    // D.5 deleteWorkspaceAction authorization
-    const tempWsId = "ws_to_delete_test";
-    sqlite
-      .prepare("INSERT INTO workspaces (id, name, slug, plan, is_public, created_at) VALUES (?, ?, ?, ?, ?, ?)")
-      .run(tempWsId, "Delete WS", "delete-ws", "Starter", 0, now);
-    sqlite
-      .prepare("INSERT INTO workspace_members (id, workspace_id, user_id, role, joined_at) VALUES (?, ?, ?, ?, ?)")
-      .run("wm_del_1", tempWsId, "u_member1", "owner", now);
-    sqlite
-      .prepare("INSERT INTO workspace_members (id, workspace_id, user_id, role, joined_at) VALUES (?, ?, ?, ?, ?)")
-      .run("wm_del_2", tempWsId, "u_extra", "member", now);
-
-    await testAuthStorage!.run({ userId: "u_extra" }, async () => {
-      const resDelNonOwner = await deleteWorkspaceAction(tempWsId);
-      assert(resDelNonOwner.success === false, "Non-owner cannot delete workspace");
-    });
-    await testAuthStorage!.run({ userId: "u_member1" }, async () => {
-      const resDelOwner = await deleteWorkspaceAction(tempWsId);
-      assert(resDelOwner.success === true, "Owner can delete workspace");
-      const delCheck = sqlite.prepare("SELECT id FROM workspaces WHERE id = ?").get(tempWsId);
-      assert(!delCheck, "Workspace successfully deleted");
-    });
-
-    // =========================================================================
-    // Group E: Migration Column Addition & Backfill Priority
-    // =========================================================================
-    console.log("\n[Group E: Migration Column Addition & Backfill Priority]");
-
-    const migDbPath = createTempDbPath("test-migration-backfill");
-    try {
-      const migDb = new Database(migDbPath);
-      migDb.pragma("journal_mode = WAL");
-      migDb.pragma("foreign_keys = ON");
-
-      // Initialize old-schema tables without owner_user_id and assignee_user_id
-      migDb.exec(`
-        CREATE TABLE users (
-          id TEXT PRIMARY KEY,
-          email TEXT NOT NULL UNIQUE,
-          username TEXT NOT NULL UNIQUE,
-          name TEXT NOT NULL,
-          password_hash TEXT NOT NULL,
-          avatar TEXT,
-          created_at TEXT NOT NULL
+      await testAuthStorage!.run({ userId: "u_member1" }, async () => {
+        const resLeaveBlocked = await leaveWorkspaceAction(createdWsId);
+        expect(resLeaveBlocked.success).toBe(false);
+        expect(resLeaveBlocked.error).toContain(
+          "Workspace owners cannot leave while other members exist"
         );
-        CREATE TABLE workspaces (
-          id TEXT PRIMARY KEY,
-          name TEXT NOT NULL,
-          slug TEXT NOT NULL UNIQUE,
-          plan TEXT NOT NULL DEFAULT 'Starter',
-          is_public INTEGER NOT NULL DEFAULT 0,
-          created_at TEXT NOT NULL
-        );
-        CREATE TABLE workspace_members (
-          id TEXT PRIMARY KEY,
-          workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
-          user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          role TEXT NOT NULL DEFAULT 'member',
-          joined_at TEXT NOT NULL
-        );
-        CREATE UNIQUE INDEX idx_workspace_members_ws_user ON workspace_members(workspace_id, user_id);
-        CREATE TABLE projects (
-          id TEXT PRIMARY KEY,
-          workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
-          name TEXT NOT NULL,
-          progress INTEGER NOT NULL DEFAULT 0,
-          due TEXT NOT NULL,
-          owner TEXT NOT NULL,
-          status TEXT NOT NULL DEFAULT 'Planning',
-          overview TEXT NOT NULL,
-          created_at TEXT NOT NULL
-        );
-        CREATE TABLE project_members (
-          id TEXT PRIMARY KEY,
-          project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-          user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
-          name TEXT NOT NULL,
-          role TEXT NOT NULL DEFAULT 'contributor',
-          initials TEXT NOT NULL,
-          color TEXT NOT NULL
-        );
-        CREATE UNIQUE INDEX idx_project_members_proj_user ON project_members(project_id, user_id) WHERE user_id IS NOT NULL;
-        CREATE TABLE tasks (
-          id TEXT PRIMARY KEY,
-          workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
-          project_id TEXT REFERENCES projects(id) ON DELETE CASCADE,
-          title TEXT NOT NULL,
-          assignee TEXT NOT NULL,
-          status TEXT NOT NULL DEFAULT 'Todo',
-          priority TEXT NOT NULL DEFAULT 'Medium',
-          due TEXT NOT NULL,
-          created_at TEXT NOT NULL
-        );
-      `);
+      });
+    });
 
-      // Seed data
-      migDb
-        .prepare(
-          "INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?)"
-        )
-        .run("u_alice", "alice@test.com", "alice", "Alice Lead", "hash", null, now);
-      migDb
-        .prepare(
-          "INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?)"
-        )
-        .run("u_bob", "bob@test.com", "bob", "Bob Contributor", "hash", null, now);
-      migDb
-        .prepare(
-          "INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?)"
-        )
-        .run("u_charlie1", "charlie1@test.com", "charlie1", "Charlie Dual", "hash", null, now);
-      migDb
-        .prepare(
-          "INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?)"
-        )
-        .run("u_charlie2", "charlie2@test.com", "charlie2", "Charlie Dual", "hash", null, now);
+    it("D.3 non-owner can leave a multi-member workspace", async () => {
+      const createdWsId = (globalThis as { __createdWsId?: string }).__createdWsId!;
+      await testAuthStorage!.run({ userId: "u_extra" }, async () => {
+        const resLeaveNonOwner = await leaveWorkspaceAction(createdWsId);
+        expect(resLeaveNonOwner.success).toBe(true);
 
-      migDb
-        .prepare(
-          "INSERT INTO workspaces VALUES (?, ?, ?, ?, ?, ?)"
-        )
-        .run("ws_mig", "Mig WS", "mig-ws", "Starter", 0, now);
-      migDb
-        .prepare(
-          "INSERT INTO workspace_members VALUES (?, ?, ?, ?, ?)"
-        )
-        .run("wm_a", "ws_mig", "u_alice", "owner", now);
-      migDb
-        .prepare(
-          "INSERT INTO workspace_members VALUES (?, ?, ?, ?, ?)"
-        )
-        .run("wm_b", "ws_mig", "u_bob", "member", now);
-      migDb
-        .prepare(
-          "INSERT INTO workspace_members VALUES (?, ?, ?, ?, ?)"
-        )
-        .run("wm_c1", "ws_mig", "u_charlie1", "member", now);
-      migDb
-        .prepare(
-          "INSERT INTO workspace_members VALUES (?, ?, ?, ?, ?)"
-        )
-        .run("wm_c2", "ws_mig", "u_charlie2", "member", now);
+        const remaining = (await testDb
+          .prepare("SELECT user_id FROM workspace_members WHERE workspace_id = ?")
+          .all(createdWsId)) as { user_id: string }[];
+        expect(remaining).toHaveLength(1);
+        expect(remaining[0].user_id).toBe("u_member1");
+      });
+    });
 
-      // p1: has lead row in project_members
-      migDb
-        .prepare(
-          "INSERT INTO projects VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
-        )
-        .run("p1", "ws_mig", "Project 1", 0, "2026-12-31", "Alice Lead", "Planning", "Overview 1", now);
-      migDb
-        .prepare(
-          "INSERT INTO project_members VALUES (?, ?, ?, ?, ?, ?, ?)"
-        )
-        .run("pm_p1_lead", "p1", "u_alice", "Alice Lead", "lead", "AL", "bg-blue-500");
-      migDb
-        .prepare(
-          "INSERT INTO project_members VALUES (?, ?, ?, ?, ?, ?, ?)"
-        )
-        .run("pm_p1_bob", "p1", "u_bob", "Bob Contributor", "contributor", "BC", "bg-green-500");
+    it("D.4 sole-member owner leaving deletes the workspace", async () => {
+      const createdWsId = (globalThis as { __createdWsId?: string }).__createdWsId!;
+      await testAuthStorage!.run({ userId: "u_member1" }, async () => {
+        const resSoleLeave = await leaveWorkspaceAction(createdWsId);
+        expect(resSoleLeave.success).toBe(true);
 
-      // p2: lead has null user_id, owner matches unique workspace member Bob Contributor
-      migDb
-        .prepare(
-          "INSERT INTO projects VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
-        )
-        .run("p2", "ws_mig", "Project 2", 0, "2026-12-31", "Bob Contributor", "Planning", "Overview 2", now);
-      migDb
-        .prepare(
-          "INSERT INTO project_members VALUES (?, ?, ?, ?, ?, ?, ?)"
-        )
-        .run("pm_p2_lead", "p2", null, "Bob Contributor", "lead", "BC", "bg-green-500");
+        const wsExists = await testDb
+          .prepare("SELECT id FROM workspaces WHERE id = ?")
+          .get(createdWsId);
+        expect(!wsExists).toBe(true);
+      });
+    });
 
-      // p3: ambiguous owner name (Charlie Dual matches 2 workspace members), lead has null user_id
-      migDb
-        .prepare(
-          "INSERT INTO projects VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
-        )
-        .run("p3", "ws_mig", "Project 3", 0, "2026-12-31", "Charlie Dual", "Planning", "Overview 3", now);
-      migDb
-        .prepare(
-          "INSERT INTO project_members VALUES (?, ?, ?, ?, ?, ?, ?)"
-        )
-        .run("pm_p3_lead", "p3", null, "Charlie Dual", "lead", "CD", "bg-purple-500");
+    it("D.5 deleteWorkspaceAction enforces owner-only authorization", async () => {
+      const tempWsId = "ws_to_delete_test";
+      await insertWorkspace(tempWsId, "Delete WS", "delete-ws");
+      await insertWorkspaceMember("wm_del_1", tempWsId, "u_member1", "owner");
+      await insertWorkspaceMember("wm_del_2", tempWsId, "u_extra", "member");
 
-      // p4: unresolvable owner name (0 matches), lead has null user_id
-      migDb
-        .prepare(
-          "INSERT INTO projects VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
-        )
-        .run("p4", "ws_mig", "Project 4", 0, "2026-12-31", "Ghost User", "Planning", "Overview 4", now);
-      migDb
-        .prepare(
-          "INSERT INTO project_members VALUES (?, ?, ?, ?, ?, ?, ?)"
-        )
-        .run("pm_p4_lead", "p4", null, "Ghost User", "lead", "GU", "bg-gray-500");
+      await testAuthStorage!.run({ userId: "u_extra" }, async () => {
+        const resDelNonOwner = await deleteWorkspaceAction(tempWsId);
+        expect(resDelNonOwner.success).toBe(false);
+      });
 
-      // Tasks
-      migDb
-        .prepare(
-          "INSERT INTO tasks VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
-        )
-        .run("t1", "ws_mig", "p1", "Task 1", "Alice Lead", "Todo", "Medium", "2026-12-31", now);
-      migDb
-        .prepare(
-          "INSERT INTO tasks VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
-        )
-        .run("t2", "ws_mig", "p1", "Task 2", "Charlie Dual", "Todo", "Medium", "2026-12-31", now);
-      migDb
-        .prepare(
-          "INSERT INTO tasks VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
-        )
-        .run("t3", "ws_mig", "p1", "Task 3", "Unassigned", "Todo", "Medium", "2026-12-31", now);
+      await testAuthStorage!.run({ userId: "u_member1" }, async () => {
+        const resDelOwner = await deleteWorkspaceAction(tempWsId);
+        expect(resDelOwner.success).toBe(true);
 
-      // 1. Column detection
-      const colStatus = checkStableIdentityColumns(migDb);
-      assert(
-        colStatus.missingColumns.includes("projects.owner_user_id") &&
-          colStatus.missingColumns.includes("tasks.assignee_user_id"),
-        "Detects missing stable identity columns on old schema"
-      );
+        const delCheck = await testDb
+          .prepare("SELECT id FROM workspaces WHERE id = ?")
+          .get(tempWsId);
+        expect(!delCheck).toBe(true);
+      });
+    });
+  });
 
-      // 2. Pending backfill count
-      const pendingBackfills = countPendingResolvableBackfills(migDb, colStatus);
-      assert(
-        pendingBackfills.resolvableProjects === 2 && pendingBackfills.unresolvableProjects === 2,
-        "Correctly identifies 2 resolvable and 2 unresolvable projects"
-      );
-      assert(
-        pendingBackfills.resolvableTasks === 1 && pendingBackfills.unresolvableTasks === 1,
-        "Correctly identifies 1 resolvable and 1 unresolvable task"
-      );
+  describe("Group E: Migration column addition & backfill priority (legacy SQLite script)", () => {
+    it("detects, dry-runs, and applies stable-identity backfill correctly", async () => {
+      const migDbPath = createTempDbPath("test-migration-backfill");
+      try {
+        const migDb = new Database(migDbPath);
+        migDb.pragma("journal_mode = WAL");
+        migDb.pragma("foreign_keys = ON");
 
-      migDb.close();
+        // Initialize old-schema tables without owner_user_id and assignee_user_id
+        migDb.exec(`
+          CREATE TABLE users (
+            id TEXT PRIMARY KEY,
+            email TEXT NOT NULL UNIQUE,
+            username TEXT NOT NULL UNIQUE,
+            name TEXT NOT NULL,
+            password_hash TEXT NOT NULL,
+            avatar TEXT,
+            created_at TEXT NOT NULL
+          );
+          CREATE TABLE workspaces (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            slug TEXT NOT NULL UNIQUE,
+            plan TEXT NOT NULL DEFAULT 'Starter',
+            is_public INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL
+          );
+          CREATE TABLE workspace_members (
+            id TEXT PRIMARY KEY,
+            workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+            user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            role TEXT NOT NULL DEFAULT 'member',
+            joined_at TEXT NOT NULL
+          );
+          CREATE UNIQUE INDEX idx_workspace_members_ws_user ON workspace_members(workspace_id, user_id);
+          CREATE TABLE projects (
+            id TEXT PRIMARY KEY,
+            workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+            name TEXT NOT NULL,
+            progress INTEGER NOT NULL DEFAULT 0,
+            due TEXT NOT NULL,
+            owner TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'Planning',
+            overview TEXT NOT NULL,
+            created_at TEXT NOT NULL
+          );
+          CREATE TABLE project_members (
+            id TEXT PRIMARY KEY,
+            project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+            user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+            name TEXT NOT NULL,
+            role TEXT NOT NULL DEFAULT 'contributor',
+            initials TEXT NOT NULL,
+            color TEXT NOT NULL
+          );
+          CREATE UNIQUE INDEX idx_project_members_proj_user ON project_members(project_id, user_id) WHERE user_id IS NOT NULL;
+          CREATE TABLE tasks (
+            id TEXT PRIMARY KEY,
+            workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+            project_id TEXT REFERENCES projects(id) ON DELETE CASCADE,
+            title TEXT NOT NULL,
+            assignee TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'Todo',
+            priority TEXT NOT NULL DEFAULT 'Medium',
+            due TEXT NOT NULL,
+            created_at TEXT NOT NULL
+          );
+        `);
 
-      // 3. Dry-run on old schema: must NOT return alreadyApplied
-      const dryRes = await runUniquenessMigration({ dbPath: migDbPath, dryRun: true });
-      assert(dryRes.success === true && dryRes.dryRun === true, "Dry-run succeeds on old schema");
-      assert(dryRes.alreadyApplied === false, "Dry-run does not report alreadyApplied when columns missing");
-      assert(dryRes.missingColumnsFound?.length === 2, "Dry-run reports 2 missing columns");
-      assert(dryRes.projectsPendingBackfill === 2, "Dry-run reports 2 projects pending backfill");
-      assert(dryRes.tasksPendingBackfill === 1, "Dry-run reports 1 task pending backfill");
+        // Seed data
+        migDb.prepare("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?)").run("u_alice", "alice@test.com", "alice", "Alice Lead", "hash", null, now);
+        migDb.prepare("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?)").run("u_bob", "bob@test.com", "bob", "Bob Contributor", "hash", null, now);
+        migDb.prepare("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?)").run("u_charlie1", "charlie1@test.com", "charlie1", "Charlie Dual", "hash", null, now);
+        migDb.prepare("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?)").run("u_charlie2", "charlie2@test.com", "charlie2", "Charlie Dual", "hash", null, now);
 
-      // 4. Live migration on old schema
-      const liveRes = await runUniquenessMigration({ dbPath: migDbPath, dryRun: false, skipBackup: true });
-      assert(liveRes.success === true, "Live migration succeeds on old schema");
-      assert(liveRes.projectsBackfilled === 2, "Live migration backfills 2 projects");
-      assert(liveRes.tasksBackfilled === 1, "Live migration backfills 1 task");
+        migDb.prepare("INSERT INTO workspaces VALUES (?, ?, ?, ?, ?, ?)").run("ws_mig", "Mig WS", "mig-ws", "Starter", 0, now);
+        migDb.prepare("INSERT INTO workspace_members VALUES (?, ?, ?, ?, ?)").run("wm_a", "ws_mig", "u_alice", "owner", now);
+        migDb.prepare("INSERT INTO workspace_members VALUES (?, ?, ?, ?, ?)").run("wm_b", "ws_mig", "u_bob", "member", now);
+        migDb.prepare("INSERT INTO workspace_members VALUES (?, ?, ?, ?, ?)").run("wm_c1", "ws_mig", "u_charlie1", "member", now);
+        migDb.prepare("INSERT INTO workspace_members VALUES (?, ?, ?, ?, ?)").run("wm_c2", "ws_mig", "u_charlie2", "member", now);
 
-      // 5. Verify database contents
-      const verifyDb = new Database(migDbPath, { readonly: true });
-      const p1Row = verifyDb
-        .prepare("SELECT owner_user_id FROM projects WHERE id = 'p1'")
-        .get() as { owner_user_id: string };
-      assert(p1Row.owner_user_id === "u_alice", "p1 owner_user_id backfilled from lead row priority");
+        // p1: has lead row in project_members
+        migDb.prepare("INSERT INTO projects VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)").run("p1", "ws_mig", "Project 1", 0, "2026-12-31", "Alice Lead", "Planning", "Overview 1", now);
+        migDb.prepare("INSERT INTO project_members VALUES (?, ?, ?, ?, ?, ?, ?)").run("pm_p1_lead", "p1", "u_alice", "Alice Lead", "lead", "AL", "bg-blue-500");
+        migDb.prepare("INSERT INTO project_members VALUES (?, ?, ?, ?, ?, ?, ?)").run("pm_p1_bob", "p1", "u_bob", "Bob Contributor", "contributor", "BC", "bg-green-500");
 
-      const p2Row = verifyDb
-        .prepare("SELECT owner_user_id FROM projects WHERE id = 'p2'")
-        .get() as { owner_user_id: string };
-      assert(p2Row.owner_user_id === "u_bob", "p2 owner_user_id backfilled from unique name fallback");
+        // p2: lead has null user_id, owner matches unique workspace member Bob Contributor
+        migDb.prepare("INSERT INTO projects VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)").run("p2", "ws_mig", "Project 2", 0, "2026-12-31", "Bob Contributor", "Planning", "Overview 2", now);
+        migDb.prepare("INSERT INTO project_members VALUES (?, ?, ?, ?, ?, ?, ?)").run("pm_p2_lead", "p2", null, "Bob Contributor", "lead", "BC", "bg-green-500");
 
-      const p3Row = verifyDb
-        .prepare("SELECT owner_user_id FROM projects WHERE id = 'p3'")
-        .get() as { owner_user_id: string | null };
-      assert(p3Row.owner_user_id === null, "p3 owner_user_id left NULL due to ambiguous name match");
+        // p3: ambiguous owner name (Charlie Dual matches 2 workspace members)
+        migDb.prepare("INSERT INTO projects VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)").run("p3", "ws_mig", "Project 3", 0, "2026-12-31", "Charlie Dual", "Planning", "Overview 3", now);
+        migDb.prepare("INSERT INTO project_members VALUES (?, ?, ?, ?, ?, ?, ?)").run("pm_p3_lead", "p3", null, "Charlie Dual", "lead", "CD", "bg-purple-500");
 
-      const p4Row = verifyDb
-        .prepare("SELECT owner_user_id FROM projects WHERE id = 'p4'")
-        .get() as { owner_user_id: string | null };
-      assert(p4Row.owner_user_id === null, "p4 owner_user_id left NULL due to zero member matches");
+        // p4: unresolvable owner name (0 matches)
+        migDb.prepare("INSERT INTO projects VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)").run("p4", "ws_mig", "Project 4", 0, "2026-12-31", "Ghost User", "Planning", "Overview 4", now);
+        migDb.prepare("INSERT INTO project_members VALUES (?, ?, ?, ?, ?, ?, ?)").run("pm_p4_lead", "p4", null, "Ghost User", "lead", "GU", "bg-gray-500");
 
-      const t1Row = verifyDb
-        .prepare("SELECT assignee_user_id FROM tasks WHERE id = 't1'")
-        .get() as { assignee_user_id: string };
-      assert(t1Row.assignee_user_id === "u_alice", "t1 assignee_user_id backfilled from unique name");
+        // Tasks
+        migDb.prepare("INSERT INTO tasks VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)").run("t1", "ws_mig", "p1", "Task 1", "Alice Lead", "Todo", "Medium", "2026-12-31", now);
+        migDb.prepare("INSERT INTO tasks VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)").run("t2", "ws_mig", "p1", "Task 2", "Charlie Dual", "Todo", "Medium", "2026-12-31", now);
+        migDb.prepare("INSERT INTO tasks VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)").run("t3", "ws_mig", "p1", "Task 3", "Unassigned", "Todo", "Medium", "2026-12-31", now);
 
-      const t2Row = verifyDb
-        .prepare("SELECT assignee_user_id FROM tasks WHERE id = 't2'")
-        .get() as { assignee_user_id: string | null };
-      assert(t2Row.assignee_user_id === null, "t2 assignee_user_id left NULL due to ambiguous name match");
+        // 1. Column detection
+        const colStatus = checkStableIdentityColumns(migDb);
+        expect(colStatus.missingColumns).toContain("projects.owner_user_id");
+        expect(colStatus.missingColumns).toContain("tasks.assignee_user_id");
 
-      const t3Row = verifyDb
-        .prepare("SELECT assignee_user_id FROM tasks WHERE id = 't3'")
-        .get() as { assignee_user_id: string | null };
-      assert(t3Row.assignee_user_id === null, "t3 assignee_user_id left NULL for unassigned task");
-      verifyDb.close();
+        // 2. Pending backfill count
+        const pendingBackfills = countPendingResolvableBackfills(migDb, colStatus);
+        expect(pendingBackfills.resolvableProjects).toBe(2);
+        expect(pendingBackfills.unresolvableProjects).toBe(2);
+        expect(pendingBackfills.resolvableTasks).toBe(1);
+        expect(pendingBackfills.unresolvableTasks).toBe(1);
 
-      // 6. Post-migration dry run: MUST report alreadyApplied: true
-      const postDryRes = await runUniquenessMigration({ dbPath: migDbPath, dryRun: true });
-      assert(
-        postDryRes.success === true && postDryRes.alreadyApplied === true,
-        "Post-migration dry-run reports alreadyApplied = true"
-      );
+        migDb.close();
 
-      // 7. Post-migration live run: MUST report alreadyApplied: true
-      const postLiveRes = await runUniquenessMigration({ dbPath: migDbPath, dryRun: false, skipBackup: true });
-      assert(
-        postLiveRes.success === true && postLiveRes.alreadyApplied === true,
-        "Post-migration live run reports alreadyApplied = true"
-      );
-    } finally {
-      cleanupTempDb(migDbPath);
-    }
-  } finally {
-    setDatabaseForTesting(undefined);
-    sqlite.close();
-    cleanupTempDb(dbPath);
-  }
+        // 3. Dry-run on old schema: must NOT return alreadyApplied
+        const dryRes = await runUniquenessMigration({ dbPath: migDbPath, dryRun: true });
+        expect(dryRes.success).toBe(true);
+        expect(dryRes.dryRun).toBe(true);
+        expect(dryRes.alreadyApplied).toBe(false);
+        expect(dryRes.missingColumnsFound?.length).toBe(2);
+        expect(dryRes.projectsPendingBackfill).toBe(2);
+        expect(dryRes.tasksPendingBackfill).toBe(1);
 
-  console.log("\n==================================================");
-  console.log(`LIFECYCLE TESTS COMPLETE: ${passed} of ${total} passed.`);
-  console.log("==================================================");
+        // 4. Live migration on old schema
+        const liveRes = await runUniquenessMigration({
+          dbPath: migDbPath,
+          dryRun: false,
+          skipBackup: true,
+        });
+        expect(liveRes.success).toBe(true);
+        expect(liveRes.projectsBackfilled).toBe(2);
+        expect(liveRes.tasksBackfilled).toBe(1);
 
-  if (passed !== total) {
-    process.exit(1);
-  }
-}
+        // 5. Verify database contents
+        const verifyDb = new Database(migDbPath, { readonly: true });
+        const p1Row = verifyDb
+          .prepare("SELECT owner_user_id FROM projects WHERE id = 'p1'")
+          .get() as { owner_user_id: string };
+        expect(p1Row.owner_user_id).toBe("u_alice");
 
-runLifecycleTests().catch((err) => {
-  console.error("FATAL in lifecycle test suite:", err);
-  process.exit(1);
+        const p2Row = verifyDb
+          .prepare("SELECT owner_user_id FROM projects WHERE id = 'p2'")
+          .get() as { owner_user_id: string };
+        expect(p2Row.owner_user_id).toBe("u_bob");
+
+        const p3Row = verifyDb
+          .prepare("SELECT owner_user_id FROM projects WHERE id = 'p3'")
+          .get() as { owner_user_id: string | null };
+        expect(p3Row.owner_user_id).toBeNull();
+
+        const p4Row = verifyDb
+          .prepare("SELECT owner_user_id FROM projects WHERE id = 'p4'")
+          .get() as { owner_user_id: string | null };
+        expect(p4Row.owner_user_id).toBeNull();
+
+        const t1Row = verifyDb
+          .prepare("SELECT assignee_user_id FROM tasks WHERE id = 't1'")
+          .get() as { assignee_user_id: string };
+        expect(t1Row.assignee_user_id).toBe("u_alice");
+
+        const t2Row = verifyDb
+          .prepare("SELECT assignee_user_id FROM tasks WHERE id = 't2'")
+          .get() as { assignee_user_id: string | null };
+        expect(t2Row.assignee_user_id).toBeNull();
+
+        const t3Row = verifyDb
+          .prepare("SELECT assignee_user_id FROM tasks WHERE id = 't3'")
+          .get() as { assignee_user_id: string | null };
+        expect(t3Row.assignee_user_id).toBeNull();
+        verifyDb.close();
+
+        // 6. Post-migration dry run: MUST report alreadyApplied: true
+        const postDryRes = await runUniquenessMigration({ dbPath: migDbPath, dryRun: true });
+        expect(postDryRes.success).toBe(true);
+        expect(postDryRes.alreadyApplied).toBe(true);
+
+        // 7. Post-migration live run: MUST report alreadyApplied: true
+        const postLiveRes = await runUniquenessMigration({
+          dbPath: migDbPath,
+          dryRun: false,
+          skipBackup: true,
+        });
+        expect(postLiveRes.success).toBe(true);
+        expect(postLiveRes.alreadyApplied).toBe(true);
+      } finally {
+        cleanupTempDb(migDbPath);
+      }
+    });
+  });
 });

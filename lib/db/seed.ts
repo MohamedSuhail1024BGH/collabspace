@@ -29,13 +29,10 @@ export async function verifyStartupIndexes(): Promise<void> {
   }
 }
 
-export function ensureTablesBasic(_sqliteInstance?: unknown): void {}
-export function createCanonicalIndexes(_sqliteInstance?: unknown): void {}
-
 /**
  * Normal application startup table verification.
  */
-export async function ensureTables(_sqliteInstance?: unknown) {
+export async function ensureTables() {
   await verifyStartupIndexes();
   await cleanupExpiredSessions();
 }
@@ -43,7 +40,7 @@ export async function ensureTables(_sqliteInstance?: unknown) {
 /**
  * Resets the database by truncating all tables with CASCADE.
  */
-export async function resetDatabase(_sqliteInstance?: unknown) {
+export async function resetDatabase() {
   await db.execute(sql`
     TRUNCATE TABLE 
       notifications,

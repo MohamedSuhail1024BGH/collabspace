@@ -3,7 +3,7 @@ import { cache } from "react";
 import { cookies } from "next/headers";
 import { AsyncLocalStorage } from "async_hooks";
 import { eq, and, gt, ne, lte } from "drizzle-orm";
-import { db, sql } from "./index";
+import { db } from "./index";
 import {
   users,
   sessions,

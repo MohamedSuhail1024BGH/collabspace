@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import type { DbWorkspace, DbUser } from "@/lib/db/schema";
 import { Logo } from "@/components/ui/Logo";
-import { logoutAction } from "@/app/actions";
+import { logoutAction } from "@/app/actions-auth";
 import {
   LayoutDashboard,
   FolderKanban,

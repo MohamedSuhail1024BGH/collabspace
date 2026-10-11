@@ -2,14 +2,9 @@
 
 import { useState, useTransition, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import {
-  createWorkspaceAction,
-  switchWorkspaceAction,
-  joinWorkspaceAction,
-  searchUsersAction,
-  searchWorkspacesAction,
-  logoutAction,
-} from "@/app/actions";
+import { logoutAction } from "@/app/actions-auth";
+import { searchUsersAction, searchWorkspacesAction } from "@/app/actions-search";
+import { createWorkspaceAction, switchWorkspaceAction, joinWorkspaceAction } from "@/app/actions-workspaces";
 import type { DbUser } from "@/lib/db/schema";
 import { FloatingSettingsModal } from "@/components/dashboard/FloatingSettingsModal";
 import { UserAvatar } from "@/components/ui/UserAvatar";

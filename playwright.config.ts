@@ -11,6 +11,20 @@ export default defineConfig({
     baseURL: "http://127.0.0.1:3001",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
+    // Pre-seed cookie consent for every context: the global CookieBanner mounts
+    // after 800ms on a fresh origin and its z-50 dialog intercepts pointer
+    // events, which otherwise stalls every click-based assertion.
+    storageState: {
+      cookies: [],
+      origins: [
+        {
+          origin: "http://127.0.0.1:3001",
+          localStorage: [
+            { name: "collabspace_cookie_consent_choice", value: "all_accepted" },
+          ],
+        },
+      ],
+    },
   },
   projects: [
     {

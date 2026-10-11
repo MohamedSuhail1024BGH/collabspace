@@ -4,18 +4,10 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { DbWorkspace, DbUser } from "@/lib/db/schema";
 import { cn } from "@/lib/utils";
-import {
-  updateWorkspaceAction,
-  updateUserProfileAction,
-  deleteAccountAction,
-  deleteWorkspaceAction,
-  leaveWorkspaceAction,
-  transferWorkspaceOwnershipAction,
-  changePasswordAction,
-  addWorkspaceMemberAction,
-  removeWorkspaceMemberAction,
-  searchUsersForInviteAction,
-} from "@/app/actions";
+import { deleteAccountAction, changePasswordAction } from "@/app/actions-auth";
+import { updateUserProfileAction } from "@/app/actions-profile";
+import { searchUsersForInviteAction } from "@/app/actions-search";
+import { updateWorkspaceAction, deleteWorkspaceAction, leaveWorkspaceAction, transferWorkspaceOwnershipAction, addWorkspaceMemberAction, removeWorkspaceMemberAction } from "@/app/actions-workspaces";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { WorkspaceAvatar } from "@/components/ui/WorkspaceAvatar";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";

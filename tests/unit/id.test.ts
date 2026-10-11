@@ -1,104 +1,47 @@
-import { newId, EntityPrefix } from "../../lib/id";
+import { describe, it, expect } from "vitest";
+import { newId, EntityPrefix } from "@/lib/id";
 
-let passCount = 0;
-let failCount = 0;
+const UUID_V4_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-function assert(condition: boolean, message: string) {
-  if (condition) {
-    passCount++;
-    console.log(`  PASS: ${message}`);
-  } else {
-    failCount++;
-    console.error(`  FAIL: ${message}`);
-  }
-}
+const TEST_PREFIXES: EntityPrefix[] = ["usr", "ws", "project", "task", "conv", "m", "ev", "pa"];
 
-function runIdTests() {
-  console.log("\n==================================================");
-  console.log("RUNNING ID HELPER UNIT TESTS (lib/id.ts)");
-  console.log("==================================================\n");
+describe("lib/id — ID helper", () => {
+  describe("Group 1: Prefix format & structure", () => {
+    for (const prefix of TEST_PREFIXES) {
+      it(`newId('${prefix}') has correct prefix, single separator, and v4 UUID suffix`, () => {
+        const id = newId(prefix);
+        expect(id.startsWith(`${prefix}_`)).toBe(true);
 
-  const UUID_V4_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        const parts = id.split("_");
+        expect(parts).toHaveLength(2);
 
-  console.log("[Group 1: Prefix Format & Structure]");
-  const testPrefixes: EntityPrefix[] = [
-    "usr",
-    "ws",
-    "project",
-    "task",
-    "conv",
-    "m",
-    "ev",
-    "pa",
-  ];
+        expect(UUID_V4_PATTERN.test(parts[1])).toBe(true);
+      });
+    }
+  });
 
-  for (const prefix of testPrefixes) {
-    const id = newId(prefix);
-    assert(
-      id.startsWith(`${prefix}_`),
-      `newId('${prefix}') starts with '${prefix}_' prefix (got: ${id})`
-    );
+  describe("Group 2: Input validation", () => {
+    it("newId('') throws a descriptive error on empty prefix", () => {
+      expect(() => newId("")).toThrowError(/non-empty string/);
+    });
 
-    const parts = id.split("_");
-    assert(
-      parts.length === 2,
-      `newId('${prefix}') contains exactly one underscore separator`
-    );
+    it("newId(null) throws a descriptive error on null prefix", () => {
+      // @ts-expect-error testing invalid null prefix
+      expect(() => newId(null)).toThrowError(/non-empty string/);
+    });
+  });
 
-    const uuidPart = parts[1];
-    assert(
-      UUID_V4_PATTERN.test(uuidPart),
-      `newId('${prefix}') suffix '${uuidPart}' is a valid RFC 4122 v4 UUID`
-    );
-  }
+  describe("Group 3: Uniqueness", () => {
+    it("generates 10,000 IDs with zero collisions", () => {
+      const TOTAL_GENERATIONS = 10_000;
+      const generatedIds = new Set<string>();
 
-  console.log("\n[Group 2: Input Validation]");
-  try {
-    newId("");
-    assert(false, "newId('') throws error on empty string prefix");
-  } catch (err) {
-    assert(
-      err instanceof Error && err.message.includes("non-empty string"),
-      "newId('') throws descriptive error on empty prefix"
-    );
-  }
+      for (let i = 0; i < TOTAL_GENERATIONS; i++) {
+        generatedIds.add(newId(TEST_PREFIXES[i % TEST_PREFIXES.length]));
+      }
 
-  try {
-    // @ts-expect-error testing invalid null prefix
-    newId(null);
-    assert(false, "newId(null) throws error on null prefix");
-  } catch (err) {
-    assert(
-      err instanceof Error && err.message.includes("non-empty string"),
-      "newId(null) throws error on null prefix"
-    );
-  }
-
-  console.log("\n[Group 3: Uniqueness across 10,000 generations]");
-  const TOTAL_GENERATIONS = 10_000;
-  const generatedIds = new Set<string>();
-  const startTime = Date.now();
-
-  for (let i = 0; i < TOTAL_GENERATIONS; i++) {
-    const prefix = testPrefixes[i % testPrefixes.length];
-    const id = newId(prefix);
-    generatedIds.add(id);
-  }
-
-  const durationMs = Date.now() - startTime;
-  assert(
-    generatedIds.size === TOTAL_GENERATIONS,
-    `Zero collisions across ${TOTAL_GENERATIONS.toLocaleString()} consecutive IDs (set size: ${generatedIds.size})`
-  );
-  console.log(`  INFO: Generated ${TOTAL_GENERATIONS.toLocaleString()} IDs in ${durationMs}ms (${(durationMs / TOTAL_GENERATIONS).toFixed(3)}ms/id)`);
-
-  console.log("\n==================================================");
-  console.log(`ID HELPER TESTS COMPLETE: ${passCount} passed, ${failCount} failed.`);
-  console.log("==================================================\n");
-
-  if (failCount > 0) {
-    process.exit(1);
-  }
-}
-
-runIdTests();
+      expect(generatedIds.size).toBe(TOTAL_GENERATIONS);
+    });
+  });
+});
