@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/db/auth";
 import { LoginClient } from "@/components/auth/LoginClient";
 import { Loader } from "@/components/ui/Loader";
+import { StatusNoticeDialog } from "@/components/marketing/StatusNoticeDialog";
 
 import type { Metadata } from "next";
 
@@ -19,15 +20,18 @@ export default async function LoginPage() {
     redirect("/");
   }
   return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-screen items-center justify-center bg-surface">
-          <Loader label="Loading authentication..." />
-        </div>
-      }
-    >
-      <LoginClient />
-    </Suspense>
+    <>
+      <StatusNoticeDialog />
+      <Suspense
+        fallback={
+          <div className="flex min-h-screen items-center justify-center bg-surface">
+            <Loader label="Loading authentication..." />
+          </div>
+        }
+      >
+        <LoginClient />
+      </Suspense>
+    </>
   );
 }
 

@@ -1,4 +1,5 @@
 import { test, expect, devices } from "@playwright/test";
+import { dismissStatusNotice } from "./helpers/auth";
 
 test.use({
   ...devices["Pixel 7"],
@@ -8,6 +9,7 @@ test.describe("Sidebar Mobile Drawer & Workspace Switcher", () => {
   test("expandable workspace switcher bar at bottom of sidebar is unobscured by navigation bar", async ({ page }) => {
     await page.context().clearCookies();
     await page.goto("/login");
+    await dismissStatusNotice(page);
 
     // Login as useranon1 (Owner)
     await page.getByPlaceholder("name@company.com").fill("useranon1@cspace.com");

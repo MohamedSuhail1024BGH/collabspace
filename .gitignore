@@ -59,5 +59,6 @@ collabspace.db*
 .agents/
 .freebuff/
 .test-tmp/
+.kilo/
 
 Uploads_Collabspace/

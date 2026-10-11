@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { dismissStatusNotice } from "./helpers/auth";
 
 test.describe("Authentication & Workspace Onboarding", () => {
   test("should redirect unauthenticated users to /login when accessing protected routes", async ({ page }) => {
@@ -7,6 +8,7 @@ test.describe("Authentication & Workspace Onboarding", () => {
 
     await page.goto("/tasks");
     await expect(page).toHaveURL(/\/login/);
+    await dismissStatusNotice(page);
     await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
 
     await page.goto("/projects");
@@ -22,6 +24,7 @@ test.describe("Authentication & Workspace Onboarding", () => {
   test("should allow signing up with a new user and custom workspace, then redirect to login, sign in, and log out", async ({ page }) => {
     await page.context().clearCookies();
     await page.goto("/signup");
+    await dismissStatusNotice(page);
 
     await expect(page.getByRole("heading", { name: "Create your account" })).toBeVisible();
 
@@ -105,6 +108,7 @@ test.describe("Authentication & Workspace Onboarding", () => {
   test("should allow logging in with credentials and switching workspaces", async ({ page }) => {
     await page.context().clearCookies();
     await page.goto("/login");
+    await dismissStatusNotice(page);
 
     // Fill credentials manually
     await page.getByPlaceholder("name@company.com").fill("ava@acme.com");
@@ -151,6 +155,7 @@ test.describe("Authentication & Workspace Onboarding", () => {
   test("should allow deleting user account with confirmation and prevent subsequent login", async ({ page }) => {
     await page.context().clearCookies();
     await page.goto("/signup");
+    await dismissStatusNotice(page);
 
     const testId = Date.now();
     const testEmail = `del_${testId}@testcorp.io`;

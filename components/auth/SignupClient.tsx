@@ -80,7 +80,7 @@ export function SignupClient() {
             </ul>
 
             <p className="text-xs text-muted-foreground/60 font-mono">
-              No credit card required · Free plan available
+              It is not a real product. This is a demo app built for learning purposes only. No data is stored or shared.
             </p>
           </div>
 
