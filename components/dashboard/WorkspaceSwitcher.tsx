@@ -3,7 +3,7 @@
 import { useState, useTransition, useRef, useEffect, useOptimistic } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { switchWorkspaceAction, createWorkspaceAction } from "@/app/actions";
+import { switchWorkspaceAction, createWorkspaceAction } from "@/app/actions-workspaces";
 import type { DbWorkspace, DbUser } from "@/lib/db/schema";
 import { FloatingSettingsModal } from "./FloatingSettingsModal";
 import { UserAvatar } from "@/components/ui/UserAvatar";

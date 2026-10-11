@@ -9,7 +9,29 @@ import { team, projectDirectory, taskBoard, conversations as initialConversation
 import { hashPasswordSync } from "./auth";
 import { clearAllRateLimits } from "@/lib/auth/rate-limiter";
 
+/**
+ * seed-test.ts TRUNCATEs every table in its target database. Refuse to run
+ * against the shared Supabase database unless explicitly forced, so a local
+ * `npm run test:e2e` can never wipe shared data.
+ */
+function assertSafeDatabaseTarget(): void {
+  let host = "";
+  try {
+    host = new URL(process.env.DATABASE_URL ?? "").host;
+  } catch {
+    // Missing or unparsable URL: the connection itself will fail later.
+  }
+  if (host.includes("supabase") && process.env.E2E_ALLOW_TRUNCATE !== "1") {
+    console.error(
+      `Refusing to truncate the shared database at ${host}.\n` +
+        `Point DATABASE_URL at a disposable database, or set E2E_ALLOW_TRUNCATE=1 if destroying its data is intended.`
+    );
+    process.exit(1);
+  }
+}
+
 async function seedTestData() {
+  assertSafeDatabaseTarget();
   console.log("Setting up E2E test database...");
   await resetDatabase();
   await clearAllRateLimits();

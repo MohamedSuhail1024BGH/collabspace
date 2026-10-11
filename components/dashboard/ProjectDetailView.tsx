@@ -3,11 +3,8 @@
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  assignProjectMemberAction,
-  removeProjectMemberAction,
-  createTaskAction,
-} from "@/app/actions";
+import { assignProjectMemberAction, removeProjectMemberAction } from "@/app/actions-projects";
+import { createTaskAction } from "@/app/actions-tasks";
 import { TaskForm, type TaskDraft } from "@/components/dashboard/TaskForm";
 import { ProjectTimelineWidget } from "./ProjectTimelineWidget";
 import { WorkloadChartWidget } from "./WorkloadChartWidget";

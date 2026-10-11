@@ -2,12 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import {
-  createTaskAction,
-  deleteTaskAction,
-  updateTaskAction,
-  updateTaskStatusAction,
-} from "@/app/actions";
+import { createTaskAction, deleteTaskAction, updateTaskAction, updateTaskStatusAction } from "@/app/actions-tasks";
 import { TaskFilters } from "@/components/dashboard/TaskFilters";
 import { TaskForm, type TaskDraft } from "@/components/dashboard/TaskForm";
 import { TaskList } from "@/components/dashboard/TaskList";

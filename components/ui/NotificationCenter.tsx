@@ -2,13 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import {
-  getNotificationsAction,
-  markNotificationReadAction,
-  markAllNotificationsReadAction,
-  acceptWorkspaceInviteAction,
-  declineWorkspaceInviteAction,
-} from "@/app/actions";
+import { getNotificationsAction, markNotificationReadAction, markAllNotificationsReadAction, acceptWorkspaceInviteAction, declineWorkspaceInviteAction } from "@/app/actions-notifications";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

@@ -3,15 +3,8 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { DbWorkspace, DbUser } from "@/lib/db/schema";
-import {
-  updateWorkspaceAction,
-  deleteWorkspaceAction,
-  leaveWorkspaceAction,
-  transferWorkspaceOwnershipAction,
-  addWorkspaceMemberAction,
-  removeWorkspaceMemberAction,
-  searchUsersForInviteAction,
-} from "@/app/actions";
+import { searchUsersForInviteAction } from "@/app/actions-search";
+import { updateWorkspaceAction, deleteWorkspaceAction, leaveWorkspaceAction, transferWorkspaceOwnershipAction, addWorkspaceMemberAction, removeWorkspaceMemberAction } from "@/app/actions-workspaces";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { WorkspaceAvatar } from "@/components/ui/WorkspaceAvatar";
 import { Card } from "@/components/ui/card";

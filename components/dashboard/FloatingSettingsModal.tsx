@@ -4,11 +4,8 @@ import { useEffect, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import type { DbUser } from "@/lib/db/schema";
-import {
-  updateUserProfileAction,
-  changePasswordAction,
-  deleteAccountAction,
-} from "@/app/actions";
+import { changePasswordAction, deleteAccountAction } from "@/app/actions-auth";
+import { updateUserProfileAction } from "@/app/actions-profile";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

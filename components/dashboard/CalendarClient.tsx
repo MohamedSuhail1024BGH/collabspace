@@ -2,11 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import {
-  createCalendarEventAction,
-  updateCalendarEventAction,
-  deleteCalendarEventAction,
-} from "@/app/actions";
+import { createCalendarEventAction, updateCalendarEventAction, deleteCalendarEventAction } from "@/app/actions-calendar";
 import CalendarGrid from "@/components/dashboard/CalendarGrid";
 import CalendarWeekView from "@/components/dashboard/CalendarWeekView";
 import CalendarAgendaView from "@/components/dashboard/CalendarAgendaView";

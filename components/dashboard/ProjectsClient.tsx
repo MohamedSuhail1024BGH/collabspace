@@ -3,11 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
-import {
-  createProjectAction,
-  deleteProjectAction,
-  updateProjectAction,
-} from "@/app/actions";
+import { createProjectAction, deleteProjectAction, updateProjectAction } from "@/app/actions-projects";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
