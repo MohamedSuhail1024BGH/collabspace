@@ -61,7 +61,7 @@ Handy scripts: `npm run db:studio` (browse data), `npm run db:clean` (wipe seede
 | E2E tests (Playwright, 14 specs / 32 tests) | 🟡 runnable via `npm run test:e2e` |
 | Production build (`next build`) | ✅ passing |
 | Lint (ESLint 9, `eslint-config-next`) | ✅ passing (0 errors, 28 warnings) |
-| Production deploy | ✅ live at [collabspace-ten.vercel.app](https://collabspace-ten.vercel.app) — Vercel, region pinned to Mumbai (`bom1`) to match the `ap-south-1` Supabase database |
+| Production deploy | ✅ live at [collabspace-test.vercel.app](https://collabspace-test.vercel.app) — Vercel, region pinned to Mumbai (`bom1`) to match the `ap-south-1` Supabase database |
 | Database | Supabase Postgres via Drizzle ORM, 2 migrations applied |
 | Known gaps | `LICENSE` and `CONTRIBUTING.md` not yet added; no custom domain |
 
