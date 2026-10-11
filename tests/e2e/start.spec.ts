@@ -1,9 +1,11 @@
 import { test, expect } from "@playwright/test";
+import { dismissStatusNotice } from "./helpers/auth";
 
 test.describe("Start Launchpad & Discovery", () => {
   test("should allow owner to view workspaces, search public workspaces, and discover users", async ({ page }) => {
     await page.context().clearCookies();
     await page.goto("/login");
+    await dismissStatusNotice(page);
 
     // Login as useranon1 (Owner)
     await page.getByPlaceholder("name@company.com").fill("useranon1@cspace.com");

@@ -23,21 +23,37 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/db/auth";
 import { formatTimeShort } from "@/lib/format-time";
 import { Plus, ArrowRight } from "lucide-react";
+import { LandingPage } from "@/components/marketing/LandingPage";
 
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Dashboard Overview",
-  description:
-    "Monitor active projects, sprint velocity, priority tasks, and team workload in real time.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const user = await getCurrentUser();
+
+  if (user) {
+    return {
+      title: "Dashboard Overview",
+      description:
+        "Monitor active projects, sprint velocity, priority tasks, and team workload in real time.",
+    };
+  }
+
+  // Public landing page for visitors who are not signed in.
+  return {
+    title: {
+      absolute: "CollabSpace — The collaborative workspace for product teams",
+    },
+    description:
+      "Explore CollabSpace: organize projects, track tasks, coordinate schedules, chat in real time, and ship faster together. Note: the project is currently insecure and incomplete — a preview for evaluation only.",
+  };
+}
 
 export default async function Home() {
   const user = await getCurrentUser();
   if (!user) {
-    redirect("/login");
+    return <LandingPage />;
   }
 
   const activeWorkspace = await getActiveWorkspace();

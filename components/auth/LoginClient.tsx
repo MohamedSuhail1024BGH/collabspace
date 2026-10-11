@@ -74,7 +74,7 @@ export function LoginClient() {
             </ul>
 
             <p className="text-xs text-muted-foreground/60 font-mono">
-              Trusted by product teams worldwide
+              It is not a real product. This is a demo app built for learning purposes only. No data is stored or shared.
             </p>
           </div>
 

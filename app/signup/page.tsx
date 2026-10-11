@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/db/auth";
 import { SignupClient } from "@/components/auth/SignupClient";
+import { StatusNoticeDialog } from "@/components/marketing/StatusNoticeDialog";
 
 import type { Metadata } from "next";
 
@@ -16,6 +17,11 @@ export default async function SignupPage() {
   if (user) {
     redirect("/");
   }
-  return <SignupClient />;
+  return (
+    <>
+      <StatusNoticeDialog />
+      <SignupClient />
+    </>
+  );
 }
 
